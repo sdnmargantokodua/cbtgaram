@@ -29,15 +29,8 @@
         .toggle-checkbox:checked + .toggle-label { background-color: #2563eb; }
         
         /* CSS Khusus untuk Kop Surat */
-        .kop-surat-preview {
-            border-bottom: 3px solid black;
-            padding-bottom: 10px;
-            margin-bottom: 2px;
-        }
-        .kop-surat-garis-bawah {
-            border-bottom: 1px solid black;
-            margin-bottom: 15px;
-        }
+        .kop-surat-preview { border-bottom: 3px solid black; padding-bottom: 10px; margin-bottom: 2px; }
+        .kop-surat-garis-bawah { border-bottom: 1px solid black; margin-bottom: 15px; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex overflow-hidden">
@@ -76,8 +69,15 @@
             </div>
             
             <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-                <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-3 ml-2 mt-2">Menu Utama</p>
-                
+                <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-3 ml-2 mt-2">Data Umum</p>
+                <button onclick="switchTab('viewTahunPelajaran', 'Tahun Pelajaran & Semester'); loadTahunPelajaran();" id="btn-viewTahunPelajaran" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> Tahun Pelajaran
+                </button>
+                <button onclick="switchTab('viewProfil', 'Profil Institusi Sekolah')" id="btn-viewProfil" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> Profil Sekolah
+                </button>
+
+                <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-3 ml-2 mt-6">Manajemen Ujian</p>
                 <button onclick="switchTab('viewNilai', 'Data Nilai Siswa')" id="btn-viewNilai" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/50">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg> Data Nilai
                 </button>
@@ -85,18 +85,13 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg> Bank Soal
                 </button>
                 <button onclick="switchTab('viewUjian', 'Pengaturan Jadwal Ujian')" id="btn-viewUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> Jadwal Ujian
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Jadwal Ujian
                 </button>
                 <button onclick="switchTab('viewPeserta', 'Kelola Data Peserta')" id="btn-viewPeserta" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Data Peserta
                 </button>
                 <button onclick="switchTab('viewAdmin', 'Cetak Administrasi')" id="btn-viewAdmin" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Cetak Berkas
-                </button>
-                
-                <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-3 ml-2 mt-6">Sistem</p>
-                <button onclick="switchTab('viewProfil', 'Profil Institusi Sekolah')" id="btn-viewProfil" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> Profil Sekolah
                 </button>
             </nav>
 
@@ -137,6 +132,69 @@
                     <span class="ml-3 text-lg font-medium text-slate-600">Memproses Data...</span>
                 </div>
 
+                <!-- SECTION TAHUN PELAJARAN (MENU BARU) -->
+                <section id="viewTahunPelajaran" class="hidden view-section">
+                    <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800">Tahun Pelajaran dan Semester</h3>
+                            <p class="text-slate-500 text-sm">Atur Tahun Pelajaran dan Semester Aktif</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="loadTahunPelajaran()" class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold py-2 px-4 rounded-lg shadow-sm transition flex items-center gap-2">
+                                🔄 Reload
+                            </button>
+                            <button onclick="openModalTahun()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow transition">
+                                + Tambah Tahun Pelajaran
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                        <!-- Tabel Kiri: Tahun Pelajaran -->
+                        <div class="xl:col-span-3">
+                            <h4 class="font-bold text-slate-800 mb-3">Tahun Pelajaran</h4>
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead class="bg-slate-50 text-slate-700 text-sm border-b">
+                                            <tr>
+                                                <th class="p-4 text-center w-12 border-r">No.</th>
+                                                <th class="p-4 text-center border-r">Tahun Pelajaran</th>
+                                                <th class="p-4 text-center border-r">Status</th>
+                                                <th class="p-4 text-center w-40">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableTahunBody" class="text-sm divide-y divide-slate-100">
+                                            <!-- Data disuntikkan via JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabel Kanan: Semester -->
+                        <div class="xl:col-span-2">
+                            <h4 class="font-bold text-slate-800 mb-3">Semester</h4>
+                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden h-fit">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead class="bg-slate-50 text-slate-700 text-sm border-b">
+                                            <tr>
+                                                <th class="p-4 text-center w-12 border-r">No.</th>
+                                                <th class="p-4 text-center border-r">Semester</th>
+                                                <th class="p-4 text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableSemesterBody" class="text-sm divide-y divide-slate-100">
+                                            <!-- Data disuntikkan via JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- SECTION NILAI -->
                 <section id="viewNilai" class="block view-section">
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -172,27 +230,37 @@
                             <h3 class="text-xl font-black text-slate-800">Data Peserta Ujian</h3>
                             <p class="text-slate-500 text-sm">Total Peserta: <span id="cetakJumlahPeserta">0</span> Siswa</p>
                         </div>
-                        
-                        <!-- Grup Tombol Excel & Tambah -->
                         <div class="flex gap-2 flex-wrap">
                             <button onclick="downloadFormatPeserta()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg shadow transition flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export / Format
                             </button>
-                            
-                            <!-- Input File Tersembunyi -->
                             <input type="file" id="fileImportPeserta" accept=".xlsx, .xls" class="hidden" onchange="prosesImportPeserta(event)">
-                            
                             <button onclick="document.getElementById('fileImportPeserta').click()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg shadow transition flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> Import Excel
                             </button>
-                            
                             <button onclick="openPesertaModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg shadow transition">+ Tambah</button>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider"><tr><th class="p-4 border-b w-16 text-center">Absen</th><th class="p-4 border-b text-center">No Peserta</th><th class="p-4 border-b">Nama Lengkap</th><th class="p-4 border-b text-center">Ruang</th><th class="p-4 border-b text-center">Sesi</th><th class="p-4 border-b text-center">Password</th><th class="p-4 border-b text-center w-24">Aksi</th></tr></thead><tbody id="tablePesertaBody" class="text-sm divide-y divide-slate-100"></tbody></table></div></div>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"><div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider">
+                                <tr>
+                                    <th class="p-4 border-b w-16 text-center">Absen</th>
+                                    <th class="p-4 border-b text-center">No Peserta</th>
+                                    <th class="p-4 border-b">Nama Lengkap</th>
+                                    <th class="p-4 border-b text-center">Kelas</th>
+                                    <th class="p-4 border-b text-center">Ruang</th>
+                                    <th class="p-4 border-b text-center">Sesi</th>
+                                    <th class="p-4 border-b text-center">Password</th>
+                                    <th class="p-4 border-b text-center w-24">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablePesertaBody" class="text-sm divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div></div>
                 </section>
 
-              <!-- SECTION PROFIL -->
+                <!-- SECTION PROFIL -->
                 <section id="viewProfil" class="hidden view-section max-w-4xl">
                     <div class="mb-4"><h3 class="text-xl font-black text-slate-800">Profil & Kop Surat Sekolah</h3></div>
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -203,7 +271,6 @@
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">Email Sekolah</label><input type="email" id="profEmail" oninput="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500" placeholder="emailsekolah@gmail.com"></div>
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">Website / Blog Sekolah</label><input type="text" id="profWebsite" oninput="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500" placeholder="www.sdnmargantoko2.my.id"></div>
                                 
-                                <!-- Tambahan Nama Ujian dan Kelas -->
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">Nama Ujian</label>
                                     <select id="profNamaUjian" onchange="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500 font-bold text-blue-700">
@@ -240,7 +307,7 @@
                                 </div>
                             </div>
 
-                            <!-- Preview Kop Surat Resmi -->
+                            <!-- Preview Kop Surat -->
                             <div class="mb-8 p-6 bg-white border border-slate-300 rounded-lg shadow-sm">
                                 <p class="text-xs font-bold text-slate-500 mb-4 uppercase tracking-widest text-center">Preview Kop Surat & Judul pada Hasil Cetak</p>
                                 <div class="bg-white p-4">
@@ -253,17 +320,13 @@
                                             <h4 class="text-lg font-bold uppercase text-black">DINAS PENDIDIKAN</h4>
                                             <h2 class="text-2xl font-black uppercase text-black mt-1" id="kopNamaSekolah">UPTD SDN MARGANTOKO 2</h2>
                                             <p class="text-sm text-black mt-1" id="kopAlamatSekolah">Alamat Sekolah</p>
-                                            <p class="text-xs text-black mt-0.5">
-                                                <span id="kopEmail">Email: -</span> | <span id="kopWebsite">Website: -</span>
-                                            </p>
+                                            <p class="text-xs text-black mt-0.5"><span id="kopEmail">Email: -</span> | <span id="kopWebsite">Website: -</span></p>
                                         </div>
                                         <div class="w-20 h-24 flex items-center justify-center">
                                             <img id="kopLogoKanan" src="" class="max-w-full max-h-full object-contain hidden">
                                         </div>
                                     </div>
                                     <div class="kop-surat-garis-bawah"></div>
-                                    
-                                    <!-- Preview Judul Dokumen -->
                                     <div class="mt-4 text-center text-black">
                                         <h4 class="font-bold text-lg uppercase underline">DAFTAR HADIR PESERTA</h4>
                                         <h5 class="font-bold text-md uppercase mt-1" id="previewNamaUjian">PENILAIAN AKHIR JENJANG (PAJ)</h5>
@@ -278,38 +341,6 @@
                         </form>
                     </div>
                 </section>
-                            <!-- FUNGSI UPDATE PREVIEW KOP -->
-    <script>
-        window.updatePreviewKop = () => {
-            const nama = document.getElementById('profSekolah').value || 'NAMA SEKOLAH';
-            const alamat = document.getElementById('profAlamat').value || 'Alamat Sekolah';
-            const email = document.getElementById('profEmail').value || 'email@sekolah.com';
-            const website = document.getElementById('profWebsite').value || 'www.sekolah.sch.id';
-            const namaUjian = document.getElementById('profNamaUjian').value || 'PENILAIAN AKHIR JENJANG (PAJ)';
-            const kelas = document.getElementById('profKelas').value || '-';
-            const tahun = document.getElementById('profTahun').value || '20.../20...';
-            
-            const logoKab = document.getElementById('logoKabBase64').value;
-            const logoSekolah = document.getElementById('logoSekolahBase64').value;
-
-            document.getElementById('kopNamaSekolah').innerText = nama;
-            document.getElementById('kopAlamatSekolah').innerText = alamat;
-            document.getElementById('kopEmail').innerText = "Email: " + email;
-            document.getElementById('kopWebsite').innerText = "Website: " + website;
-            
-            document.getElementById('previewNamaUjian').innerText = namaUjian;
-            document.getElementById('previewKelas').innerText = kelas;
-            document.getElementById('previewTahunPelajaran').innerText = tahun;
-
-            const imgKiri = document.getElementById('kopLogoKiri');
-            if(logoKab) { imgKiri.src = logoKab; imgKiri.classList.remove('hidden'); } 
-            else { imgKiri.classList.add('hidden'); }
-
-            const imgKanan = document.getElementById('kopLogoKanan');
-            if(logoSekolah) { imgKanan.src = logoSekolah; imgKanan.classList.remove('hidden'); } 
-            else { imgKanan.classList.add('hidden'); }
-        };
-    </script>
 
                 <!-- SECTION CETAK ADMIN -->
                 <section id="viewAdmin" class="hidden view-section">
@@ -332,19 +363,32 @@
     <!-- MODAL INJECTIONS               -->
     <!-- ============================== -->
 
+    <!-- Modal Tambah Tahun Pelajaran -->
+    <div id="modalTahunPelajaran" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full flex flex-col">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl">
+                <h3 class="text-lg font-bold text-slate-800">Tahun Pelajaran</h3>
+                <button onclick="closeModal('modalTahunPelajaran')" class="text-slate-400 font-bold text-2xl hover:text-slate-600">✖</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="tahunId">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Nama Tahun Pelajaran</label>
+                    <input type="text" id="inputNamaTahun" class="w-full p-2 border border-slate-300 rounded outline-none" placeholder="Contoh: 2026/2027">
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-end gap-3">
+                <button type="button" onclick="closeModal('modalTahunPelajaran')" class="px-4 py-2 border rounded font-bold text-slate-600">Batal</button>
+                <button type="button" onclick="simpanTahunPelajaran()" class="px-4 py-2 bg-blue-600 text-white rounded font-bold shadow">Simpan</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Formula -->
     <div id="modalFormula" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-[60] hidden flex items-center justify-center p-4"><div class="bg-white rounded-xl shadow-2xl max-w-lg w-full flex flex-col"><div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl"><h3 class="text-lg font-bold text-slate-800">Editor Formula</h3><button onclick="closeModal('modalFormula')" class="text-slate-400 font-bold">✖</button></div><div class="p-6"><textarea id="formulaInput" rows="3" class="w-full p-3 border border-slate-300 rounded font-mono mb-4 outline-none focus:border-blue-500" placeholder="\frac{1}{2} x^2"></textarea><div id="formulaPreview" class="p-4 border border-slate-200 rounded min-h-[80px] flex items-center justify-center bg-slate-50 text-lg"></div></div><div class="p-4 border-t flex justify-end gap-3"><button onclick="closeModal('modalFormula')" class="px-4 py-2 border rounded">Batal</button><button onclick="closeModal('modalFormula')" class="px-4 py-2 bg-blue-600 text-white rounded font-bold">Tutup</button></div></div></div>
 
     <!-- Modal Detail Nilai -->
-    <div id="modalDetailNilai" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
-            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl">
-                <div><h3 class="text-lg font-bold text-slate-800" id="detailNamaSiswa">-</h3><p class="text-sm text-slate-500">Absen: <span id="detailAbsenSiswa">-</span> | Skor: <span id="detailSkorSiswa" class="font-bold text-blue-600">0</span></p></div>
-                <button onclick="closeModal('modalDetailNilai')" class="text-slate-400 font-bold text-2xl hover:text-slate-600">✖</button>
-            </div>
-            <div class="p-6 overflow-y-auto" id="detailJawabanContainer"></div>
-        </div>
-    </div>
+    <div id="modalDetailNilai" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-[60] hidden flex items-center justify-center p-4"><div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]"><div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl"><div><h3 class="text-lg font-bold text-slate-800" id="detailNamaSiswa">-</h3><p class="text-sm text-slate-500">Absen: <span id="detailAbsenSiswa">-</span> | Skor: <span id="detailSkorSiswa" class="font-bold text-blue-600">0</span></p></div><button onclick="closeModal('modalDetailNilai')" class="text-slate-400 font-bold text-2xl hover:text-slate-600">✖</button></div><div class="p-6 overflow-y-auto" id="detailJawabanContainer"></div></div></div>
 
     <!-- Modal Form Soal -->
     <div id="modalFormSoal" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-[60] hidden flex items-center justify-center p-4">
@@ -368,45 +412,14 @@
                             <option value="URAIAN">Uraian / Esai</option>
                         </select>
                     </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Pertanyaan</label>
-                        <textarea id="soalPertanyaan" rows="3" class="w-full p-3 border border-slate-300 rounded outline-none focus:border-blue-500" placeholder="Ketik pertanyaan di sini..."></textarea>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Gambar Soal (Opsional)</label>
-                        <input type="file" accept="image/*" onchange="previewImage(this, 'previewSoal', 'soalGambarBase64')" class="w-full text-sm">
-                        <input type="hidden" id="soalGambarBase64">
-                        <img id="previewSoal" class="hidden mt-2 max-h-40 rounded border">
-                    </div>
+                    <div class="mb-4"><label class="block text-sm font-bold text-slate-700 mb-1">Pertanyaan</label><textarea id="soalPertanyaan" rows="3" class="w-full p-3 border border-slate-300 rounded outline-none focus:border-blue-500" placeholder="Ketik pertanyaan di sini..."></textarea></div>
+                    <div class="mb-4"><label class="block text-sm font-bold text-slate-700 mb-1">Gambar Soal (Opsional)</label><input type="file" accept="image/*" onchange="previewImage(this, 'previewSoal', 'soalGambarBase64')" class="w-full text-sm"><input type="hidden" id="soalGambarBase64"><img id="previewSoal" class="hidden mt-2 max-h-40 rounded border"></div>
 
                     <!-- Container Pilihan Ganda -->
-                    <div id="containerPG" class="space-y-3 p-4 border border-slate-200 rounded bg-slate-50">
-                        <p class="font-bold text-sm text-slate-700 mb-2">Opsi & Kunci Jawaban</p>
-                        <!-- Opsi A, B, C, D di-render manual untuk singkatnya -->
-                        <div class="flex items-center gap-3"><input type="radio" name="kunciJawabanPG" value="A"><input type="text" id="optA" class="flex-1 p-2 border rounded" placeholder="Opsi A"></div>
-                        <div class="flex items-center gap-3"><input type="radio" name="kunciJawabanPG" value="B"><input type="text" id="optB" class="flex-1 p-2 border rounded" placeholder="Opsi B"></div>
-                        <div class="flex items-center gap-3"><input type="radio" name="kunciJawabanPG" value="C"><input type="text" id="optC" class="flex-1 p-2 border rounded" placeholder="Opsi C"></div>
-                        <div class="flex items-center gap-3"><input type="radio" name="kunciJawabanPG" value="D"><input type="text" id="optD" class="flex-1 p-2 border rounded" placeholder="Opsi D"></div>
-                    </div>
-
-                    <div id="containerPGKompleks" class="hidden space-y-3 p-4 border border-slate-200 rounded bg-slate-50">
-                        <p class="font-bold text-sm text-slate-700 mb-2">Opsi & Kunci Jawaban (Centang yang benar)</p>
-                        <div class="flex items-center gap-3"><input type="checkbox" name="kunciJawabanKompleks" value="A"><input type="text" id="optA_K" class="flex-1 p-2 border rounded" placeholder="Opsi 1"></div>
-                        <div class="flex items-center gap-3"><input type="checkbox" name="kunciJawabanKompleks" value="B"><input type="text" id="optB_K" class="flex-1 p-2 border rounded" placeholder="Opsi 2"></div>
-                        <div class="flex items-center gap-3"><input type="checkbox" name="kunciJawabanKompleks" value="C"><input type="text" id="optC_K" class="flex-1 p-2 border rounded" placeholder="Opsi 3"></div>
-                        <div class="flex items-center gap-3"><input type="checkbox" name="kunciJawabanKompleks" value="D"><input type="text" id="optD_K" class="flex-1 p-2 border rounded" placeholder="Opsi 4"></div>
-                    </div>
-
-                    <div id="containerBS" class="hidden p-4 border border-slate-200 rounded bg-slate-50">
-                        <p class="font-bold text-sm text-slate-700 mb-2">Pilih Kunci Jawaban</p>
-                        <label class="mr-4"><input type="radio" name="kunciBS" value="Benar"> Benar</label>
-                        <label><input type="radio" name="kunciBS" value="Salah"> Salah</label>
-                    </div>
-
-                    <div id="containerIsian" class="hidden p-4 border border-slate-200 rounded bg-slate-50">
-                        <label class="font-bold text-sm text-slate-700 mb-1 block">Kunci Jawaban Singkat</label>
-                        <input type="text" id="kunciIsian" class="w-full p-2 border rounded" placeholder="Tulis jawaban pasti...">
-                    </div>
+                    <div id="containerPG" class="space-y-3 p-4 border border-slate-200 rounded bg-slate-50"><p class="font-bold text-sm text-slate-700 mb-2">Opsi & Kunci Jawaban</p><div class="flex items-center gap-3"><input type="radio" name="kunciJawabanPG" value="A"><input type="text" id="optA" class="flex-1 p-2 border rounded" placeholder="Opsi A"></div><div class="flex items-center gap-3"><input type="radio" name="kunciJawabanPG" value="B"><input type="text" id="optB" class="flex-1 p-2 border rounded" placeholder="Opsi B"></div><div class="flex items-center gap-3"><input type="radio" name="kunciJawabanPG" value="C"><input type="text" id="optC" class="flex-1 p-2 border rounded" placeholder="Opsi C"></div><div class="flex items-center gap-3"><input type="radio" name="kunciJawabanPG" value="D"><input type="text" id="optD" class="flex-1 p-2 border rounded" placeholder="Opsi D"></div></div>
+                    <div id="containerPGKompleks" class="hidden space-y-3 p-4 border border-slate-200 rounded bg-slate-50"><p class="font-bold text-sm text-slate-700 mb-2">Opsi & Kunci Jawaban (Centang yang benar)</p><div class="flex items-center gap-3"><input type="checkbox" name="kunciJawabanKompleks" value="A"><input type="text" id="optA_K" class="flex-1 p-2 border rounded" placeholder="Opsi 1"></div><div class="flex items-center gap-3"><input type="checkbox" name="kunciJawabanKompleks" value="B"><input type="text" id="optB_K" class="flex-1 p-2 border rounded" placeholder="Opsi 2"></div><div class="flex items-center gap-3"><input type="checkbox" name="kunciJawabanKompleks" value="C"><input type="text" id="optC_K" class="flex-1 p-2 border rounded" placeholder="Opsi 3"></div><div class="flex items-center gap-3"><input type="checkbox" name="kunciJawabanKompleks" value="D"><input type="text" id="optD_K" class="flex-1 p-2 border rounded" placeholder="Opsi 4"></div></div>
+                    <div id="containerBS" class="hidden p-4 border border-slate-200 rounded bg-slate-50"><p class="font-bold text-sm text-slate-700 mb-2">Pilih Kunci Jawaban</p><label class="mr-4"><input type="radio" name="kunciBS" value="Benar"> Benar</label><label><input type="radio" name="kunciBS" value="Salah"> Salah</label></div>
+                    <div id="containerIsian" class="hidden p-4 border border-slate-200 rounded bg-slate-50"><label class="font-bold text-sm text-slate-700 mb-1 block">Kunci Jawaban Singkat</label><input type="text" id="kunciIsian" class="w-full p-2 border rounded" placeholder="Tulis jawaban pasti..."></div>
                 </form>
             </div>
             <div class="p-4 border-t border-slate-200 flex justify-end gap-3 bg-slate-50 rounded-b-xl">
@@ -431,7 +444,8 @@
                         <div><label class="block text-sm font-bold text-slate-700 mb-1">No Ujian</label><input type="text" id="pesertaNoUjian" class="w-full p-2 border border-slate-300 rounded outline-none"></div>
                     </div>
                     <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Lengkap</label><input type="text" id="pesertaNama" class="w-full p-2 border border-slate-300 rounded outline-none uppercase" required></div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div><label class="block text-sm font-bold text-slate-700 mb-1">Kelas</label><input type="text" id="pesertaKelas" class="w-full p-2 border border-slate-300 rounded outline-none uppercase" placeholder="VI"></div>
                         <div><label class="block text-sm font-bold text-slate-700 mb-1">Ruang</label><input type="text" id="pesertaRuang" class="w-full p-2 border border-slate-300 rounded outline-none" placeholder="R-01"></div>
                         <div><label class="block text-sm font-bold text-slate-700 mb-1">Sesi</label><input type="text" id="pesertaSesi" class="w-full p-2 border border-slate-300 rounded outline-none" placeholder="1"></div>
                     </div>
@@ -439,7 +453,6 @@
                         <label class="block text-sm font-bold text-slate-700 mb-1">Password (Opsional)</label>
                         <div class="flex gap-2">
                             <input type="text" id="pesertaPassword" class="flex-1 p-2 border border-slate-300 rounded outline-none font-mono tracking-widest uppercase" placeholder="Kosong = No Absen">
-                            <!-- Tombol Generate -->
                             <button type="button" onclick="generatePassword()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded font-bold text-sm transition shadow-sm" title="Buat Password Acak">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                             </button>
@@ -474,16 +487,17 @@
         </div>
     </div>
 
-    <!-- HUBUNGKAN DENGAN MODUL JAVASCRIPT -->
     <script type="module" src="./js/main.js"></script>
 
-   <!-- FUNGSI UPDATE PREVIEW KOP -->
     <script>
         window.updatePreviewKop = () => {
             const nama = document.getElementById('profSekolah').value || 'NAMA SEKOLAH';
             const alamat = document.getElementById('profAlamat').value || 'Alamat Sekolah';
             const email = document.getElementById('profEmail').value || 'email@sekolah.com';
             const website = document.getElementById('profWebsite').value || 'www.sekolah.sch.id';
+            const namaUjian = document.getElementById('profNamaUjian').value || 'PENILAIAN AKHIR JENJANG (PAJ)';
+            const kelas = document.getElementById('profKelas').value || '-';
+            const tahun = document.getElementById('profTahun').value || '20.../20...';
             
             const logoKab = document.getElementById('logoKabBase64').value;
             const logoSekolah = document.getElementById('logoSekolahBase64').value;
@@ -492,16 +506,16 @@
             document.getElementById('kopAlamatSekolah').innerText = alamat;
             document.getElementById('kopEmail').innerText = "Email: " + email;
             document.getElementById('kopWebsite').innerText = "Website: " + website;
+            
+            document.getElementById('previewNamaUjian').innerText = namaUjian;
+            document.getElementById('previewKelas').innerText = kelas;
+            document.getElementById('previewTahunPelajaran').innerText = tahun;
 
             const imgKiri = document.getElementById('kopLogoKiri');
-            if(logoKab) { imgKiri.src = logoKab; imgKiri.classList.remove('hidden'); } 
-            else { imgKiri.classList.add('hidden'); }
-
+            if(logoKab) { imgKiri.src = logoKab; imgKiri.classList.remove('hidden'); } else { imgKiri.classList.add('hidden'); }
             const imgKanan = document.getElementById('kopLogoKanan');
-            if(logoSekolah) { imgKanan.src = logoSekolah; imgKanan.classList.remove('hidden'); } 
-            else { imgKanan.classList.add('hidden'); }
+            if(logoSekolah) { imgKanan.src = logoSekolah; imgKanan.classList.remove('hidden'); } else { imgKanan.classList.add('hidden'); }
         };
     </script>
-
 </body>
 </html>
