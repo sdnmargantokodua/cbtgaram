@@ -14,110 +14,120 @@ window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
 
 // ==========================================
-// DATA UJIAN: JENIS UJIAN (BARU)
+// DATA UJIAN: SESI UJIAN (BARU)
 // ==========================================
-state.masterJenisUjian = [];
+state.masterSesiUjian = [];
 
-window.loadJenisUjian = async () => {
+window.loadSesiUjian = async () => {
     try {
-        const snap = await getDocs(collection(db, 'master_jenis_ujian'));
-        state.masterJenisUjian = [];
-        snap.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()}));
+        const snap = await getDocs(collection(db, 'master_sesi_ujian'));
+        state.masterSesiUjian = [];
+        snap.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()}));
         
         // Auto-Generate Data Awal Jika Kosong
-        if(state.masterJenisUjian.length === 0) {
-            const defaultJenis = [
-                { nama: 'Penilaian Harian', kode: 'PH', noUrut: 1 },
-                { nama: 'Penilaian Tengah Semester', kode: 'PTS', noUrut: 2 },
-                { nama: 'Penilaian Akhir Semester', kode: 'PAS', noUrut: 3 },
-                { nama: 'Penilaian Akhir Tahun', kode: 'PAT', noUrut: 4 },
-                { nama: 'Ujian Sekolah Berbasis Komputer', kode: 'USBK', noUrut: 5 },
-                { nama: 'Try Out', kode: 'TO', noUrut: 6 },
-                { nama: 'Simulasi', kode: 'SIML', noUrut: 7 }
+        if(state.masterSesiUjian.length === 0) {
+            const defaultSesi = [
+                { nama: 'Sesi 1', kode: 'S1', waktuMulai: '07:30:00', waktuSelesai: '09:30:00', noUrut: 1 },
+                { nama: 'Sesi 2', kode: 'S2', waktuMulai: '10:00:32', waktuSelesai: '12:00:40', noUrut: 2 }
             ];
-            for (const j of defaultJenis) {
-                const docRef = await addDoc(collection(db, 'master_jenis_ujian'), j);
-                state.masterJenisUjian.push({ id: docRef.id, ...j });
+            for (const s of defaultSesi) {
+                const docRef = await addDoc(collection(db, 'master_sesi_ujian'), s);
+                state.masterSesiUjian.push({ id: docRef.id, ...s });
             }
         }
 
         // Urutkan berdasarkan noUrut
-        state.masterJenisUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
-        window.renderTableJenisUjian();
-    } catch(e) { console.error("Error loading jenis ujian:", e); }
+        state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        window.renderTableSesiUjian();
+    } catch(e) { console.error("Error loading sesi ujian:", e); }
 };
 
-window.renderTableJenisUjian = () => {
-    const tb = document.getElementById('tableJenisUjianBody');
+window.renderTableSesiUjian = () => {
+    const tb = document.getElementById('tableSesiUjianBody');
     tb.innerHTML = '';
     
-    if (state.masterJenisUjian.length === 0) {
-        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>';
+    if (state.masterSesiUjian.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>';
         return;
     }
 
-    state.masterJenisUjian.forEach((ju, i) => {
+    state.masterSesiUjian.forEach((s, i) => {
         tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition">
                 <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
                 <td class="p-3 text-center border-r">${i+1}</td>
-                <td class="p-3 border-r">${ju.nama || '-'}</td>
-                <td class="p-3 border-r text-center font-mono">${ju.kode || '-'}</td>
+                <td class="p-3 border-r">${s.nama || '-'}</td>
+                <td class="p-3 border-r text-center font-mono">${s.kode || '-'}</td>
+                <td class="p-3 border-r text-center font-mono">${s.waktuMulai || '-'} s/d ${s.waktuSelesai || '-'}</td>
                 <td class="p-3 text-center space-x-1">
-                    <button onclick="editJenisUjian('${ju.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button>
+                    <button onclick="editSesiUjian('${s.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button>
                 </td>
             </tr>
         `;
     });
 };
 
-window.openModalJenisUjian = () => {
-    document.getElementById('jenisUjianId').value = '';
-    document.getElementById('inputNamaJenisUjian').value = '';
-    document.getElementById('inputKodeJenisUjian').value = '';
-    document.getElementById('modalJenisUjian').classList.remove('hidden');
+window.openModalSesiUjian = () => {
+    document.getElementById('sesiUjianId').value = '';
+    document.getElementById('inputNamaSesi').value = '';
+    document.getElementById('inputKodeSesi').value = '';
+    document.getElementById('inputWaktuMulai').value = '07:30:00';
+    document.getElementById('inputWaktuSelesai').value = '09:30:00';
+    document.getElementById('modalSesiUjian').classList.remove('hidden');
 };
 
-window.simpanJenisUjian = async () => {
-    const id = document.getElementById('jenisUjianId').value;
-    const nama = document.getElementById('inputNamaJenisUjian').value.trim();
-    const kode = document.getElementById('inputKodeJenisUjian').value.trim().toUpperCase();
+window.simpanSesiUjian = async () => {
+    const id = document.getElementById('sesiUjianId').value;
+    const nama = document.getElementById('inputNamaSesi').value.trim();
+    const kode = document.getElementById('inputKodeSesi').value.trim().toUpperCase();
+    const waktuMulai = document.getElementById('inputWaktuMulai').value;
+    const waktuSelesai = document.getElementById('inputWaktuSelesai').value;
 
-    if(!nama) return alert("Nama Jenis Ujian wajib diisi!");
+    if(!nama) return alert("Nama Sesi wajib diisi!");
     
     const data = { 
         nama, 
         kode, 
-        noUrut: state.masterJenisUjian.length + 1 
+        waktuMulai, 
+        waktuSelesai, 
+        noUrut: state.masterSesiUjian.length + 1 
     };
     
     try {
         if(id) {
             // Mempertahankan noUrut lama jika update
-            const old = state.masterJenisUjian.find(x => x.id === id);
+            const old = state.masterSesiUjian.find(x => x.id === id);
             if(old) data.noUrut = old.noUrut;
-            await updateDoc(doc(db, 'master_jenis_ujian', id), data);
+            await updateDoc(doc(db, 'master_sesi_ujian', id), data);
         } else {
-            await addDoc(collection(db, 'master_jenis_ujian'), data);
+            await addDoc(collection(db, 'master_sesi_ujian'), data);
         }
-        closeModal('modalJenisUjian');
-        loadJenisUjian(); 
-    } catch(e) { alert("Gagal menyimpan jenis ujian."); console.error(e); }
+        closeModal('modalSesiUjian');
+        loadSesiUjian(); 
+    } catch(e) { alert("Gagal menyimpan sesi ujian."); console.error(e); }
 };
 
-window.editJenisUjian = (id) => {
-    const ju = state.masterJenisUjian.find(x => x.id === id);
-    if(!ju) return;
-    document.getElementById('jenisUjianId').value = ju.id;
-    document.getElementById('inputNamaJenisUjian').value = ju.nama || '';
-    document.getElementById('inputKodeJenisUjian').value = ju.kode || '';
-    document.getElementById('modalJenisUjian').classList.remove('hidden');
+window.editSesiUjian = (id) => {
+    const s = state.masterSesiUjian.find(x => x.id === id);
+    if(!s) return;
+    document.getElementById('sesiUjianId').value = s.id;
+    document.getElementById('inputNamaSesi').value = s.nama || '';
+    document.getElementById('inputKodeSesi').value = s.kode || '';
+    document.getElementById('inputWaktuMulai').value = s.waktuMulai || '';
+    document.getElementById('inputWaktuSelesai').value = s.waktuSelesai || '';
+    document.getElementById('modalSesiUjian').classList.remove('hidden');
 };
 
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
-state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+
+window.loadJenisUjian = async () => { try { const snap = await getDocs(collection(db, 'master_jenis_ujian')); state.masterJenisUjian = []; snap.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()})); if(state.masterJenisUjian.length === 0) { const defaultJenis = [ { nama: 'Penilaian Harian', kode: 'PH', noUrut: 1 }, { nama: 'Penilaian Tengah Semester', kode: 'PTS', noUrut: 2 }, { nama: 'Penilaian Akhir Semester', kode: 'PAS', noUrut: 3 }, { nama: 'Penilaian Akhir Tahun', kode: 'PAT', noUrut: 4 }, { nama: 'Ujian Sekolah Berbasis Komputer', kode: 'USBK', noUrut: 5 }, { nama: 'Try Out', kode: 'TO', noUrut: 6 }, { nama: 'Simulasi', kode: 'SIML', noUrut: 7 } ]; for (const j of defaultJenis) { const docRef = await addDoc(collection(db, 'master_jenis_ujian'), j); state.masterJenisUjian.push({ id: docRef.id, ...j }); } } state.masterJenisUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); window.renderTableJenisUjian(); } catch(e) { console.error(e); } };
+window.renderTableJenisUjian = () => { const tb = document.getElementById('tableJenisUjianBody'); tb.innerHTML = ''; if (state.masterJenisUjian.length === 0) return tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>'; state.masterJenisUjian.forEach((ju, i) => { tb.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td><td class="p-3 text-center border-r">${i+1}</td><td class="p-3 border-r">${ju.nama || '-'}</td><td class="p-3 border-r text-center font-mono">${ju.kode || '-'}</td><td class="p-3 text-center space-x-1"><button onclick="editJenisUjian('${ju.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button></td></tr>`; }); };
+window.openModalJenisUjian = () => { document.getElementById('jenisUjianId').value = ''; document.getElementById('inputNamaJenisUjian').value = ''; document.getElementById('inputKodeJenisUjian').value = ''; document.getElementById('modalJenisUjian').classList.remove('hidden'); };
+window.simpanJenisUjian = async () => { const id = document.getElementById('jenisUjianId').value; const nama = document.getElementById('inputNamaJenisUjian').value.trim(); const kode = document.getElementById('inputKodeJenisUjian').value.trim().toUpperCase(); if(!nama) return alert("Nama Jenis Ujian wajib diisi!"); const data = { nama, kode, noUrut: state.masterJenisUjian.length + 1 }; try { if(id) { const old = state.masterJenisUjian.find(x => x.id === id); if(old) data.noUrut = old.noUrut; await updateDoc(doc(db, 'master_jenis_ujian', id), data); } else { await addDoc(collection(db, 'master_jenis_ujian'), data); } closeModal('modalJenisUjian'); loadJenisUjian(); } catch(e) { console.error(e); } };
+window.editJenisUjian = (id) => { const ju = state.masterJenisUjian.find(x => x.id === id); if(!ju) return; document.getElementById('jenisUjianId').value = ju.id; document.getElementById('inputNamaJenisUjian').value = ju.nama || ''; document.getElementById('inputKodeJenisUjian').value = ju.kode || ''; document.getElementById('modalJenisUjian').classList.remove('hidden'); };
 
 window.loadGuru = async () => { try { const snap = await getDocs(collection(db, 'master_guru')); state.masterGuru = []; snap.forEach(d => state.masterGuru.push({id: d.id, ...d.data()})); state.masterGuru.sort((a,b) => (a.nama || '').localeCompare(b.nama || '')); window.renderGridGuru(); } catch(e) { console.error(e); } };
 window.renderGridGuru = () => { const container = document.getElementById('gridGuruContainer'); const searchTerm = (document.getElementById('searchGuru')?.value || '').toUpperCase(); container.innerHTML = ''; const filteredGuru = state.masterGuru.filter(g => (g.nama || '').toUpperCase().includes(searchTerm) || (g.nip || '').toUpperCase().includes(searchTerm) ); if (filteredGuru.length === 0) return container.innerHTML = '<div class="col-span-full p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">Belum ada data guru atau pencarian tidak ditemukan.</div>'; filteredGuru.forEach((g) => { const badgeAktif = g.isActive !== false ? `<span class="bg-green-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Aktif</span>` : `<span class="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Nonaktif</span>`; container.innerHTML += `<div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative transition hover:shadow-md"><div class="h-1 w-full bg-blue-500 absolute top-0 left-0"></div><div class="p-5 flex gap-4 mt-1 items-center"><div class="w-[70px] h-[70px] rounded-full border-2 border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center text-4xl shadow-inner">👨‍🏫</div><div class="flex-1"><p class="text-[11px] text-slate-500 tracking-wider font-mono">${g.nip || '-'}</p><h4 class="font-bold text-[15px] text-slate-800 uppercase mt-0.5 leading-tight line-clamp-2">${g.nama || '-'}</h4><p class="text-[10px] text-blue-600 font-bold uppercase mt-1 mb-2">${g.jabatan || 'Guru Kelas'}</p><div>${badgeAktif}</div></div></div><div class="px-4 pb-4 pt-3 flex justify-between items-center gap-2 border-t border-slate-100 bg-slate-50/50 mt-1"><div class="flex gap-2"><button onclick="editGuru('${g.id}')" class="text-blue-600 bg-white border border-blue-500 hover:bg-blue-50 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm">✏️ Profile</button><button onclick="editJabatanGuru('${g.id}')" class="text-blue-600 bg-white border border-blue-500 hover:bg-blue-50 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm">✏️ Jabatan</button></div><button onclick="hapusGuru('${g.id}')" class="text-red-500 bg-white border border-red-300 hover:bg-red-50 hover:border-red-500 px-3 py-1.5 rounded text-xs transition shadow-sm">🗑️</button></div></div>`; }); };
@@ -127,7 +137,7 @@ window.editGuru = (id) => { const g = state.masterGuru.find(x => x.id === id); i
 window.hapusGuru = async (id) => { if(confirm("Yakin ingin menghapus data guru ini? Data yang terhapus tidak dapat dikembalikan.")) { await deleteDoc(doc(db, 'master_guru', id)); loadGuru(); } };
 window.editJabatanGuru = async (id) => { const g = state.masterGuru.find(x => x.id === id); if(!g) return; const jabatanBaru = prompt(`Masukkan Jabatan untuk ${g.nama}\n(Contoh: Wali Kelas 5A, Guru PAI, dll):`, g.jabatan || "Guru Kelas"); if(jabatanBaru !== null) { await updateDoc(doc(db, 'master_guru', id), { jabatan: jabatanBaru.toUpperCase() }); loadGuru(); } };
 window.downloadFormatGuru = () => { const headers = ['No', 'Nama\n(2-50 huruf atau angka)', 'NIP/NUPTK\n(4-12 angka)', 'KODE\n(1-5 huruf atau angka)', 'USERNAME\n(unique/jangan sama)\nhuruf kecil', 'PASSWORD']; let dataExport = []; if(state.masterGuru.length === 0) { let dummy = {}; headers.forEach(h => dummy[h] = ''); dummy['No'] = 1; dummy['Nama\n(2-50 huruf atau angka)'] = 'YOYON SUGIYONO, S.Pd., M.Pd.'; dummy['NIP/NUPTK\n(4-12 angka)'] = '198501012010011001'; dummy['KODE\n(1-5 huruf atau angka)'] = 'YOY'; dummy['USERNAME\n(unique/jangan sama)\nhuruf kecil'] = 'yoyon'; dummy['PASSWORD'] = '123456'; dataExport.push(dummy); } else { state.masterGuru.forEach((g, i) => { let row = {}; headers.forEach(h => row[h] = ''); row['No'] = i+1; row['Nama\n(2-50 huruf atau angka)'] = g.nama; row['NIP/NUPTK\n(4-12 angka)'] = g.nip; row['KODE\n(1-5 huruf atau angka)'] = g.kode || ''; row['USERNAME\n(unique/jangan sama)\nhuruf kecil'] = g.username || g.nip; row['PASSWORD'] = g.password || g.nip; dataExport.push(row); }); } const ws = XLSX.utils.json_to_sheet(dataExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data_Guru"); XLSX.writeFile(wb, "format_guru.xlsx"); };
-window.prosesImportGuru = async (e) => { const f = e.target.files[0]; if(!f) return; document.getElementById('loadingIndicator').classList.remove('hidden'); const r = new FileReader(); r.onload = async (evt) => { try { const d = new Uint8Array(evt.target.result); const wb = XLSX.read(d, {type:'array'}); const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let success = 0; for (const row of json) { const nip = row['NIP/NUPTK\n(4-12 angka)'] || row['NIP/NUPTK'] || row['NIP']; const nama = row['Nama\n(2-50 huruf atau angka)'] || row['Nama'] || row['NAMA']; if (!nip || !nama) continue; let nipStr = String(nip).trim(); const dataSimpan = { nip: nipStr, nama: String(nama).trim().toUpperCase(), kode: String(row['KODE\n(1-5 huruf atau angka)'] || row['KODE'] || '').trim().toUpperCase(), username: String(row['USERNAME\n(unique/jangan sama)\nhuruf kecil'] || row['USERNAME'] || nipStr).trim().toLowerCase(), password: String(row['PASSWORD'] || nipStr).trim(), isActive: true, jabatan: 'GURU KELAS' }; const ex = state.masterGuru.find(x => x.nip === dataSimpan.nip); if (ex && ex.id) { await updateDoc(doc(db, 'master_guru', ex.id), dataSimpan); } else { await addDoc(collection(db, 'master_guru'), dataSimpan); } success++; } alert(`Berhasil memproses ${success} data guru dari Excel!`); } catch(err) { console.error("Error import excel guru:", err); alert("Terjadi kesalahan sistem."); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('fileImportGuru').value = ''; loadGuru(); } }; r.readAsArrayBuffer(f); };
+window.prosesImportGuru = async (e) => { const f = e.target.files[0]; if(!f) return; document.getElementById('loadingIndicator').classList.remove('hidden'); const r = new FileReader(); r.onload = async (evt) => { try { const d = new Uint8Array(evt.target.result); const wb = XLSX.read(d, {type:'array'}); const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let success = 0; for (const row of json) { const nip = row['NIP/NUPTK\n(4-12 angka)'] || row['NIP/NUPTK'] || row['NIP']; const nama = row['Nama\n(2-50 huruf atau angka)'] || row['Nama'] || row['NAMA']; if (!nip || !nama) continue; let nipStr = String(nip).trim(); const dataSimpan = { nip: nipStr, nama: String(nama).trim().toUpperCase(), kode: String(row['KODE\n(1-5 huruf atau angka)'] || row['KODE'] || '').trim().toUpperCase(), username: String(row['USERNAME\n(unique/jangan sama)\nhuruf kecil'] || row['USERNAME'] || nipStr).trim().toLowerCase(), password: String(row['PASSWORD'] || nipStr).trim(), isActive: true, jabatan: 'GURU KELAS' }; const ex = state.masterGuru.find(x => x.nip === dataSimpan.nip); if (ex && ex.id) { await updateDoc(doc(db, 'master_guru', ex.id), dataSimpan); } else { await addDoc(collection(db, 'master_guru'), dataSimpan); } success++; } alert(`Berhasil memproses ${success} data guru dari Excel!`); } catch(err) { console.error("Error import excel guru:", err); alert("Terjadi kesalahan sistem. Pastikan format kolom sesuai dengan template."); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('fileImportGuru').value = ''; loadGuru(); } }; r.readAsArrayBuffer(f); };
 
 window.loadEkskul = async () => { /* Logika dipertahankan */ };
 window.renderTableEkskul = () => { /* Logika dipertahankan */ };
