@@ -38,12 +38,26 @@ window.closeModal = (modalId) => {
 };
 
 // ==========================================
-// LOGIN ADMIN
+// LOGIN ADMIN & SESSION
 // ==========================================
+window.checkAdminSession = () => {
+    // Cek apakah ada sesi admin yang tersimpan di browser
+    const isLogged = sessionStorage.getItem('admin_logged_in');
+    if (isLogged === 'true') {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
+        document.getElementById('appScreen').classList.add('flex');
+        initFirebase(); // Langsung tarik data dari Firebase
+    }
+};
+
 window.handleLogin = (e) => {
     e.preventDefault();
     const inputPin = document.getElementById('inputPinAdmin').value;
     if (inputPin === state.ADMIN_PIN) {
+        // Simpan tanda login berhasil ke sessionStorage
+        sessionStorage.setItem('admin_logged_in', 'true');
+        
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('appScreen').classList.remove('hidden');
         document.getElementById('appScreen').classList.add('flex');
@@ -54,12 +68,18 @@ window.handleLogin = (e) => {
 };
 
 window.logoutAdmin = () => {
+    // Hapus sesi saat logout
+    sessionStorage.removeItem('admin_logged_in');
+    
     document.getElementById('inputPinAdmin').value = '';
     document.getElementById('loginError').classList.add('hidden');
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('appScreen').classList.add('hidden');
     document.getElementById('appScreen').classList.remove('flex');
 };
+
+// Jalankan pengecekan sesi secara otomatis saat file js dimuat
+window.checkAdminSession();
 
 // ==========================================
 // PROFIL SEKOLAH
