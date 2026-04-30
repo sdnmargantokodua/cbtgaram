@@ -14,114 +14,114 @@ window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
 
 // ==========================================
-// DATA UJIAN: SESI UJIAN (BARU)
+// DATA UJIAN: RUANG UJIAN (BARU)
 // ==========================================
-state.masterSesiUjian = [];
+state.masterRuangUjian = [];
 
-window.loadSesiUjian = async () => {
+window.loadRuangUjian = async () => {
     try {
-        const snap = await getDocs(collection(db, 'master_sesi_ujian'));
-        state.masterSesiUjian = [];
-        snap.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()}));
+        const snap = await getDocs(collection(db, 'master_ruang_ujian'));
+        state.masterRuangUjian = [];
+        snap.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
         
         // Auto-Generate Data Awal Jika Kosong
-        if(state.masterSesiUjian.length === 0) {
-            const defaultSesi = [
-                { nama: 'Sesi 1', kode: 'S1', waktuMulai: '07:30:00', waktuSelesai: '09:30:00', noUrut: 1 },
-                { nama: 'Sesi 2', kode: 'S2', waktuMulai: '10:00:32', waktuSelesai: '12:00:40', noUrut: 2 }
-            ];
-            for (const s of defaultSesi) {
-                const docRef = await addDoc(collection(db, 'master_sesi_ujian'), s);
-                state.masterSesiUjian.push({ id: docRef.id, ...s });
+        if(state.masterRuangUjian.length === 0) {
+            const defaultRuang = [ { nama: 'Ruang 1', kode: 'IX', jumSesi: 2, noUrut: 1 } ];
+            for (const r of defaultRuang) {
+                const docRef = await addDoc(collection(db, 'master_ruang_ujian'), r);
+                state.masterRuangUjian.push({ id: docRef.id, ...r });
             }
         }
 
         // Urutkan berdasarkan noUrut
-        state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
-        window.renderTableSesiUjian();
-    } catch(e) { console.error("Error loading sesi ujian:", e); }
+        state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        window.renderTableRuangUjian();
+    } catch(e) { console.error("Error loading ruang ujian:", e); }
 };
 
-window.renderTableSesiUjian = () => {
-    const tb = document.getElementById('tableSesiUjianBody');
+window.renderTableRuangUjian = () => {
+    const tb = document.getElementById('tableRuangUjianBody');
     tb.innerHTML = '';
     
-    if (state.masterSesiUjian.length === 0) {
+    if (state.masterRuangUjian.length === 0) {
         tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>';
         return;
     }
 
-    state.masterSesiUjian.forEach((s, i) => {
+    state.masterRuangUjian.forEach((r, i) => {
         tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition">
                 <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
                 <td class="p-3 text-center border-r">${i+1}</td>
-                <td class="p-3 border-r">${s.nama || '-'}</td>
-                <td class="p-3 border-r text-center font-mono">${s.kode || '-'}</td>
-                <td class="p-3 border-r text-center font-mono">${s.waktuMulai || '-'} s/d ${s.waktuSelesai || '-'}</td>
+                <td class="p-3 border-r">${r.nama || '-'}</td>
+                <td class="p-3 border-r text-center font-mono">${r.kode || '-'}</td>
+                <td class="p-3 border-r text-center">${r.jumSesi || '-'}</td>
                 <td class="p-3 text-center space-x-1">
-                    <button onclick="editSesiUjian('${s.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button>
+                    <button onclick="editRuangUjian('${r.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button>
                 </td>
             </tr>
         `;
     });
 };
 
-window.openModalSesiUjian = () => {
-    document.getElementById('sesiUjianId').value = '';
-    document.getElementById('inputNamaSesi').value = '';
-    document.getElementById('inputKodeSesi').value = '';
-    document.getElementById('inputWaktuMulai').value = '07:30:00';
-    document.getElementById('inputWaktuSelesai').value = '09:30:00';
-    document.getElementById('modalSesiUjian').classList.remove('hidden');
+window.openModalRuangUjian = () => {
+    document.getElementById('ruangUjianId').value = '';
+    document.getElementById('inputNamaRuang').value = '';
+    document.getElementById('inputKodeRuang').value = '';
+    document.getElementById('inputJumSesi').value = '1';
+    document.getElementById('modalRuangUjian').classList.remove('hidden');
 };
 
-window.simpanSesiUjian = async () => {
-    const id = document.getElementById('sesiUjianId').value;
-    const nama = document.getElementById('inputNamaSesi').value.trim();
-    const kode = document.getElementById('inputKodeSesi').value.trim().toUpperCase();
-    const waktuMulai = document.getElementById('inputWaktuMulai').value;
-    const waktuSelesai = document.getElementById('inputWaktuSelesai').value;
+window.simpanRuangUjian = async () => {
+    const id = document.getElementById('ruangUjianId').value;
+    const nama = document.getElementById('inputNamaRuang').value.trim();
+    const kode = document.getElementById('inputKodeRuang').value.trim().toUpperCase();
+    const jumSesi = document.getElementById('inputJumSesi').value;
 
-    if(!nama) return alert("Nama Sesi wajib diisi!");
+    if(!nama) return alert("Nama Kelompok/Ruang Ujian wajib diisi!");
     
     const data = { 
         nama, 
         kode, 
-        waktuMulai, 
-        waktuSelesai, 
-        noUrut: state.masterSesiUjian.length + 1 
+        jumSesi,
+        noUrut: state.masterRuangUjian.length + 1 
     };
     
     try {
         if(id) {
             // Mempertahankan noUrut lama jika update
-            const old = state.masterSesiUjian.find(x => x.id === id);
+            const old = state.masterRuangUjian.find(x => x.id === id);
             if(old) data.noUrut = old.noUrut;
-            await updateDoc(doc(db, 'master_sesi_ujian', id), data);
+            await updateDoc(doc(db, 'master_ruang_ujian', id), data);
         } else {
-            await addDoc(collection(db, 'master_sesi_ujian'), data);
+            await addDoc(collection(db, 'master_ruang_ujian'), data);
         }
-        closeModal('modalSesiUjian');
-        loadSesiUjian(); 
-    } catch(e) { alert("Gagal menyimpan sesi ujian."); console.error(e); }
+        closeModal('modalRuangUjian');
+        loadRuangUjian(); 
+    } catch(e) { alert("Gagal menyimpan data ruang ujian."); console.error(e); }
 };
 
-window.editSesiUjian = (id) => {
-    const s = state.masterSesiUjian.find(x => x.id === id);
-    if(!s) return;
-    document.getElementById('sesiUjianId').value = s.id;
-    document.getElementById('inputNamaSesi').value = s.nama || '';
-    document.getElementById('inputKodeSesi').value = s.kode || '';
-    document.getElementById('inputWaktuMulai').value = s.waktuMulai || '';
-    document.getElementById('inputWaktuSelesai').value = s.waktuSelesai || '';
-    document.getElementById('modalSesiUjian').classList.remove('hidden');
+window.editRuangUjian = (id) => {
+    const r = state.masterRuangUjian.find(x => x.id === id);
+    if(!r) return;
+    document.getElementById('ruangUjianId').value = r.id;
+    document.getElementById('inputNamaRuang').value = r.nama || '';
+    document.getElementById('inputKodeRuang').value = r.kode || '';
+    document.getElementById('inputJumSesi').value = r.jumSesi || '';
+    document.getElementById('modalRuangUjian').classList.remove('hidden');
 };
+
 
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
-state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+state.masterSesiUjian = []; state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+
+window.loadSesiUjian = async () => { try { const snap = await getDocs(collection(db, 'master_sesi_ujian')); state.masterSesiUjian = []; snap.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()})); if(state.masterSesiUjian.length === 0) { const defaultSesi = [ { nama: 'Sesi 1', kode: 'S1', waktuMulai: '07:30:00', waktuSelesai: '09:30:00', noUrut: 1 }, { nama: 'Sesi 2', kode: 'S2', waktuMulai: '10:00:32', waktuSelesai: '12:00:40', noUrut: 2 } ]; for (const s of defaultSesi) { const docRef = await addDoc(collection(db, 'master_sesi_ujian'), s); state.masterSesiUjian.push({ id: docRef.id, ...s }); } } state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); window.renderTableSesiUjian(); } catch(e) { console.error(e); } };
+window.renderTableSesiUjian = () => { const tb = document.getElementById('tableSesiUjianBody'); tb.innerHTML = ''; if (state.masterSesiUjian.length === 0) return tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>'; state.masterSesiUjian.forEach((s, i) => { tb.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td><td class="p-3 text-center border-r">${i+1}</td><td class="p-3 border-r">${s.nama || '-'}</td><td class="p-3 border-r text-center font-mono">${s.kode || '-'}</td><td class="p-3 border-r text-center font-mono">${s.waktuMulai || '-'} s/d ${s.waktuSelesai || '-'}</td><td class="p-3 text-center space-x-1"><button onclick="editSesiUjian('${s.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button></td></tr>`; }); };
+window.openModalSesiUjian = () => { document.getElementById('sesiUjianId').value = ''; document.getElementById('inputNamaSesi').value = ''; document.getElementById('inputKodeSesi').value = ''; document.getElementById('inputWaktuMulai').value = '07:30:00'; document.getElementById('inputWaktuSelesai').value = '09:30:00'; document.getElementById('modalSesiUjian').classList.remove('hidden'); };
+window.simpanSesiUjian = async () => { const id = document.getElementById('sesiUjianId').value; const nama = document.getElementById('inputNamaSesi').value.trim(); const data = { nama, kode: document.getElementById('inputKodeSesi').value.trim().toUpperCase(), waktuMulai: document.getElementById('inputWaktuMulai').value, waktuSelesai: document.getElementById('inputWaktuSelesai').value, noUrut: state.masterSesiUjian.length + 1 }; try { if(id) { const old = state.masterSesiUjian.find(x => x.id === id); if(old) data.noUrut = old.noUrut; await updateDoc(doc(db, 'master_sesi_ujian', id), data); } else { await addDoc(collection(db, 'master_sesi_ujian'), data); } closeModal('modalSesiUjian'); loadSesiUjian(); } catch(e) { console.error(e); } };
+window.editSesiUjian = (id) => { const s = state.masterSesiUjian.find(x => x.id === id); if(!s) return; document.getElementById('sesiUjianId').value = s.id; document.getElementById('inputNamaSesi').value = s.nama || ''; document.getElementById('inputKodeSesi').value = s.kode || ''; document.getElementById('inputWaktuMulai').value = s.waktuMulai || ''; document.getElementById('inputWaktuSelesai').value = s.waktuSelesai || ''; document.getElementById('modalSesiUjian').classList.remove('hidden'); };
 
 window.loadJenisUjian = async () => { try { const snap = await getDocs(collection(db, 'master_jenis_ujian')); state.masterJenisUjian = []; snap.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()})); if(state.masterJenisUjian.length === 0) { const defaultJenis = [ { nama: 'Penilaian Harian', kode: 'PH', noUrut: 1 }, { nama: 'Penilaian Tengah Semester', kode: 'PTS', noUrut: 2 }, { nama: 'Penilaian Akhir Semester', kode: 'PAS', noUrut: 3 }, { nama: 'Penilaian Akhir Tahun', kode: 'PAT', noUrut: 4 }, { nama: 'Ujian Sekolah Berbasis Komputer', kode: 'USBK', noUrut: 5 }, { nama: 'Try Out', kode: 'TO', noUrut: 6 }, { nama: 'Simulasi', kode: 'SIML', noUrut: 7 } ]; for (const j of defaultJenis) { const docRef = await addDoc(collection(db, 'master_jenis_ujian'), j); state.masterJenisUjian.push({ id: docRef.id, ...j }); } } state.masterJenisUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); window.renderTableJenisUjian(); } catch(e) { console.error(e); } };
 window.renderTableJenisUjian = () => { const tb = document.getElementById('tableJenisUjianBody'); tb.innerHTML = ''; if (state.masterJenisUjian.length === 0) return tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>'; state.masterJenisUjian.forEach((ju, i) => { tb.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td><td class="p-3 text-center border-r">${i+1}</td><td class="p-3 border-r">${ju.nama || '-'}</td><td class="p-3 border-r text-center font-mono">${ju.kode || '-'}</td><td class="p-3 text-center space-x-1"><button onclick="editJenisUjian('${ju.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button></td></tr>`; }); };
