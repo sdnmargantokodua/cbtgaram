@@ -14,204 +14,211 @@ window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
 
 // ==========================================
-// BANK SOAL (REMASTERED)
+// JADWAL UJIAN / PENILAIAN (REMASTERED)
 // ==========================================
-state.masterBankSoal = [];
+state.masterJadwalUjian = [];
 
-window.loadBankSoal = async () => {
+window.loadJadwalUjian = async () => {
     try {
-        // Load data Master (Mapel, Guru, Kelas) untuk form dropdown
+        // Load data Master pendukung untuk form
         if(state.masterSubjects.length === 0) { const s1 = await getDocs(collection(db, 'master_subjects')); state.masterSubjects = []; s1.forEach(d => state.masterSubjects.push({id: d.id, ...d.data()})); }
-        if(state.masterGuru.length === 0) { const s2 = await getDocs(collection(db, 'master_guru')); state.masterGuru = []; s2.forEach(d => state.masterGuru.push({id: d.id, ...d.data()})); }
-        if(state.masterKelas.length === 0) { const s3 = await getDocs(collection(db, 'master_kelas')); state.masterKelas = []; s3.forEach(d => state.masterKelas.push({id: d.id, ...d.data()})); }
+        if(state.masterJenisUjian.length === 0) { const s2 = await getDocs(collection(db, 'master_jenis_ujian')); state.masterJenisUjian = []; s2.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()})); }
+        if(state.masterBankSoal.length === 0) { const s3 = await getDocs(collection(db, 'master_bank_soal')); state.masterBankSoal = []; s3.forEach(d => state.masterBankSoal.push({id: d.id, ...d.data()})); }
 
-        // Populate Dropdowns di Modal Bank Soal
-        const selMapel = document.getElementById('bsMapel'); selMapel.innerHTML = '<option value="">Pilih Mapel</option>';
+        // Populate Dropdowns di Modal Jadwal
+        const selMapel = document.getElementById('juMapel'); selMapel.innerHTML = '<option value="">Pilih Mata Pelajaran</option>';
         state.masterSubjects.forEach(m => selMapel.innerHTML += `<option value="${m.nama}">${m.nama}</option>`);
         
-        const selGuru = document.getElementById('bsGuru'); selGuru.innerHTML = '<option value="">Pilih Guru Pengampu</option>';
-        state.masterGuru.forEach(g => selGuru.innerHTML += `<option value="${g.nama}">${g.nama}</option>`);
+        const selJenis = document.getElementById('juJenis'); selJenis.innerHTML = '<option value="">Jenis Penilaian :</option>';
+        state.masterJenisUjian.forEach(j => selJenis.innerHTML += `<option value="${j.nama}">${j.nama}</option>`);
 
-        const selKelas = document.getElementById('bsKelas'); selKelas.innerHTML = '<option value="">Pilih Kelas</option>';
-        state.masterKelas.forEach(k => selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`);
-
-        // Load data Bank Soal
-        const snap = await getDocs(collection(db, 'master_bank_soal'));
-        state.masterBankSoal = [];
-        snap.forEach(d => state.masterBankSoal.push({id: d.id, ...d.data()}));
+        // Load data Jadwal dari Firestore
+        const snap = await getDocs(collection(db, 'master_jadwal_ujian'));
+        state.masterJadwalUjian = [];
+        snap.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
         
-        window.renderTableBankSoal();
-    } catch(e) { console.error("Error loading bank soal:", e); }
+        window.renderTableJadwalUjian();
+    } catch(e) { console.error("Error loading jadwal ujian:", e); }
 };
 
-window.renderTableBankSoal = () => {
-    const tb = document.getElementById('tableBankSoalBody');
+window.filterBankSoalByMapel = () => {
+    const mapelTerpilih = document.getElementById('juMapel').value;
+    const selBank = document.getElementById('juBankSoal');
+    selBank.innerHTML = '<option value="">-- Pilih Bank Soal --</option>';
+    
+    if(!mapelTerpilih) return;
+    
+    // Filter bank soal yang sesuai mapel dan berstatus aktif
+    const bankFiltered = state.masterBankSoal.filter(b => b.mapel === mapelTerpilih && b.isActive);
+    
+    if(bankFiltered.length === 0) {
+        selBank.innerHTML = '<option value="">Belum ada Bank Soal aktif untuk mapel ini</option>';
+        return;
+    }
+    
+    bankFiltered.forEach(b => {
+        selBank.innerHTML += `<option value="${b.id}">${b.kode} - ${b.kelas} (${b.totalSoal} Soal)</option>`;
+    });
+};
+
+window.renderTableJadwalUjian = () => {
+    const tb = document.getElementById('tableJadwalUjianBody');
     tb.innerHTML = '';
     
-    if (state.masterBankSoal.length === 0) {
-        tb.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500 bg-slate-100">Belum ada Bank Soal. Silakan tambahkan baru.</td></tr>';
+    if (state.masterJadwalUjian.length === 0) {
+        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 bg-slate-100">Belum ada Jadwal Ujian. Silakan tambahkan baru.</td></tr>';
         return;
     }
 
-    state.masterBankSoal.forEach((b, i) => {
-        // Logika pewarnaan sesuai Screenshot GarudaCBT
-        let statusColor = "bg-slate-500"; // Default: Tidak digunakan
-        if(b.isActive) statusColor = "bg-amber-400"; // Aktif
-        if(b.digunakanSiswa) statusColor = "bg-pink-600"; // Sedang ujian
+    state.masterJadwalUjian.forEach((j, i) => {
+        // Cari info bank soal
+        const bs = state.masterBankSoal.find(x => x.id === j.bankSoalId);
+        const bsLabel = bs ? `${bs.kode} (Kls ${bs.kelas})` : '<span class="text-red-500 italic">Bank Soal Terhapus</span>';
+        
+        // Logika pewarnaan status jadwal (simulasi)
+        let statusBadge = `<span class="bg-pink-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">Belum dimulai</span>`;
+        if(!j.isActive) statusBadge = `<span class="bg-slate-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Tidak aktif</span>`;
+        // TODO: Cek waktu real-time untuk status "Sedang dilaksanakan" atau "Selesai"
+
+        // Format waktu (opsional, untuk tampilan lebih ramah)
+        const tglMulai = j.tglMulai ? new Date(j.tglMulai).toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
 
         tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition border-l-4 ${b.isActive ? 'border-l-amber-400' : 'border-l-slate-400'}">
+            <tr class="hover:bg-slate-50 transition border-l-4 ${j.isActive ? 'border-l-blue-500' : 'border-l-slate-400'}">
                 <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
                 <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
-                <td class="p-3 border-r">
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 ${statusColor} rounded-full" title="${b.isActive ? 'Digunakan jadwal' : 'Tidak digunakan'}"></div>
-                        <span class="font-bold text-blue-700 font-mono">${b.kode || '-'}</span>
-                    </div>
-                </td>
-                <td class="p-3 border-r font-bold">${b.mapel || '-'}</td>
-                <td class="p-3 border-r text-center">${b.kelas || '-'}</td>
-                <td class="p-3 border-r text-center font-bold">${b.totalSoal || 0}</td>
+                <td class="p-3 border-r font-bold text-slate-800">${j.mapel || '-'} <br><span class="text-[10px] text-slate-400 font-normal uppercase">${j.jenis || '-'}</span></td>
+                <td class="p-3 border-r font-mono text-sm">${bsLabel}</td>
+                <td class="p-3 border-r text-center text-xs whitespace-nowrap">${tglMulai}</td>
+                <td class="p-3 border-r text-center font-bold">${j.durasi || 0} mnt</td>
+                <td class="p-3 border-r text-center">${statusBadge}</td>
                 <td class="p-3 text-center space-x-1">
-                    <button onclick="bukaSoalDetail('${b.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm text-xs transition" title="Buat Butir Soal">📝 Soal</button>
-                    <button onclick="editBankSoal('${b.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-2 py-1 rounded shadow-sm text-xs transition" title="Edit Pengaturan">✏️ Edit</button>
-                    <button onclick="hapusBankSoal('${b.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow-sm text-xs transition" title="Hapus">🗑️</button>
+                    <button onclick="editJadwalUjian('${j.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-2 py-1 rounded shadow-sm text-xs transition" title="Edit Pengaturan">✏️</button>
+                    <button onclick="hapusJadwalUjian('${j.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow-sm text-xs transition" title="Hapus">🗑️</button>
                 </td>
             </tr>
         `;
     });
 };
 
-window.kalkulasiTotalSoalBobot = () => {
-    const getVal = (id) => parseInt(document.getElementById(id).value) || 0;
+window.openModalJadwalUjian = () => {
+    document.getElementById('jadwalUjianId').value = '';
+    document.getElementById('juMapel').value = '';
+    document.getElementById('juBankSoal').innerHTML = '<option value="">-- Pilih Bank Soal --</option>';
+    document.getElementById('juJenis').value = '';
     
-    const tSoal = getVal('bsPgJml') + getVal('bsPgkJml') + getVal('bsBsJml') + getVal('bsIsianJml') + getVal('bsUraianJml') + getVal('bsUrutJml');
-    const tBobot = getVal('bsPgBobot') + getVal('bsPgkBobot') + getVal('bsBsBobot') + getVal('bsIsianBobot') + getVal('bsUraianBobot') + getVal('bsUrutBobot');
+    // Set Waktu Default (Sekarang s/d Besok)
+    const now = new Date();
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    const localNow = (new Date(now - tzOffset)).toISOString().slice(0, 16);
+    const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+    const localTom = (new Date(tomorrow - tzOffset)).toISOString().slice(0, 16);
     
-    const lblBobot = document.getElementById('bsLabelTotalBobot');
-    document.getElementById('bsLabelTotalSoal').innerText = tSoal;
-    lblBobot.innerText = tBobot + "%";
+    document.getElementById('juTglMulai').value = localNow;
+    document.getElementById('juTglExpired').value = localTom;
     
-    // Warning visual jika bobot melebihi atau kurang dari 100%
-    if(tBobot !== 100 && tBobot !== 0) {
-        lblBobot.classList.replace('text-slate-800', 'text-red-600');
-    } else {
-        lblBobot.classList.replace('text-red-600', 'text-slate-800');
-    }
+    document.getElementById('juDurasi').value = '90';
+    document.getElementById('juDurasiMin').value = '30';
+    
+    // Default Checkboxes
+    document.getElementById('juAcakSoal').checked = true;
+    document.getElementById('juAcakJawaban').checked = true;
+    document.getElementById('juGunakanToken').checked = false;
+    document.getElementById('juTampilkanHasil').checked = false;
+    document.getElementById('juResetIzin').checked = false;
+    document.getElementById('juAktif').checked = true;
+    
+    document.getElementById('modalJadwalUjian').classList.remove('hidden');
 };
 
-window.openModalBankSoal = () => {
-    document.getElementById('bankSoalId').value = '';
-    document.getElementById('bsKode').value = '';
-    document.getElementById('bsMapel').value = '';
-    document.getElementById('bsGuru').value = '';
-    document.getElementById('bsKelas').value = '';
-    document.getElementById('bsLevel').value = '1';
-    
-    // Reset Numerics
-    ['Pg','Pgk','Bs','Isian','Uraian','Urut'].forEach(k => {
-        document.getElementById(`bs${k}Jml`).value = 0;
-        document.getElementById(`bs${k}Bobot`).value = 0;
-    });
-    
-    document.getElementById('bsPgOpsi').value = '4';
-    document.getElementById('bsKategori').value = 'Bukan Mapel Agama';
-    document.getElementById('bsStatus').value = 'true';
-    
-    kalkulasiTotalSoalBobot();
-    document.getElementById('modalBankSoal').classList.remove('hidden');
-};
+window.simpanJadwalUjian = async () => {
+    const id = document.getElementById('jadwalUjianId').value;
+    const mapel = document.getElementById('juMapel').value;
+    const bankSoalId = document.getElementById('juBankSoal').value;
+    const jenis = document.getElementById('juJenis').value;
+    const tglMulai = document.getElementById('juTglMulai').value;
+    const tglExpired = document.getElementById('juTglExpired').value;
 
-window.simpanBankSoal = async () => {
-    const id = document.getElementById('bankSoalId').value;
-    const kode = document.getElementById('bsKode').value.trim().toUpperCase();
-    const mapel = document.getElementById('bsMapel').value;
-    const kelas = document.getElementById('bsKelas').value;
-
-    if(!kode || !mapel || !kelas) return alert("Kode, Mata Pelajaran, dan Kelas wajib diisi!");
-
-    const getVal = (idx) => parseInt(document.getElementById(idx).value) || 0;
-    const tBobot = getVal('bsPgBobot') + getVal('bsPgkBobot') + getVal('bsBsBobot') + getVal('bsIsianBobot') + getVal('bsUraianBobot') + getVal('bsUrutBobot');
-    
-    if(tBobot !== 0 && tBobot !== 100) {
-        if(!confirm("Peringatan: Total persentase bobot soal tidak sama dengan 100%. Apakah Anda yakin ingin melanjutkan?")) return;
+    if(!mapel || !bankSoalId || !tglMulai || !tglExpired) {
+        return alert("Mapel, Bank Soal, dan Rentang Tanggal wajib diisi!");
     }
 
     const data = {
-        kode, mapel, kelas,
-        guru: document.getElementById('bsGuru').value,
-        level: document.getElementById('bsLevel').value,
-        kategoriAgama: document.getElementById('bsKategori').value,
-        isActive: document.getElementById('bsStatus').value === 'true',
-        
-        komposisi: {
-            pg: { jml: getVal('bsPgJml'), bobot: getVal('bsPgBobot'), opsi: document.getElementById('bsPgOpsi').value },
-            pgk: { jml: getVal('bsPgkJml'), bobot: getVal('bsPgkBobot') },
-            bs: { jml: getVal('bsBsJml'), bobot: getVal('bsBsBobot') },
-            isian: { jml: getVal('bsIsianJml'), bobot: getVal('bsIsianBobot') },
-            uraian: { jml: getVal('bsUraianJml'), bobot: getVal('bsUraianBobot') },
-            urut: { jml: getVal('bsUrutJml'), bobot: getVal('bsUrutBobot') }
-        },
-        totalSoal: getVal('bsPgJml') + getVal('bsPgkJml') + getVal('bsBsJml') + getVal('bsIsianJml') + getVal('bsUraianJml') + getVal('bsUrutJml')
+        mapel, bankSoalId, jenis, tglMulai, tglExpired,
+        durasi: parseInt(document.getElementById('juDurasi').value) || 90,
+        durasiMin: parseInt(document.getElementById('juDurasiMin').value) || 30,
+        acakSoal: document.getElementById('juAcakSoal').checked,
+        acakJawaban: document.getElementById('juAcakJawaban').checked,
+        gunakanToken: document.getElementById('juGunakanToken').checked,
+        tampilkanHasil: document.getElementById('juTampilkanHasil').checked,
+        resetIzin: document.getElementById('juResetIzin').checked,
+        isActive: document.getElementById('juAktif').checked
     };
 
-    const btn = document.getElementById('btnSimpanBankSoal');
+    const btn = document.getElementById('btnSimpanJadwal');
     btn.disabled = true; btn.innerText = "Menyimpan...";
 
     try {
-        if(id) await updateDoc(doc(db, 'master_bank_soal', id), data);
-        else await addDoc(collection(db, 'master_bank_soal'), data);
-        closeModal('modalBankSoal');
-        loadBankSoal();
+        if(id) await updateDoc(doc(db, 'master_jadwal_ujian', id), data);
+        else await addDoc(collection(db, 'master_jadwal_ujian'), data);
+        closeModal('modalJadwalUjian');
+        loadJadwalUjian();
     } catch(e) { 
-        alert("Gagal menyimpan Bank Soal."); console.error(e); 
+        alert("Gagal menyimpan Jadwal Ujian."); console.error(e); 
     } finally {
-        btn.disabled = false; btn.innerText = "Simpan Bank Soal";
+        btn.disabled = false; btn.innerText = "✔️ Simpan";
     }
 };
 
-window.editBankSoal = (id) => {
-    const b = state.masterBankSoal.find(x => x.id === id);
-    if(!b) return;
+window.editJadwalUjian = (id) => {
+    const j = state.masterJadwalUjian.find(x => x.id === id);
+    if(!j) return;
 
-    document.getElementById('bankSoalId').value = b.id;
-    document.getElementById('bsKode').value = b.kode || '';
-    document.getElementById('bsMapel').value = b.mapel || '';
-    document.getElementById('bsGuru').value = b.guru || '';
-    document.getElementById('bsKelas').value = b.kelas || '';
-    document.getElementById('bsLevel').value = b.level || '1';
+    document.getElementById('jadwalUjianId').value = j.id;
+    document.getElementById('juMapel').value = j.mapel || '';
     
-    if(b.komposisi) {
-        ['pg','pgk','bs','isian','uraian','urut'].forEach(k => {
-            const up = k.charAt(0).toUpperCase() + k.slice(1);
-            document.getElementById(`bs${up}Jml`).value = b.komposisi[k]?.jml || 0;
-            document.getElementById(`bs${up}Bobot`).value = b.komposisi[k]?.bobot || 0;
-        });
-        document.getElementById('bsPgOpsi').value = b.komposisi.pg?.opsi || '4';
-    }
+    // Panggil filter untuk mengisi dropdown bank soal sesuai mapel
+    filterBankSoalByMapel();
+    setTimeout(() => { document.getElementById('juBankSoal').value = j.bankSoalId || ''; }, 100);
+
+    document.getElementById('juJenis').value = j.jenis || '';
+    document.getElementById('juTglMulai').value = j.tglMulai || '';
+    document.getElementById('juTglExpired').value = j.tglExpired || '';
+    document.getElementById('juDurasi').value = j.durasi || '90';
+    document.getElementById('juDurasiMin').value = j.durasiMin || '30';
     
-    document.getElementById('bsKategori').value = b.kategoriAgama || 'Bukan Mapel Agama';
-    document.getElementById('bsStatus').value = b.isActive ? 'true' : 'false';
+    document.getElementById('juAcakSoal').checked = j.acakSoal !== false;
+    document.getElementById('juAcakJawaban').checked = j.acakJawaban !== false;
+    document.getElementById('juGunakanToken').checked = j.gunakanToken === true;
+    document.getElementById('juTampilkanHasil').checked = j.tampilkanHasil === true;
+    document.getElementById('juResetIzin').checked = j.resetIzin === true;
+    document.getElementById('juAktif').checked = j.isActive !== false;
 
-    kalkulasiTotalSoalBobot();
-    document.getElementById('modalBankSoal').classList.remove('hidden');
+    document.getElementById('modalJadwalUjian').classList.remove('hidden');
 };
 
-window.hapusBankSoal = async (id) => {
-    if(confirm("PERINGATAN: Menghapus Bank Soal juga akan menghapus seluruh butir soal di dalamnya (jika ada). Lanjutkan?")) {
-        await deleteDoc(doc(db, 'master_bank_soal', id));
-        loadBankSoal();
+window.hapusJadwalUjian = async (id) => {
+    if(confirm("Yakin ingin menghapus jadwal ujian ini? Data nilai siswa yang sudah terekam mungkin akan kehilangan referensi penjadwalan.")) {
+        await deleteDoc(doc(db, 'master_jadwal_ujian', id));
+        loadJadwalUjian();
     }
 };
 
-window.bukaSoalDetail = (id) => {
-    alert("Halaman penyusunan butir soal untuk Bank Soal ini sedang disiapkan. Nantinya akan diarahkan ke editor soal.");
-};
 
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
-state.masterRuangUjian = []; state.masterSesiUjian = []; state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+state.masterBankSoal = []; state.masterRuangUjian = []; state.masterSesiUjian = []; state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+
+window.loadBankSoal = async () => { try { if(state.masterSubjects.length === 0) { const s1 = await getDocs(collection(db, 'master_subjects')); state.masterSubjects = []; s1.forEach(d => state.masterSubjects.push({id: d.id, ...d.data()})); } if(state.masterGuru.length === 0) { const s2 = await getDocs(collection(db, 'master_guru')); state.masterGuru = []; s2.forEach(d => state.masterGuru.push({id: d.id, ...d.data()})); } if(state.masterKelas.length === 0) { const s3 = await getDocs(collection(db, 'master_kelas')); state.masterKelas = []; s3.forEach(d => state.masterKelas.push({id: d.id, ...d.data()})); } const selMapel = document.getElementById('bsMapel'); selMapel.innerHTML = '<option value="">Pilih Mapel</option>'; state.masterSubjects.forEach(m => selMapel.innerHTML += `<option value="${m.nama}">${m.nama}</option>`); const selGuru = document.getElementById('bsGuru'); selGuru.innerHTML = '<option value="">Pilih Guru Pengampu</option>'; state.masterGuru.forEach(g => selGuru.innerHTML += `<option value="${g.nama}">${g.nama}</option>`); const selKelas = document.getElementById('bsKelas'); selKelas.innerHTML = '<option value="">Pilih Kelas</option>'; state.masterKelas.forEach(k => selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`); const snap = await getDocs(collection(db, 'master_bank_soal')); state.masterBankSoal = []; snap.forEach(d => state.masterBankSoal.push({id: d.id, ...d.data()})); window.renderTableBankSoal(); } catch(e) { console.error(e); } };
+window.renderTableBankSoal = () => { const tb = document.getElementById('tableBankSoalBody'); tb.innerHTML = ''; if (state.masterBankSoal.length === 0) return tb.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500 bg-slate-100">Belum ada Bank Soal. Silakan tambahkan baru.</td></tr>'; state.masterBankSoal.forEach((b, i) => { let statusColor = "bg-slate-500"; if(b.isActive) statusColor = "bg-amber-400"; if(b.digunakanSiswa) statusColor = "bg-pink-600"; tb.innerHTML += `<tr class="hover:bg-slate-50 transition border-l-4 ${b.isActive ? 'border-l-amber-400' : 'border-l-slate-400'}"><td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td><td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td><td class="p-3 border-r"><div class="flex items-center gap-2"><div class="w-3 h-3 ${statusColor} rounded-full" title="${b.isActive ? 'Digunakan jadwal' : 'Tidak digunakan'}"></div><span class="font-bold text-blue-700 font-mono">${b.kode || '-'}</span></div></td><td class="p-3 border-r font-bold">${b.mapel || '-'}</td><td class="p-3 border-r text-center">${b.kelas || '-'}</td><td class="p-3 border-r text-center font-bold">${b.totalSoal || 0}</td><td class="p-3 text-center space-x-1"><button onclick="bukaSoalDetail('${b.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm text-xs transition" title="Buat Butir Soal">📝 Soal</button><button onclick="editBankSoal('${b.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-2 py-1 rounded shadow-sm text-xs transition" title="Edit Pengaturan">✏️ Edit</button><button onclick="hapusBankSoal('${b.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow-sm text-xs transition" title="Hapus">🗑️</button></td></tr>`; }); };
+window.kalkulasiTotalSoalBobot = () => { const getVal = (id) => parseInt(document.getElementById(id).value) || 0; const tSoal = getVal('bsPgJml') + getVal('bsPgkJml') + getVal('bsBsJml') + getVal('bsIsianJml') + getVal('bsUraianJml') + getVal('bsUrutJml'); const tBobot = getVal('bsPgBobot') + getVal('bsPgkBobot') + getVal('bsBsBobot') + getVal('bsIsianBobot') + getVal('bsUraianBobot') + getVal('bsUrutBobot'); const lblBobot = document.getElementById('bsLabelTotalBobot'); document.getElementById('bsLabelTotalSoal').innerText = tSoal; lblBobot.innerText = tBobot + "%"; if(tBobot !== 100 && tBobot !== 0) { lblBobot.classList.replace('text-slate-800', 'text-red-600'); } else { lblBobot.classList.replace('text-red-600', 'text-slate-800'); } };
+window.openModalBankSoal = () => { document.getElementById('bankSoalId').value = ''; document.getElementById('bsKode').value = ''; document.getElementById('bsMapel').value = ''; document.getElementById('bsGuru').value = ''; document.getElementById('bsKelas').value = ''; document.getElementById('bsLevel').value = '1'; ['Pg','Pgk','Bs','Isian','Uraian','Urut'].forEach(k => { document.getElementById(`bs${k}Jml`).value = 0; document.getElementById(`bs${k}Bobot`).value = 0; }); document.getElementById('bsPgOpsi').value = '4'; document.getElementById('bsKategori').value = 'Bukan Mapel Agama'; document.getElementById('bsStatus').value = 'true'; kalkulasiTotalSoalBobot(); document.getElementById('modalBankSoal').classList.remove('hidden'); };
+window.simpanBankSoal = async () => { const id = document.getElementById('bankSoalId').value; const kode = document.getElementById('bsKode').value.trim().toUpperCase(); const mapel = document.getElementById('bsMapel').value; const kelas = document.getElementById('bsKelas').value; if(!kode || !mapel || !kelas) return alert("Kode, Mapel, dan Kelas wajib diisi!"); const getVal = (idx) => parseInt(document.getElementById(idx).value) || 0; const tBobot = getVal('bsPgBobot') + getVal('bsPgkBobot') + getVal('bsBsBobot') + getVal('bsIsianBobot') + getVal('bsUraianBobot') + getVal('bsUrutBobot'); if(tBobot !== 0 && tBobot !== 100) { if(!confirm("Peringatan: Total persentase bobot soal tidak sama dengan 100%. Lanjutkan?")) return; } const data = { kode, mapel, kelas, guru: document.getElementById('bsGuru').value, level: document.getElementById('bsLevel').value, kategoriAgama: document.getElementById('bsKategori').value, isActive: document.getElementById('bsStatus').value === 'true', komposisi: { pg: { jml: getVal('bsPgJml'), bobot: getVal('bsPgBobot'), opsi: document.getElementById('bsPgOpsi').value }, pgk: { jml: getVal('bsPgkJml'), bobot: getVal('bsPgkBobot') }, bs: { jml: getVal('bsBsJml'), bobot: getVal('bsBsBobot') }, isian: { jml: getVal('bsIsianJml'), bobot: getVal('bsIsianBobot') }, uraian: { jml: getVal('bsUraianJml'), bobot: getVal('bsUraianBobot') }, urut: { jml: getVal('bsUrutJml'), bobot: getVal('bsUrutBobot') } }, totalSoal: getVal('bsPgJml') + getVal('bsPgkJml') + getVal('bsBsJml') + getVal('bsIsianJml') + getVal('bsUraianJml') + getVal('bsUrutJml') }; const btn = document.getElementById('btnSimpanBankSoal'); btn.disabled = true; btn.innerText = "Menyimpan..."; try { if(id) await updateDoc(doc(db, 'master_bank_soal', id), data); else await addDoc(collection(db, 'master_bank_soal'), data); closeModal('modalBankSoal'); loadBankSoal(); } catch(e) { alert("Gagal."); console.error(e); } finally { btn.disabled = false; btn.innerText = "Simpan Bank Soal"; } };
+window.editBankSoal = (id) => { const b = state.masterBankSoal.find(x => x.id === id); if(!b) return; document.getElementById('bankSoalId').value = b.id; document.getElementById('bsKode').value = b.kode || ''; document.getElementById('bsMapel').value = b.mapel || ''; document.getElementById('bsGuru').value = b.guru || ''; document.getElementById('bsKelas').value = b.kelas || ''; document.getElementById('bsLevel').value = b.level || '1'; if(b.komposisi) { ['pg','pgk','bs','isian','uraian','urut'].forEach(k => { const up = k.charAt(0).toUpperCase() + k.slice(1); document.getElementById(`bs${up}Jml`).value = b.komposisi[k]?.jml || 0; document.getElementById(`bs${up}Bobot`).value = b.komposisi[k]?.bobot || 0; }); document.getElementById('bsPgOpsi').value = b.komposisi.pg?.opsi || '4'; } document.getElementById('bsKategori').value = b.kategoriAgama || 'Bukan Mapel Agama'; document.getElementById('bsStatus').value = b.isActive ? 'true' : 'false'; kalkulasiTotalSoalBobot(); document.getElementById('modalBankSoal').classList.remove('hidden'); };
+window.hapusBankSoal = async (id) => { if(confirm("PERINGATAN: Menghapus Bank Soal juga akan menghapus seluruh butir soal di dalamnya (jika ada). Lanjutkan?")) { await deleteDoc(doc(db, 'master_bank_soal', id)); loadBankSoal(); } };
+window.bukaSoalDetail = (id) => { alert("Halaman penyusunan butir soal untuk Bank Soal ini sedang disiapkan."); };
+
 
 window.loadNomorPeserta = async () => { try { if(state.masterKelas.length === 0) { const snap = await getDocs(collection(db, 'master_kelas')); state.masterKelas = []; snap.forEach(d => state.masterKelas.push({id: d.id, ...d.data()})); state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || '')); } const snapSiswa = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()})); const selectKelas = document.getElementById('selectKelasNomor'); selectKelas.innerHTML = '<option value="ALL">Semua Kelas</option>'; state.masterKelas.forEach(k => { selectKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; }); } catch(e) { console.error(e); } };
 window.generateNomorPeserta = async () => { const kelasVal = document.getElementById('selectKelasNomor').value; const btn = document.getElementById('btnGenerateNomor'); const NPSN_SEKOLAH = '20528347'; let siswaTarget = []; if (kelasVal === 'ALL') { siswaTarget = [...state.masterSiswa]; } else { siswaTarget = state.masterSiswa.filter(s => s.kelas === kelasVal); } if (siswaTarget.length === 0) return alert("Tidak ada siswa!"); siswaTarget.sort((a, b) => { if (a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || ''); return (a.kelas || '').localeCompare(b.kelas || ''); }); if(!confirm(`Generate ulang nomor untuk ${siswaTarget.length} siswa?`)) return; btn.disabled = true; btn.innerHTML = "Memproses..."; try { const promises = []; siswaTarget.forEach((s, index) => { const noUrut = String(index + 1).padStart(3, '0'); const noUjianBaru = `${NPSN_SEKOLAH}-${noUrut}`; s.noUjian = noUjianBaru; s.nis = noUjianBaru; promises.push(updateDoc(doc(db, 'master_siswa', s.id), { nis: noUjianBaru })); }); await Promise.all(promises); alert("Berhasil!"); if(window.renderTableSiswa) window.renderTableSiswa(); } catch(e) { console.error(e); } finally { btn.disabled = false; btn.innerHTML = "💾 Simpan"; } };
@@ -269,7 +276,6 @@ window.kenaikanKelas = () => { /* Logika dipertahankan */ };
 window.loadSiswa = async () => { try { const snap = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; snap.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()})); state.masterSiswa.sort((a,b) => { if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || ''); return (a.kelas || '').localeCompare(b.kelas || ''); }); window.renderTableSiswa(); } catch(e) { console.error(e); } };
 window.renderTableSiswa = () => { const tb = document.getElementById('tableSiswaBody'); tb.innerHTML = ''; if (state.masterSiswa.length === 0) return tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500">Belum ada siswa.</td></tr>'; state.masterSiswa.forEach((s, i) => { const avatar = s.jk === 'P' ? '👩' : '👦'; const colorJk = s.jk === 'P' ? 'bg-pink-500' : 'bg-blue-500'; const badgeAktif = s.isActive === false ? `<span class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Nonaktif</span>` : `<span class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Aktif</span>`; tb.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 text-center border-r"><input type="checkbox" class="w-4 h-4"></td><td class="p-3 text-center font-bold text-slate-500 border-r">${i+1}</td><td class="p-3 border-r"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-slate-200 rounded-full flex justify-center items-center text-2xl border">${avatar}</div><div><p class="font-bold text-[15px] uppercase">${s.nama}</p><div class="flex gap-1 mt-1"><span class="bg-teal-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">KELAS ${s.kelas || '-'}</span><span class="${colorJk} text-white px-2 py-0.5 rounded text-[10px] font-bold">${s.jk || 'L'}</span>${badgeAktif}</div></div></div></td><td class="p-3 border-r"><p class="text-[11px] text-slate-500 font-bold mb-0.5">No Ujian: <span class="text-blue-600 text-sm font-black tracking-widest">${s.nis || '-'}</span></p><p class="text-[11px] text-slate-500 font-bold">NISN: <span class="text-slate-800 text-sm font-black tracking-widest">${s.nisn || '-'}</span></p></td><td class="p-3 text-center space-y-1"><button onclick="editSiswa('${s.id}')" class="bg-amber-400 w-full px-3 py-1.5 rounded text-xs font-bold transition">✏️ Edit</button><button onclick="hapusSiswa('${s.id}')" class="bg-red-500 text-white w-full px-3 py-1.5 rounded text-xs font-bold transition">🗑️ Hapus</button></td></tr>`; }); };
 window.openModalSiswa = () => { document.getElementById('siswaId').value = ''; document.getElementById('siswaNisn').value = ''; document.getElementById('siswaNama').value = ''; document.getElementById('siswaUsername').value = ''; document.getElementById('siswaPassword').value = ''; document.getElementById('modalSiswa').classList.remove('hidden'); };
-window.generatePassword = () => { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let p = ''; for (let i = 0; i < 6; i++) p += c.charAt(Math.floor(Math.random() * c.length)); document.getElementById('pesertaPassword').value = p; };
 window.simpanSiswa = async () => { const id = document.getElementById('siswaId').value; const nisn = document.getElementById('siswaNisn').value.trim(); const nama = document.getElementById('siswaNama').value.trim().toUpperCase(); if(!nisn || !nama) return; const data = { nisn, nis: document.getElementById('siswaNis').value.trim(), nama, jk: document.getElementById('siswaJk').value, kelas: document.getElementById('siswaKelas').value.trim().toUpperCase(), username: document.getElementById('siswaUsername').value.trim() || nisn, password: document.getElementById('siswaPassword').value.trim() || nisn, isActive: document.getElementById('siswaStatus').checked }; try { if(id) await updateDoc(doc(db, 'master_siswa', id), data); else await addDoc(collection(db, 'master_siswa'), data); closeModal('modalSiswa'); loadSiswa(); } catch(e) { console.error(e); } };
 window.editSiswa = (id) => { const s = state.masterSiswa.find(x => x.id === id); if(!s) return; document.getElementById('siswaId').value = s.id; document.getElementById('siswaNisn').value = s.nisn || ''; document.getElementById('siswaNis').value = s.nis || ''; document.getElementById('siswaNama').value = s.nama || ''; document.getElementById('siswaJk').value = s.jk || 'L'; document.getElementById('siswaKelas').value = s.kelas || ''; document.getElementById('siswaUsername').value = s.username || ''; document.getElementById('siswaPassword').value = s.password || ''; document.getElementById('siswaStatus').checked = s.isActive !== false; document.getElementById('modalSiswa').classList.remove('hidden'); };
 window.hapusSiswa = async (id) => { if(confirm("Yakin hapus?")) { await deleteDoc(doc(db, 'master_siswa', id)); loadSiswa(); } };
