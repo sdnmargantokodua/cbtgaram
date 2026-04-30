@@ -425,16 +425,21 @@
     <!-- HUBUNGKAN DENGAN MODUL JAVASCRIPT -->
     <script type="module" src="./js/main.js"></script>
 
-    <!-- FUNGSI UPDATE PREVIEW KOP -->
+   <!-- FUNGSI UPDATE PREVIEW KOP -->
     <script>
         window.updatePreviewKop = () => {
             const nama = document.getElementById('profSekolah').value || 'NAMA SEKOLAH';
             const alamat = document.getElementById('profAlamat').value || 'Alamat Sekolah';
+            const email = document.getElementById('profEmail').value || 'email@sekolah.com';
+            const website = document.getElementById('profWebsite').value || 'www.sekolah.sch.id';
+            
             const logoKab = document.getElementById('logoKabBase64').value;
             const logoSekolah = document.getElementById('logoSekolahBase64').value;
 
             document.getElementById('kopNamaSekolah').innerText = nama;
             document.getElementById('kopAlamatSekolah').innerText = alamat;
+            document.getElementById('kopEmail').innerText = "Email: " + email;
+            document.getElementById('kopWebsite').innerText = "Website: " + website;
 
             const imgKiri = document.getElementById('kopLogoKiri');
             if(logoKab) { imgKiri.src = logoKab; imgKiri.classList.remove('hidden'); } 
