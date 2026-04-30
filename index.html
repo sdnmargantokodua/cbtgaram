@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBT SAKERA - Ujian Siswa</title>
+    <title>CBT GARAM - Ujian Siswa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- MathJax Configuration -->
@@ -43,7 +43,7 @@
             <div class="flex items-center gap-3">
                 <div class="bg-white p-1.5 rounded text-blue-700 font-black text-xl tracking-tighter">CBT</div>
                 <div>
-                    <h1 class="text-sm md:text-lg font-bold tracking-wide">CBT SAKERA</h1>
+                    <h1 class="text-sm md:text-lg font-bold tracking-wide">CBT GARAM</h1>
                     <p class="text-[10px] md:text-xs text-blue-200">UPTD SDN MARGANTOKO 2</p>
                 </div>
             </div>
@@ -73,7 +73,7 @@
                 
                 <form onsubmit="handleLogin(event)" class="space-y-5">
                     <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1">Nomor Peserta</label>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Nomor Peserta Ujian</label>
                         <input type="text" id="loginNoPeserta" required class="w-full px-4 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-600 outline-none font-mono" placeholder="Nomor ujian anda">
                     </div>
                     <div>
@@ -201,19 +201,26 @@
         </div>
     </div>
 
+    <!-- FIREBASE & LOGIC SCRIPT -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'paj-sdn-margantoko-2';
-        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
-        const firebaseConfig = JSON.parse(firebaseConfigStr);
+        // === INISIALISASI FIREBASE ===
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYRADmjYNjElFbbScoLjdEY7MCYg4bh84",
+            authDomain: "cbtgaram.firebaseapp.com",
+            projectId: "cbtgaram",
+            storageBucket: "cbtgaram.firebasestorage.app",
+            messagingSenderId: "1017527734586",
+            appId: "1:1017527734586:web:d98583e3f7706086f50003"
+        };
         
         let app, auth, db, currentUser;
 
         // States
-        let studentData = null; // Data login siswa
+        let studentData = null; 
         let activeExamSubject = null;
         let allQuestions = [];
         let currentIndex = 0;
@@ -235,7 +242,6 @@
             confirmCallback = callback;
             document.getElementById('modalTitle').innerText = title;
             
-            // Check unanswered
             let unanswered = 0;
             if(allQuestions.length > 0) {
                 allQuestions.forEach((_, i) => {
@@ -265,27 +271,22 @@
         // Initialize Firebase
         async function init() {
             try {
-                if (Object.keys(firebaseConfig).length > 0) {
-                    app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
 
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
+                await signInAnonymously(auth);
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        checkLoginState();
                     }
-
-                    onAuthStateChanged(auth, (user) => {
-                        if (user) {
-                            currentUser = user;
-                            checkLoginState();
-                        }
-                    });
-                } else {
-                    document.getElementById('loadingOverlay').innerHTML = `<p class="text-red-500 font-bold">Konfigurasi Firebase Hilang!</p>`;
-                }
-            } catch(e) { console.error("Firebase init failed", e); }
+                });
+            } catch(e) { 
+                console.error("Firebase init failed", e);
+                document.getElementById('loadingOverlay').innerHTML = `<p class="text-red-500 font-bold">Gagal terhubung ke server.</p>`;
+            }
         }
 
         function checkLoginState() {
@@ -308,8 +309,7 @@
             btn.disabled = true; btn.innerText = "Memeriksa...";
             
             try {
-                // Fetch all participants to check credentials (RULE: simple queries only)
-                const partsSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'exam_participants'));
+                const partsSnap = await getDocs(collection(db, 'exam_participants'));
                 let found = null;
                 
                 partsSnap.forEach(doc => {
@@ -347,8 +347,7 @@
             document.getElementById('avatarName').innerText = studentData.nama.charAt(0);
 
             try {
-                // Fetch active schedules
-                const schSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'exam_schedules'));
+                const schSnap = await getDocs(collection(db, 'exam_schedules'));
                 const container = document.getElementById('scheduleContainer');
                 container.innerHTML = '';
                 
@@ -389,7 +388,6 @@
             }
         }
 
-        // Shuffle utility
         function shuffle(arr) {
             let a = [...arr];
             for (let i = a.length - 1; i > 0; i--) {
@@ -402,18 +400,14 @@
         window.startExamPrep = async (subject, duration, correctToken, inputId) => {
             if(inputId) {
                 const inputToken = document.getElementById(inputId).value.trim().toUpperCase();
-                if(inputToken !== correctToken) {
-                    customAlert("Token yang Anda masukkan salah!");
-                    return;
-                }
+                if(inputToken !== correctToken) { customAlert("Token yang Anda masukkan salah!"); return; }
             }
 
-            // Validasi sukses, muat soal
             document.getElementById('dashboardScreen').classList.add('hidden');
             document.getElementById('loadingOverlay').classList.remove('hidden');
 
             try {
-                const qSnap = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'exam_questions'));
+                const qSnap = await getDocs(collection(db, 'exam_questions'));
                 let rawQuestions = [];
                 
                 qSnap.forEach(doc => {
@@ -423,13 +417,10 @@
 
                 if(rawQuestions.length === 0) {
                     customAlert("Soal untuk pelajaran ini belum tersedia.");
-                    location.reload();
-                    return;
+                    location.reload(); return;
                 }
 
-                // Acak & Format Soal
                 allQuestions = shuffle(rawQuestions).map(q => {
-                    // Pre-process certain types to ensure stability during render
                     if(q.type === 'PG' && q.opts) {
                         q.optsList = shuffle(Object.keys(q.opts).map(k => ({ key: k, text: q.opts[k], img: q.optsImg ? q.optsImg[k] : null })));
                     }
@@ -511,13 +502,11 @@
 
             refreshPaletteUI();
 
-            // Build Question HTML
             let html = `<div class="text-base md:text-lg text-slate-800 mb-6 leading-relaxed">${q.q}</div>`;
             if(q.qImg) {
                 html += `<div class="mb-6"><img src="${q.qImg}" class="max-w-full h-auto rounded border border-slate-200 shadow-sm mx-auto" style="max-height:300px;"></div>`;
             }
 
-            // Input UI based on Type
             html += `<div class="space-y-3">`;
             const currentAns = answers[index];
 
@@ -592,7 +581,6 @@
 
                 case 'MENGURUTKAN':
                     const currentOrder = currentAns || [...q.shuffledItems];
-                    // Save initial if empty
                     if(!currentAns) answers[index] = currentOrder; 
 
                     html += `<div class="space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200" id="sortContainer_${index}">`;
@@ -631,7 +619,6 @@
                             <canvas id="studentCanvasHotspot" class="cursor-crosshair inline-block max-w-full align-middle w-full h-auto"></canvas>
                         </div>
                     `;
-                    // Logic for canvas below
                     setTimeout(()=> { setupStudentHotspot(q.qImg, hotAns.x, hotAns.y, index); }, 100);
                     break;
 
@@ -651,12 +638,7 @@
             }
         };
 
-        // Saving logic handlers
-        window.saveAnswer = (val) => {
-            answers[currentIndex] = val;
-            refreshPaletteUI();
-        };
-
+        window.saveAnswer = (val) => { answers[currentIndex] = val; refreshPaletteUI(); };
         window.saveArrayAnswer = (checkbox, qIndex) => {
             if(!answers[qIndex]) answers[qIndex] = [];
             const val = checkbox.value;
@@ -664,22 +646,15 @@
             else answers[qIndex] = answers[qIndex].filter(v => v !== val);
             refreshPaletteUI();
         };
-
         window.saveMatchAnswer = (kiri, kananVal, qIndex) => {
             if(!answers[qIndex]) answers[qIndex] = {};
-            answers[qIndex][kiri] = kananVal;
-            refreshPaletteUI();
+            answers[qIndex][kiri] = kananVal; refreshPaletteUI();
         };
-
         window.moveItem = (qIndex, itemIndex, dir) => {
             let arr = answers[qIndex];
             if(itemIndex + dir < 0 || itemIndex + dir >= arr.length) return;
-            // Swap
-            let temp = arr[itemIndex];
-            arr[itemIndex] = arr[itemIndex + dir];
-            arr[itemIndex + dir] = temp;
-            answers[qIndex] = arr;
-            renderQuestion(qIndex); // re-render to update UI
+            let temp = arr[itemIndex]; arr[itemIndex] = arr[itemIndex + dir]; arr[itemIndex + dir] = temp;
+            answers[qIndex] = arr; renderQuestion(qIndex); 
         };
 
         window.setupStudentHotspot = (imgSrc, savedX, savedY, qIndex) => {
@@ -688,143 +663,77 @@
             const ctx = canvas.getContext('2d');
             const img = new Image();
             img.onload = () => {
-                // Determine display size vs original size
                 const containerWidth = canvas.parentElement.clientWidth;
-                let displayWidth = img.width;
-                let displayHeight = img.height;
-                
-                if (displayWidth > containerWidth) {
-                    displayHeight = (containerWidth / displayWidth) * displayHeight;
-                    displayWidth = containerWidth;
-                }
-
-                canvas.width = displayWidth;
-                canvas.height = displayHeight;
+                let displayWidth = img.width; let displayHeight = img.height;
+                if (displayWidth > containerWidth) { displayHeight = (containerWidth / displayWidth) * displayHeight; displayWidth = containerWidth; }
+                canvas.width = displayWidth; canvas.height = displayHeight;
                 ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
-
-                // Draw saved marker if exists
                 if(savedX !== null && savedY !== null) {
-                    // scale coords
-                    const sx = (savedX / img.width) * displayWidth;
-                    const sy = (savedY / img.height) * displayHeight;
-                    
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, 10, 0, 2 * Math.PI);
-                    ctx.fillStyle = '#3b82f6'; // blue-500
-                    ctx.fill();
+                    const sx = (savedX / img.width) * displayWidth; const sy = (savedY / img.height) * displayHeight;
+                    ctx.beginPath(); ctx.arc(sx, sy, 10, 0, 2 * Math.PI); ctx.fillStyle = '#3b82f6'; ctx.fill();
                     ctx.lineWidth = 2; ctx.strokeStyle = 'white'; ctx.stroke();
                 }
-
                 canvas.onclick = (e) => {
                     const rect = canvas.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const clickY = e.clientY - rect.top;
-                    
-                    // Convert back to original image scale
+                    const clickX = e.clientX - rect.left; const clickY = e.clientY - rect.top;
                     const origX = Math.round((clickX / displayWidth) * img.width);
                     const origY = Math.round((clickY / displayHeight) * img.height);
-
-                    answers[qIndex] = { x: origX, y: origY };
-                    refreshPaletteUI();
-                    
-                    // Redraw
+                    answers[qIndex] = { x: origX, y: origY }; refreshPaletteUI();
                     ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
-                    ctx.beginPath();
-                    ctx.arc(clickX, clickY, 10, 0, 2 * Math.PI);
-                    ctx.fillStyle = '#3b82f6'; ctx.fill();
+                    ctx.beginPath(); ctx.arc(clickX, clickY, 10, 0, 2 * Math.PI); ctx.fillStyle = '#3b82f6'; ctx.fill();
                     ctx.lineWidth = 2; ctx.strokeStyle = 'white'; ctx.stroke();
                 };
             };
             img.src = imgSrc;
         };
 
-        window.toggleRagu = () => {
-            raguRagu[currentIndex] = document.getElementById('checkRagu').checked;
-            refreshPaletteUI();
-        };
-
-        window.navigate = (dir) => {
-            const newIndex = currentIndex + dir;
-            if (newIndex >= 0 && newIndex < allQuestions.length) renderQuestion(newIndex);
-        };
-
+        window.toggleRagu = () => { raguRagu[currentIndex] = document.getElementById('checkRagu').checked; refreshPaletteUI(); };
+        window.navigate = (dir) => { const newIndex = currentIndex + dir; if (newIndex >= 0 && newIndex < allQuestions.length) renderQuestion(newIndex); };
         window.goToQuestion = (index) => renderQuestion(index);
 
-        // Timer
         function startTimer() {
             const timerDisplay = document.getElementById('timerDisplay');
             timerInterval = setInterval(() => {
                 timeRemaining--;
-                const m = Math.floor(timeRemaining / 60);
-                const s = timeRemaining % 60;
+                const m = Math.floor(timeRemaining / 60); const s = timeRemaining % 60;
                 timerDisplay.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-
-                if (timeRemaining <= 300) {
-                    timerDisplay.classList.remove('bg-slate-900/40', 'border-blue-400');
-                    timerDisplay.classList.add('bg-red-600', 'border-red-600', 'animate-pulse');
-                }
-
-                if (timeRemaining <= 0) {
-                    clearInterval(timerInterval);
-                    submitExam();
-                }
+                if (timeRemaining <= 300) { timerDisplay.classList.remove('bg-slate-900/40', 'border-blue-400'); timerDisplay.classList.add('bg-red-600', 'border-red-600', 'animate-pulse'); }
+                if (timeRemaining <= 0) { clearInterval(timerInterval); submitExam(); }
             }, 1000);
         }
 
-        // Submit & Score Calculation
         window.submitExam = async () => {
             document.getElementById('examScreen').classList.add('hidden');
             document.getElementById('timerDisplay').classList.add('hidden');
             document.getElementById('loadingOverlay').classList.remove('hidden');
             clearInterval(timerInterval);
 
-            let correctPG = 0;
-            let totalAutoScored = 0; // PG, PG_KOMPLEKS, BENAR_SALAH, ISIAN, MENCOCOKKAN, MENGURUTKAN, HOTSPOT
+            let correctPG = 0; let totalAutoScored = 0;
 
             allQuestions.forEach((q, idx) => {
-                const ans = answers[idx];
-                let isCorrect = false;
+                const ans = answers[idx]; let isCorrect = false;
 
                 if (q.type === 'PG' || q.type === 'BENAR_SALAH') {
-                    totalAutoScored++;
-                    if (ans === q.ans) isCorrect = true;
-                } 
-                else if (q.type === 'ISIAN') {
-                    totalAutoScored++;
-                    if (ans && q.ans && ans.trim().toLowerCase() === q.ans.trim().toLowerCase()) isCorrect = true;
-                }
-                else if (q.type === 'PG_KOMPLEKS') {
-                    totalAutoScored++;
-                    const qAns = [...(q.ans || [])].sort();
-                    const uAns = [...(ans || [])].sort();
+                    totalAutoScored++; if (ans === q.ans) isCorrect = true;
+                } else if (q.type === 'ISIAN') {
+                    totalAutoScored++; if (ans && q.ans && ans.trim().toLowerCase() === q.ans.trim().toLowerCase()) isCorrect = true;
+                } else if (q.type === 'PG_KOMPLEKS') {
+                    totalAutoScored++; const qAns = [...(q.ans || [])].sort(); const uAns = [...(ans || [])].sort();
                     if(qAns.length === uAns.length && qAns.every((v,i) => v === uAns[i])) isCorrect = true;
-                }
-                else if (q.type === 'MENCOCOKKAN') {
-                    totalAutoScored++;
-                    let allMatch = true;
-                    if(ans && Object.keys(ans).length > 0) {
-                        q.pairs.forEach(p => {
-                            if(ans[p.kiri] !== p.kanan) allMatch = false;
-                        });
-                    } else allMatch = false;
+                } else if (q.type === 'MENCOCOKKAN') {
+                    totalAutoScored++; let allMatch = true;
+                    if(ans && Object.keys(ans).length > 0) { q.pairs.forEach(p => { if(ans[p.kiri] !== p.kanan) allMatch = false; }); } else allMatch = false;
                     if(allMatch) isCorrect = true;
-                }
-                else if (q.type === 'MENGURUTKAN') {
-                    totalAutoScored++;
-                    const qAns = q.items || [];
-                    const uAns = ans || [];
+                } else if (q.type === 'MENGURUTKAN') {
+                    totalAutoScored++; const qAns = q.items || []; const uAns = ans || [];
                     if(qAns.length === uAns.length && qAns.every((v,i) => v === uAns[i])) isCorrect = true;
-                }
-                else if (q.type === 'HOTSPOT') {
+                } else if (q.type === 'HOTSPOT') {
                     totalAutoScored++;
                     if(ans && q.hotspot) {
-                        const dx = ans.x - q.hotspot.x;
-                        const dy = ans.y - q.hotspot.y;
-                        const dist = Math.sqrt(dx*dx + dy*dy);
-                        if (dist <= (q.hotspot.r || 30)) isCorrect = true;
+                        const dx = ans.x - q.hotspot.x; const dy = ans.y - q.hotspot.y;
+                        if (Math.sqrt(dx*dx + dy*dy) <= (q.hotspot.r || 30)) isCorrect = true;
                     }
                 }
-                // POLLING & URAIAN do not contribute to auto score.
 
                 if(isCorrect) correctPG++;
             });
@@ -834,22 +743,12 @@
             try {
                 if (db && currentUser) {
                     const examData = {
-                        nama: studentData.nama,
-                        absen: studentData.absen,
-                        noUjian: studentData.noUjian,
-                        subject: activeExamSubject,
-                        nilaiPG: finalScore,
-                        benarPG: correctPG,
-                        totalPG: totalAutoScored,
-                        jawaban: answers,
-                        tipeSoal: allQuestions.map(q => q.type),
-                        timestamp: serverTimestamp(),
-                        userId: currentUser.uid
+                        nama: studentData.nama, absen: studentData.absen, noUjian: studentData.noUjian, subject: activeExamSubject,
+                        nilaiPG: finalScore, benarPG: correctPG, totalPG: totalAutoScored, jawaban: answers, tipeSoal: allQuestions.map(q => q.type),
+                        timestamp: serverTimestamp(), userId: currentUser.uid
                     };
-
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'exam_results'), examData);
+                    await addDoc(collection(db, 'exam_results'), examData);
                 }
-
                 document.getElementById('loadingOverlay').classList.add('hidden');
                 document.getElementById('resName').innerText = studentData.nama;
                 document.getElementById('resultScreen').classList.remove('hidden');
@@ -858,7 +757,7 @@
                 console.error("Save result error", err);
                 customAlert("Gagal menyimpan hasil ke server. Harap jangan tutup halaman ini dan lapor ke Pengawas!");
                 document.getElementById('loadingOverlay').classList.add('hidden');
-                document.getElementById('examScreen').classList.remove('hidden'); // allow retry
+                document.getElementById('examScreen').classList.remove('hidden'); 
             }
         };
 
