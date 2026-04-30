@@ -263,9 +263,35 @@ window.previewImage = (input, previewId, base64Id) => {
     if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById(previewId).src = e.target.result;
-            document.getElementById(previewId).classList.remove('hidden');
-            document.getElementById(base64Id).value = e.target.result;
+            // Proses Kompresi Gambar menggunakan Canvas
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                // Set maksimal lebar/tinggi 300px agar ukuran file sangat kecil
+                const MAX_WIDTH = 300;
+                const MAX_HEIGHT = 300;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                } else {
+                    if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Ubah menjadi format WEBP dengan kualitas 80% (Sangat ringan)
+                const compressedDataUrl = canvas.toDataURL('image/webp', 0.8);
+
+                document.getElementById(previewId).src = compressedDataUrl;
+                document.getElementById(previewId).classList.remove('hidden');
+                document.getElementById(base64Id).value = compressedDataUrl;
+            }
+            img.src = e.target.result;
         }
         reader.readAsDataURL(file);
     }
