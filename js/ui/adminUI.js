@@ -1,5 +1,6 @@
 import { state } from '../services/store.js';
 import { db, doc, collection, addDoc, updateDoc, deleteDoc, setDoc, initFirebase } from '../services/api.js';
+import { getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // ==========================================
 // UTILS NAVIGASI & MODAL
@@ -41,13 +42,12 @@ window.closeModal = (modalId) => {
 // LOGIN ADMIN & SESSION
 // ==========================================
 window.checkAdminSession = () => {
-    // Cek apakah ada sesi admin yang tersimpan di browser
     const isLogged = sessionStorage.getItem('admin_logged_in');
     if (isLogged === 'true') {
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('appScreen').classList.remove('hidden');
         document.getElementById('appScreen').classList.add('flex');
-        initFirebase(); // Langsung tarik data dari Firebase
+        initFirebase(); 
     }
 };
 
@@ -55,9 +55,7 @@ window.handleLogin = (e) => {
     e.preventDefault();
     const inputPin = document.getElementById('inputPinAdmin').value;
     if (inputPin === state.ADMIN_PIN) {
-        // Simpan tanda login berhasil ke sessionStorage
         sessionStorage.setItem('admin_logged_in', 'true');
-        
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('appScreen').classList.remove('hidden');
         document.getElementById('appScreen').classList.add('flex');
@@ -68,18 +66,143 @@ window.handleLogin = (e) => {
 };
 
 window.logoutAdmin = () => {
-    // Hapus sesi saat logout
     sessionStorage.removeItem('admin_logged_in');
-    
     document.getElementById('inputPinAdmin').value = '';
     document.getElementById('loginError').classList.add('hidden');
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('appScreen').classList.add('hidden');
     document.getElementById('appScreen').classList.remove('flex');
 };
-
-// Jalankan pengecekan sesi secara otomatis saat file js dimuat
 window.checkAdminSession();
+
+// ==========================================
+// DATA UMUM: TAHUN PELAJARAN & SEMESTER
+// ==========================================
+state.academicConfig = {
+    years: [],
+    activeSemester: 'Ganjil'
+};
+
+window.loadTahunPelajaran = async () => {
+    try {
+        const docRef = doc(db, 'settings', 'academic_config');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            state.academicConfig = docSnap.data();
+        } else {
+            // Default setup jika kosong
+            state.academicConfig = {
+                years: [{ id: Date.now().toString(), name: '2025/2026', isActive: true }],
+                activeSemester: 'Ganjil'
+            };
+            await setDoc(docRef, state.academicConfig);
+        }
+        window.renderTableTahunSemester();
+    } catch (e) {
+        console.error("Gagal memuat tahun pelajaran", e);
+    }
+};
+
+window.renderTableTahunSemester = () => {
+    const tbodyTahun = document.getElementById('tableTahunBody');
+    const tbodySemester = document.getElementById('tableSemesterBody');
+
+    // Render Tabel Tahun Pelajaran
+    tbodyTahun.innerHTML = '';
+    if(state.academicConfig.years.length === 0) {
+        tbodyTahun.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">Belum ada tahun pelajaran.</td></tr>`;
+    } else {
+        state.academicConfig.years.forEach((y, i) => {
+            const statusBadge = y.isActive
+                ? `<span class="text-green-600 font-bold flex items-center justify-center gap-1">✔ AKTIF</span>`
+                : `<button onclick="setAktifTahun('${y.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold w-full max-w-[100px] mx-auto transition">AKTIFKAN</button>`;
+
+            tbodyTahun.innerHTML += `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3 border-r text-center font-bold text-slate-500">${i+1}</td>
+                    <td class="p-3 border-r text-center font-medium">${y.name}</td>
+                    <td class="p-3 border-r text-center align-middle">${statusBadge}</td>
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="editTahun('${y.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-4 py-1.5 rounded shadow-sm text-xs font-bold transition">Edit</button>
+                        <button onclick="hapusTahun('${y.id}')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded shadow-sm text-xs font-bold transition">Hapus</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // Render Tabel Semester
+    tbodySemester.innerHTML = '';
+    ['Ganjil', 'Genap'].forEach((sem, i) => {
+        const isActive = state.academicConfig.activeSemester === sem;
+        const statusBadge = isActive
+            ? `<span class="text-green-600 font-bold flex items-center justify-center gap-1">✔ AKTIF</span>`
+            : `<button onclick="setAktifSemester('${sem}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold w-full max-w-[100px] mx-auto transition">AKTIFKAN</button>`;
+
+        tbodySemester.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="p-3 border-r text-center font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r text-center font-medium">${sem}</td>
+                <td class="p-3 text-center align-middle">${statusBadge}</td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalTahun = () => {
+    document.getElementById('tahunId').value = '';
+    document.getElementById('inputNamaTahun').value = '';
+    document.getElementById('modalTahunPelajaran').classList.remove('hidden');
+};
+
+window.simpanTahunPelajaran = async () => {
+    const id = document.getElementById('tahunId').value;
+    const name = document.getElementById('inputNamaTahun').value.trim();
+    if(!name) return alert("Nama Tahun Pelajaran tidak boleh kosong");
+
+    let newYears = [...(state.academicConfig.years || [])];
+
+    if(id) {
+        const index = newYears.findIndex(y => y.id === id);
+        if(index !== -1) newYears[index].name = name;
+    } else {
+        newYears.push({ id: Date.now().toString(), name: name, isActive: newYears.length === 0 });
+    }
+
+    state.academicConfig.years = newYears;
+    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+    window.closeModal('modalTahunPelajaran');
+    window.renderTableTahunSemester();
+};
+
+window.editTahun = (id) => {
+    const y = state.academicConfig.years.find(y => y.id === id);
+    if(!y) return;
+    document.getElementById('tahunId').value = y.id;
+    document.getElementById('inputNamaTahun').value = y.name;
+    document.getElementById('modalTahunPelajaran').classList.remove('hidden');
+};
+
+window.hapusTahun = async (id) => {
+    if(!confirm("Hapus tahun pelajaran ini?")) return;
+    state.academicConfig.years = state.academicConfig.years.filter(y => y.id !== id);
+    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+    window.renderTableTahunSemester();
+};
+
+window.setAktifTahun = async (id) => {
+    state.academicConfig.years = state.academicConfig.years.map(y => ({
+        ...y, isActive: y.id === id
+    }));
+    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+    window.renderTableTahunSemester();
+};
+
+window.setAktifSemester = async (sem) => {
+    state.academicConfig.activeSemester = sem;
+    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+    window.renderTableTahunSemester();
+};
 
 // ==========================================
 // PROFIL SEKOLAH
@@ -98,27 +221,14 @@ window.isiFormProfil = () => {
     document.getElementById('profProktor').value = state.schoolProfile.proktor || '';
     document.getElementById('profTahun').value = state.schoolProfile.tahunAjaran || '';
 
-    // Load preview Logo Kabupaten
     document.getElementById('logoKabBase64').value = state.schoolProfile.logoKab || '';
     const previewKab = document.getElementById('previewLogoKab');
-    if(state.schoolProfile.logoKab) { 
-        previewKab.src = state.schoolProfile.logoKab; 
-        previewKab.classList.remove('hidden'); 
-    } else { 
-        previewKab.classList.add('hidden'); 
-    }
+    if(state.schoolProfile.logoKab) { previewKab.src = state.schoolProfile.logoKab; previewKab.classList.remove('hidden'); } else { previewKab.classList.add('hidden'); }
 
-    // Load preview Logo Sekolah
     document.getElementById('logoSekolahBase64').value = state.schoolProfile.logoSekolah || '';
     const previewSekolah = document.getElementById('previewLogoSekolah');
-    if(state.schoolProfile.logoSekolah) { 
-        previewSekolah.src = state.schoolProfile.logoSekolah; 
-        previewSekolah.classList.remove('hidden'); 
-    } else { 
-        previewSekolah.classList.add('hidden'); 
-    }
+    if(state.schoolProfile.logoSekolah) { previewSekolah.src = state.schoolProfile.logoSekolah; previewSekolah.classList.remove('hidden'); } else { previewSekolah.classList.add('hidden'); }
 
-    // Trigger update UI Preview Kop
     if(window.updatePreviewKop) window.updatePreviewKop();
 };
 
@@ -147,9 +257,33 @@ window.simpanProfil = async () => {
     } catch (error) { 
         console.error(error); 
         alert("Gagal simpan profil.");
-    } finally { 
-        btn.disabled = false; 
-        btn.innerText = "Simpan Profil"; 
+    } finally { btn.disabled = false; btn.innerText = "Simpan Profil"; }
+};
+
+window.previewImage = (input, previewId, base64Id) => {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 300; const MAX_HEIGHT = 300;
+                let width = img.width; let height = img.height;
+                if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+                canvas.width = width; canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                const compressedDataUrl = canvas.toDataURL('image/webp', 0.8);
+
+                document.getElementById(previewId).src = compressedDataUrl;
+                document.getElementById(previewId).classList.remove('hidden');
+                document.getElementById(base64Id).value = compressedDataUrl;
+            }
+            img.src = e.target.result;
+        }
+        reader.readAsDataURL(file);
     }
 };
 
@@ -296,45 +430,6 @@ window.toggleFormSoalType = () => {
     else if(tipe === 'ISIAN') document.getElementById('containerIsian').classList.remove('hidden');
 };
 
-window.previewImage = (input, previewId, base64Id) => {
-    const file = input.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            // Proses Kompresi Gambar menggunakan Canvas
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                // Set maksimal lebar/tinggi 300px agar ukuran file sangat kecil
-                const MAX_WIDTH = 300;
-                const MAX_HEIGHT = 300;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                } else {
-                    if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                // Ubah menjadi format WEBP dengan kualitas 80% (Sangat ringan)
-                const compressedDataUrl = canvas.toDataURL('image/webp', 0.8);
-
-                document.getElementById(previewId).src = compressedDataUrl;
-                document.getElementById(previewId).classList.remove('hidden');
-                document.getElementById(base64Id).value = compressedDataUrl;
-            }
-            img.src = e.target.result;
-        }
-        reader.readAsDataURL(file);
-    }
-};
-
 window.simpanSoal = async () => {
     const btn = document.getElementById('btnSimpanSoal');
     const id = document.getElementById('soalId').value;
@@ -347,33 +442,26 @@ window.simpanSoal = async () => {
 
     if(tipe === 'PG') {
         let opts = {};
-        opts['A'] = document.getElementById('optA').value;
-        opts['B'] = document.getElementById('optB').value;
-        opts['C'] = document.getElementById('optC').value;
-        opts['D'] = document.getElementById('optD').value;
+        opts['A'] = document.getElementById('optA').value; opts['B'] = document.getElementById('optB').value;
+        opts['C'] = document.getElementById('optC').value; opts['D'] = document.getElementById('optD').value;
         let ans = null;
         for(let r of document.getElementsByName('kunciJawabanPG')) if(r.checked) ans = r.value;
         if(!ans) { alert("Pilih kunci jawaban!"); return; }
         dataSimpan.opts = opts; dataSimpan.ans = ans;
-    }
-    else if (tipe === 'PG_KOMPLEKS') {
+    } else if (tipe === 'PG_KOMPLEKS') {
         let opts = {}; 
-        opts['A'] = document.getElementById('optA_K').value.trim();
-        opts['B'] = document.getElementById('optB_K').value.trim();
-        opts['C'] = document.getElementById('optC_K').value.trim();
-        opts['D'] = document.getElementById('optD_K').value.trim();
+        opts['A'] = document.getElementById('optA_K').value.trim(); opts['B'] = document.getElementById('optB_K').value.trim();
+        opts['C'] = document.getElementById('optC_K').value.trim(); opts['D'] = document.getElementById('optD_K').value.trim();
         const ansArr = [];
         for(let c of document.getElementsByName('kunciJawabanKompleks')) if(c.checked) ansArr.push(c.value);
         if(ansArr.length === 0) { alert("Pilih minimal satu kunci jawaban!"); return; }
         dataSimpan.opts = opts; dataSimpan.ans = ansArr;
-    }
-    else if (tipe === 'BENAR_SALAH') {
+    } else if (tipe === 'BENAR_SALAH') {
         let ans = null;
         for(let r of document.getElementsByName('kunciBS')) if(r.checked) ans = r.value;
         if(!ans) { alert("Tentukan Benar atau Salah!"); return; }
         dataSimpan.ans = ans;
-    }
-    else if (tipe === 'ISIAN') {
+    } else if (tipe === 'ISIAN') {
         const ans = document.getElementById('kunciIsian').value.trim();
         if(!ans) { alert("Kunci jawaban tidak boleh kosong!"); return; }
         dataSimpan.ans = ans;
@@ -420,14 +508,12 @@ window.bukaPengaturanUjian = (subject) => {
 window.simpanPengaturanUjian = async () => {
     const subject = document.getElementById('ujianSubject').value;
     const schedule = state.examSchedules.find(s => s.subject === subject);
-    
     const data = {
         subject: subject,
         duration: parseInt(document.getElementById('ujianDurasi').value) || 90,
         token: document.getElementById('ujianToken').value.toUpperCase(),
         isActive: document.getElementById('ujianStatus').checked
     };
-
     try {
         if(schedule && schedule.id) await updateDoc(doc(db, 'exam_schedules', schedule.id), data);
         else await addDoc(collection(db, 'exam_schedules'), data);
@@ -442,10 +528,12 @@ window.renderTablePeserta = () => {
     const tbody = document.getElementById('tablePesertaBody');
     document.getElementById('cetakJumlahPeserta').innerText = state.examParticipants.length;
     tbody.innerHTML = '';
-    if(state.examParticipants.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">Belum ada data peserta.</td></tr>`; return; }
+    
+    if(state.examParticipants.length === 0) { tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-500">Belum ada data peserta.</td></tr>`; return; }
+    
     state.examParticipants.forEach((p) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="p-4 text-center font-mono font-bold">${p.absen}</td><td class="p-4 text-center font-mono">${p.noUjian || '-'}</td><td class="p-4 font-bold uppercase">${p.nama}</td><td class="p-4 text-center">${p.ruang || '-'}</td><td class="p-4 text-center">${p.sesi || '-'}</td><td class="p-4 text-center tracking-widest">${p.password || p.absen}</td><td class="p-4 text-center space-x-2"><button onclick="editPeserta('${p.id}')" class="text-amber-500">✏️</button><button onclick="hapusPeserta('${p.id}')" class="text-red-500">🗑️</button></td>`;
+        tr.innerHTML = `<td class="p-4 text-center font-mono font-bold">${p.absen}</td><td class="p-4 text-center font-mono">${p.noUjian || '-'}</td><td class="p-4 font-bold uppercase">${p.nama}</td><td class="p-4 text-center font-bold text-blue-600">${p.kelas || '-'}</td><td class="p-4 text-center">${p.ruang || '-'}</td><td class="p-4 text-center">${p.sesi || '-'}</td><td class="p-4 text-center tracking-widest">${p.password || p.absen}</td><td class="p-4 text-center space-x-2"><button onclick="editPeserta('${p.id}')" class="text-amber-500">✏️</button><button onclick="hapusPeserta('${p.id}')" class="text-red-500">🗑️</button></td>`;
         tbody.appendChild(tr);
     });
 };
@@ -457,23 +545,13 @@ window.openPesertaModal = () => {
 };
 
 window.generatePassword = () => {
-    // Karakter yang digunakan (sengaja menghilangkan huruf O, angka 0, huruf I, dan angka 1 agar siswa tidak bingung saat membaca Kartu Ujian)
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
     let password = '';
-    
-    // Membuat 6 digit password acak
-    for (let i = 0; i < 6; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    
+    for (let i = 0; i < 6; i++) { password += chars.charAt(Math.floor(Math.random() * chars.length)); }
     const inputPassword = document.getElementById('pesertaPassword');
     inputPassword.value = password;
-    
-    // Memberikan efek visual (flash) sebentar agar admin tahu tombolnya bekerja
     inputPassword.classList.add('bg-green-100');
-    setTimeout(() => {
-        inputPassword.classList.remove('bg-green-100');
-    }, 300);
+    setTimeout(() => { inputPassword.classList.remove('bg-green-100'); }, 300);
 };
 
 window.simpanPeserta = async () => {
@@ -483,6 +561,7 @@ window.simpanPeserta = async () => {
         absen: document.getElementById('pesertaAbsen').value,
         noUjian: document.getElementById('pesertaNoUjian').value,
         nama: document.getElementById('pesertaNama').value.toUpperCase(),
+        kelas: document.getElementById('pesertaKelas').value.toUpperCase(),
         ruang: document.getElementById('pesertaRuang').value,
         sesi: document.getElementById('pesertaSesi').value,
         password: document.getElementById('pesertaPassword').value || document.getElementById('pesertaAbsen').value
@@ -504,6 +583,7 @@ window.editPeserta = (id) => {
     document.getElementById('pesertaAbsen').value = p.absen;
     document.getElementById('pesertaNoUjian').value = p.noUjian;
     document.getElementById('pesertaNama').value = p.nama;
+    document.getElementById('pesertaKelas').value = p.kelas || ''; 
     document.getElementById('pesertaRuang').value = p.ruang;
     document.getElementById('pesertaSesi').value = p.sesi;
     document.getElementById('pesertaPassword').value = p.password === p.absen ? '' : p.password;
@@ -517,40 +597,19 @@ window.hapusPeserta = async (id) => {
 // ==========================================
 // EXPORT & IMPORT EXCEL (PESERTA)
 // ==========================================
-
 window.downloadFormatPeserta = () => {
     let dataExport = [];
-    
-    // Jika data peserta kosong, berikan 1 baris contoh kosong sebagai format
     if (state.examParticipants.length === 0) {
-        dataExport.push({
-            NO_ABSEN: 1,
-            NO_UJIAN: "001-01",
-            NAMA_LENGKAP: "NAMA SISWA CONTOH",
-            RUANG: "R-01",
-            SESI: "1",
-            PASSWORD: "1"
-        });
+        dataExport.push({ NO_ABSEN: 1, NO_UJIAN: "001-01", NAMA_LENGKAP: "NAMA SISWA CONTOH", KELAS: "VI", RUANG: "R-01", SESI: "1", PASSWORD: "1" });
     } else {
-        // Jika sudah ada data, Export data tersebut
         state.examParticipants.forEach(p => {
-            dataExport.push({
-                NO_ABSEN: p.absen,
-                NO_UJIAN: p.noUjian || '',
-                NAMA_LENGKAP: p.nama,
-                RUANG: p.ruang || '',
-                SESI: p.sesi || '',
-                PASSWORD: p.password || p.absen
-            });
+            dataExport.push({ NO_ABSEN: p.absen, NO_UJIAN: p.noUjian || '', NAMA_LENGKAP: p.nama, KELAS: p.kelas || '', RUANG: p.ruang || '', SESI: p.sesi || '', PASSWORD: p.password || p.absen });
         });
     }
 
-    // Buat worksheet dan workbook baru
     const ws = XLSX.utils.json_to_sheet(dataExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Data_Peserta");
-    
-    // Unduh file
     XLSX.writeFile(wb, "Peserta_Ujian_CBT.xlsx");
 };
 
@@ -558,60 +617,46 @@ window.prosesImportPeserta = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Munculkan loading indicator saat memproses
     document.getElementById('loadingIndicator').classList.remove('hidden');
-
     const reader = new FileReader();
     reader.onload = async (evt) => {
         try {
             const data = new Uint8Array(evt.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0]; // Ambil sheet pertama
+            const sheetName = workbook.SheetNames[0]; 
             const sheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(sheet);
 
-            if (json.length === 0) {
-                alert("File Excel kosong atau format tidak sesuai!");
-                return;
-            }
+            if (json.length === 0) { alert("File Excel kosong atau format tidak sesuai!"); return; }
 
             let successCount = 0;
-            // Proses baris per baris
             for (const row of json) {
-                // Syarat mutlak: Harus ada NO_ABSEN dan NAMA_LENGKAP
                 if (!row.NO_ABSEN || !row.NAMA_LENGKAP) continue;
 
                 const absenStr = String(row.NO_ABSEN).trim();
-                const namaStr = String(row.NAMA_LENGKAP).trim().toUpperCase();
-                
                 const dataSimpan = {
                     absen: absenStr,
                     noUjian: row.NO_UJIAN ? String(row.NO_UJIAN).trim() : '',
-                    nama: namaStr,
+                    nama: String(row.NAMA_LENGKAP).trim().toUpperCase(),
+                    kelas: row.KELAS ? String(row.KELAS).trim().toUpperCase() : '', 
                     ruang: row.RUANG ? String(row.RUANG).trim() : '',
                     sesi: row.SESI ? String(row.SESI).trim() : '',
                     password: row.PASSWORD ? String(row.PASSWORD).trim() : absenStr
                 };
 
-                // Cek apakah No Absen ini sudah ada di database (state)
                 const exist = state.examParticipants.find(p => p.absen === absenStr);
-
                 if (exist && exist.id) {
-                    // Jika sudah ada, UPDATE data yang lama
                     await updateDoc(doc(db, 'exam_participants', exist.id), dataSimpan);
                 } else {
-                    // Jika belum ada, TAMBAH data baru
                     await addDoc(collection(db, 'exam_participants'), dataSimpan);
                 }
                 successCount++;
             }
-
             alert(`Berhasil mengimpor/memperbarui ${successCount} data peserta!`);
         } catch (error) {
             console.error("Error import excel:", error);
-            alert("Terjadi kesalahan saat membaca file. Pastikan format kolom sesuai dengan template (Export).");
+            alert("Terjadi kesalahan! Pastikan format/judul kolom persis seperti template Export.");
         } finally {
-            // Sembunyikan loading dan reset input file agar bisa import file yang sama lagi jika perlu
             document.getElementById('loadingIndicator').classList.add('hidden');
             document.getElementById('fileImportPeserta').value = ''; 
         }
