@@ -12,160 +12,93 @@ window.switchTab = (id, title) => { document.querySelectorAll('.view-section').f
 window.toggleSidebar = () => { const s = document.getElementById('sidebar'); s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); };
 window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
+
 // ==========================================
-// DATA UJIAN: ATUR RUANG DAN SESI (BARU)
+// DATA UJIAN: NOMOR PESERTA (BARU)
 // ==========================================
-window.loadAturRuangSesi = async () => {
+window.loadNomorPeserta = async () => {
     try {
-        // Memastikan Semua Data Master (Kelas, Ruang, Sesi, Siswa) sudah termuat
+        // Pastikan data kelas sudah termuat untuk Dropdown
         if(state.masterKelas.length === 0) {
             const snap = await getDocs(collection(db, 'master_kelas'));
             state.masterKelas = []; snap.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
             state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
         }
-        if(state.masterRuangUjian.length === 0) {
-            const snap = await getDocs(collection(db, 'master_ruang_ujian'));
-            state.masterRuangUjian = []; snap.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
-            state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
-        }
-        if(state.masterSesiUjian.length === 0) {
-            const snap = await getDocs(collection(db, 'master_sesi_ujian'));
-            state.masterSesiUjian = []; snap.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()}));
-            state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
-        }
         
-        // Data siswa di-reload agar selalu sinkron jika ada perubahan nama/kelas
+        // Pastikan master siswa mutakhir untuk pemrosesan generate
         const snapSiswa = await getDocs(collection(db, 'master_siswa'));
         state.masterSiswa = []; snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
 
-        // Populate Dropdowns Filter & Bulk Action
-        const filterKelas = document.getElementById('filterKelasAtur');
-        filterKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-        state.masterKelas.forEach(k => { filterKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; });
-
-        const bulkRuang = document.getElementById('bulkRuang');
-        bulkRuang.innerHTML = '<option value="">Pilih ruang</option>';
-        state.masterRuangUjian.forEach(r => { bulkRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`; });
-
-        const bulkSesi = document.getElementById('bulkSesi');
-        bulkSesi.innerHTML = '<option value="">Pilih sesi</option>';
-        state.masterSesiUjian.forEach(s => { bulkSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`; });
-
-        // Auto-select kelas pertama jika ada
-        if(state.masterKelas.length > 0) {
-            filterKelas.value = state.masterKelas[0].nama;
-        }
-
-        window.renderTableAturRuangSesi();
-    } catch(e) { console.error("Error loading atur ruang sesi:", e); }
-};
-
-window.renderTableAturRuangSesi = () => {
-    const kelasVal = document.getElementById('filterKelasAtur').value;
-    const tb = document.getElementById('tableAturRuangSesiBody');
-    const lbl = document.getElementById('labelBulkAction');
-    
-    lbl.innerText = `Gabungkan siswa ${kelasVal ? kelasVal : ''} ke ruang dan sesi:`;
-    tb.innerHTML = '';
-
-    if (!kelasVal) {
-        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500">Pilih kelas terlebih dahulu.</td></tr>';
-        return;
-    }
-
-    const filteredSiswa = state.masterSiswa.filter(s => s.kelas === kelasVal).sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
-
-    if (filteredSiswa.length === 0) {
-        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Tidak ada siswa yang terdaftar di kelas ini.</td></tr>';
-        return;
-    }
-
-    // Persiapan string options untuk select dinamis
-    let optRuang = '<option value="">Pilih ruang</option>';
-    state.masterRuangUjian.forEach(r => { optRuang += `<option value="${r.nama}">${r.nama}</option>`; });
-
-    let optSesi = '<option value="">Pilih sesi</option>';
-    state.masterSesiUjian.forEach(s => { optSesi += `<option value="${s.nama}">${s.nama}</option>`; });
-
-    // Render Baris Siswa
-    filteredSiswa.forEach((s, i) => {
-        tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition" data-id="${s.id}">
-                <td class="p-3 text-center border border-slate-200 text-slate-500 font-bold">${i+1}</td>
-                <td class="p-3 border border-slate-200 font-bold uppercase text-slate-800">${s.nama}</td>
-                <td class="p-3 border border-slate-200 text-center font-bold text-slate-600">${s.kelas}</td>
-                <td class="p-2 border border-slate-200 bg-slate-50">
-                    <select class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 select-ruang text-sm bg-white">
-                        ${optRuang}
-                    </select>
-                </td>
-                <td class="p-2 border border-slate-200 bg-slate-50">
-                    <select class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 select-sesi text-sm bg-white">
-                        ${optSesi}
-                    </select>
-                </td>
-            </tr>
-        `;
-    });
-
-    // Mengembalikan nilai dropdown sebelumnya sesuai data yang sudah ada di Firebase
-    setTimeout(() => {
-        const rows = tb.querySelectorAll('tr[data-id]');
-        rows.forEach(row => {
-            const id = row.getAttribute('data-id');
-            const s = filteredSiswa.find(x => x.id === id);
-            if(s) {
-                if(s.ruang) row.querySelector('.select-ruang').value = s.ruang;
-                if(s.sesi) row.querySelector('.select-sesi').value = s.sesi;
-            }
+        // Populate dropdown
+        const selectKelas = document.getElementById('selectKelasNomor');
+        selectKelas.innerHTML = '<option value="ALL">Semua Kelas</option>';
+        state.masterKelas.forEach(k => {
+            selectKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`;
         });
-    }, 50);
+
+    } catch(e) {
+        console.error("Error load nomor peserta:", e);
+    }
 };
 
-window.applyBulkRuangSesi = () => {
-    const ruangVal = document.getElementById('bulkRuang').value;
-    const sesiVal = document.getElementById('bulkSesi').value;
-    const tb = document.getElementById('tableAturRuangSesiBody');
-    const rows = tb.querySelectorAll('tr[data-id]');
-    
-    rows.forEach(row => {
-        if(ruangVal) row.querySelector('.select-ruang').value = ruangVal;
-        if(sesiVal) row.querySelector('.select-sesi').value = sesiVal;
+window.generateNomorPeserta = async () => {
+    const kelasVal = document.getElementById('selectKelasNomor').value;
+    const btn = document.getElementById('btnGenerateNomor');
+    const NPSN_SEKOLAH = '20528347'; // NPSN SDN Margantoko 2
+
+    // Filter siswa berdasarkan pilihan
+    let siswaTarget = [];
+    if (kelasVal === 'ALL') {
+        siswaTarget = [...state.masterSiswa];
+    } else {
+        siswaTarget = state.masterSiswa.filter(s => s.kelas === kelasVal);
+    }
+
+    if (siswaTarget.length === 0) {
+        return alert("Tidak ada siswa yang ditemukan pada kelas yang dipilih!");
+    }
+
+    // Urutkan siswa agar penomoran urut berdasarkan kelas, lalu nama (abjad)
+    siswaTarget.sort((a, b) => {
+        if (a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
+        return (a.kelas || '').localeCompare(b.kelas || '');
     });
-};
 
-window.simpanAturRuangSesi = async () => {
-    const btn = document.getElementById('btnSimpanAtur');
-    btn.disabled = true; btn.innerText = "Menyimpan...";
+    if(!confirm(`Anda akan meng-generate ulang nomor ujian untuk ${siswaTarget.length} siswa. Lanjutkan?`)) return;
 
-    const tb = document.getElementById('tableAturRuangSesiBody');
-    const rows = tb.querySelectorAll('tr[data-id]');
-    
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memproses...`;
+
     try {
         const promises = [];
-        rows.forEach(row => {
-            const id = row.getAttribute('data-id');
-            const ruang = row.querySelector('.select-ruang').value;
-            const sesi = row.querySelector('.select-sesi').value;
-            
-            // Update local state agar tidak perlu refresh berat
-            const s = state.masterSiswa.find(x => x.id === id);
-            if(s) {
-                s.ruang = ruang;
-                s.sesi = sesi;
-            }
+        
+        siswaTarget.forEach((s, index) => {
+            // Pembuatan format angka 3 digit misal: 001, 002, 010, dst
+            const noUrut = String(index + 1).padStart(3, '0');
+            const noUjianBaru = `${NPSN_SEKOLAH}-${noUrut}`;
 
-            // Push ke array promise batch update Firebase
-            promises.push(updateDoc(doc(db, 'master_siswa', id), { ruang, sesi }));
+            // Update state local agar langsung terlihat perubahannya
+            s.noUjian = noUjianBaru;
+            // Kita petakan NIS lokal form siswa ke properti 'noUjian' 
+            s.nis = noUjianBaru; 
+
+            // Update ke Firebase (kolom nis sebagai identitas ujian utama dalam CBT ini)
+            promises.push(updateDoc(doc(db, 'master_siswa', s.id), { nis: noUjianBaru }));
         });
 
         await Promise.all(promises);
-        alert("Data Ruang dan Sesi Siswa berhasil disimpan dan disinkronisasikan!");
+        
+        alert("Nomor Peserta Ujian berhasil digenerate dan disimpan ke seluruh siswa terpilih!");
+        
+        // Refresh tabel Siswa jika user langsung beralih ke menu Siswa
+        if(window.renderTableSiswa) window.renderTableSiswa();
+        
     } catch(e) {
         console.error(e);
-        alert("Terjadi kesalahan sistem saat menyimpan pemetaan.");
+        alert("Gagal meng-generate nomor peserta. Cek koneksi internet Anda.");
     } finally {
-        btn.disabled = false; btn.innerText = "💾 Simpan";
+        btn.disabled = false;
+        btn.innerHTML = `💾 Simpan`;
     }
 };
 
@@ -173,6 +106,11 @@ window.simpanAturRuangSesi = async () => {
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
 state.masterRuangUjian = []; state.masterSesiUjian = []; state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+
+window.loadAturRuangSesi = async () => { try { if(state.masterKelas.length === 0) { const snap = await getDocs(collection(db, 'master_kelas')); state.masterKelas = []; snap.forEach(d => state.masterKelas.push({id: d.id, ...d.data()})); state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || '')); } if(state.masterRuangUjian.length === 0) { const snap = await getDocs(collection(db, 'master_ruang_ujian')); state.masterRuangUjian = []; snap.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()})); state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); } if(state.masterSesiUjian.length === 0) { const snap = await getDocs(collection(db, 'master_sesi_ujian')); state.masterSesiUjian = []; snap.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()})); state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); } const snapSiswa = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()})); const filterKelas = document.getElementById('filterKelasAtur'); filterKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>'; state.masterKelas.forEach(k => { filterKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; }); const bulkRuang = document.getElementById('bulkRuang'); bulkRuang.innerHTML = '<option value="">Pilih ruang</option>'; state.masterRuangUjian.forEach(r => { bulkRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`; }); const bulkSesi = document.getElementById('bulkSesi'); bulkSesi.innerHTML = '<option value="">Pilih sesi</option>'; state.masterSesiUjian.forEach(s => { bulkSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`; }); if(state.masterKelas.length > 0) { filterKelas.value = state.masterKelas[0].nama; } window.renderTableAturRuangSesi(); } catch(e) { console.error(e); } };
+window.renderTableAturRuangSesi = () => { const kelasVal = document.getElementById('filterKelasAtur').value; const tb = document.getElementById('tableAturRuangSesiBody'); const lbl = document.getElementById('labelBulkAction'); lbl.innerText = `Gabungkan siswa ${kelasVal ? kelasVal : ''} ke ruang dan sesi:`; tb.innerHTML = ''; if (!kelasVal) return tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500">Pilih kelas terlebih dahulu.</td></tr>'; const filteredSiswa = state.masterSiswa.filter(s => s.kelas === kelasVal).sort((a,b) => (a.nama||'').localeCompare(b.nama||'')); if (filteredSiswa.length === 0) return tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Tidak ada siswa.</td></tr>'; let optRuang = '<option value="">Pilih ruang</option>'; state.masterRuangUjian.forEach(r => { optRuang += `<option value="${r.nama}">${r.nama}</option>`; }); let optSesi = '<option value="">Pilih sesi</option>'; state.masterSesiUjian.forEach(s => { optSesi += `<option value="${s.nama}">${s.nama}</option>`; }); filteredSiswa.forEach((s, i) => { tb.innerHTML += `<tr class="hover:bg-slate-50 transition" data-id="${s.id}"><td class="p-3 text-center border border-slate-200 text-slate-500 font-bold">${i+1}</td><td class="p-3 border border-slate-200 font-bold uppercase text-slate-800">${s.nama}</td><td class="p-3 border border-slate-200 text-center font-bold text-slate-600">${s.kelas}</td><td class="p-2 border border-slate-200 bg-slate-50"><select class="w-full p-2 border border-slate-300 rounded outline-none select-ruang text-sm bg-white">${optRuang}</select></td><td class="p-2 border border-slate-200 bg-slate-50"><select class="w-full p-2 border border-slate-300 rounded outline-none select-sesi text-sm bg-white">${optSesi}</select></td></tr>`; }); setTimeout(() => { tb.querySelectorAll('tr[data-id]').forEach(row => { const id = row.getAttribute('data-id'); const s = filteredSiswa.find(x => x.id === id); if(s) { if(s.ruang) row.querySelector('.select-ruang').value = s.ruang; if(s.sesi) row.querySelector('.select-sesi').value = s.sesi; } }); }, 50); };
+window.applyBulkRuangSesi = () => { const ruangVal = document.getElementById('bulkRuang').value; const sesiVal = document.getElementById('bulkSesi').value; document.getElementById('tableAturRuangSesiBody').querySelectorAll('tr[data-id]').forEach(row => { if(ruangVal) row.querySelector('.select-ruang').value = ruangVal; if(sesiVal) row.querySelector('.select-sesi').value = sesiVal; }); };
+window.simpanAturRuangSesi = async () => { const btn = document.getElementById('btnSimpanAtur'); btn.disabled = true; btn.innerText = "Menyimpan..."; try { const promises = []; document.getElementById('tableAturRuangSesiBody').querySelectorAll('tr[data-id]').forEach(row => { const id = row.getAttribute('data-id'); const ruang = row.querySelector('.select-ruang').value; const sesi = row.querySelector('.select-sesi').value; const s = state.masterSiswa.find(x => x.id === id); if(s) { s.ruang = ruang; s.sesi = sesi; } promises.push(updateDoc(doc(db, 'master_siswa', id), { ruang, sesi })); }); await Promise.all(promises); alert("Tersimpan!"); } catch(e) { console.error(e); } finally { btn.disabled = false; btn.innerText = "💾 Simpan"; } };
 
 window.loadRuangUjian = async () => { try { const snap = await getDocs(collection(db, 'master_ruang_ujian')); state.masterRuangUjian = []; snap.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()})); if(state.masterRuangUjian.length === 0) { const defaultRuang = [ { nama: 'Ruang 1', kode: 'IX', jumSesi: 2, noUrut: 1 } ]; for (const r of defaultRuang) { const docRef = await addDoc(collection(db, 'master_ruang_ujian'), r); state.masterRuangUjian.push({ id: docRef.id, ...r }); } } state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); window.renderTableRuangUjian(); } catch(e) { console.error(e); } };
 window.renderTableRuangUjian = () => { const tb = document.getElementById('tableRuangUjianBody'); tb.innerHTML = ''; if (state.masterRuangUjian.length === 0) return tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>'; state.masterRuangUjian.forEach((r, i) => { tb.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td><td class="p-3 text-center border-r">${i+1}</td><td class="p-3 border-r">${r.nama || '-'}</td><td class="p-3 border-r text-center font-mono">${r.kode || '-'}</td><td class="p-3 border-r text-center">${r.jumSesi || '-'}</td><td class="p-3 text-center space-x-1"><button onclick="editRuangUjian('${r.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button></td></tr>`; }); };
@@ -200,7 +138,7 @@ window.editGuru = (id) => { const g = state.masterGuru.find(x => x.id === id); i
 window.hapusGuru = async (id) => { if(confirm("Yakin ingin menghapus data guru ini? Data yang terhapus tidak dapat dikembalikan.")) { await deleteDoc(doc(db, 'master_guru', id)); loadGuru(); } };
 window.editJabatanGuru = async (id) => { const g = state.masterGuru.find(x => x.id === id); if(!g) return; const jabatanBaru = prompt(`Masukkan Jabatan untuk ${g.nama}\n(Contoh: Wali Kelas 5A, Guru PAI, dll):`, g.jabatan || "Guru Kelas"); if(jabatanBaru !== null) { await updateDoc(doc(db, 'master_guru', id), { jabatan: jabatanBaru.toUpperCase() }); loadGuru(); } };
 window.downloadFormatGuru = () => { const headers = ['No', 'Nama\n(2-50 huruf atau angka)', 'NIP/NUPTK\n(4-12 angka)', 'KODE\n(1-5 huruf atau angka)', 'USERNAME\n(unique/jangan sama)\nhuruf kecil', 'PASSWORD']; let dataExport = []; if(state.masterGuru.length === 0) { let dummy = {}; headers.forEach(h => dummy[h] = ''); dummy['No'] = 1; dummy['Nama\n(2-50 huruf atau angka)'] = 'YOYON SUGIYONO, S.Pd., M.Pd.'; dummy['NIP/NUPTK\n(4-12 angka)'] = '198501012010011001'; dummy['KODE\n(1-5 huruf atau angka)'] = 'YOY'; dummy['USERNAME\n(unique/jangan sama)\nhuruf kecil'] = 'yoyon'; dummy['PASSWORD'] = '123456'; dataExport.push(dummy); } else { state.masterGuru.forEach((g, i) => { let row = {}; headers.forEach(h => row[h] = ''); row['No'] = i+1; row['Nama\n(2-50 huruf atau angka)'] = g.nama; row['NIP/NUPTK\n(4-12 angka)'] = g.nip; row['KODE\n(1-5 huruf atau angka)'] = g.kode || ''; row['USERNAME\n(unique/jangan sama)\nhuruf kecil'] = g.username || g.nip; row['PASSWORD'] = g.password || g.nip; dataExport.push(row); }); } const ws = XLSX.utils.json_to_sheet(dataExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data_Guru"); XLSX.writeFile(wb, "format_guru.xlsx"); };
-window.prosesImportGuru = async (e) => { const f = e.target.files[0]; if(!f) return; document.getElementById('loadingIndicator').classList.remove('hidden'); const r = new FileReader(); r.onload = async (evt) => { try { const d = new Uint8Array(evt.target.result); const wb = XLSX.read(d, {type:'array'}); const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let success = 0; for (const row of json) { const nip = row['NIP/NUPTK\n(4-12 angka)'] || row['NIP/NUPTK'] || row['NIP']; const nama = row['Nama\n(2-50 huruf atau angka)'] || row['Nama'] || row['NAMA']; if (!nip || !nama) continue; let nipStr = String(nip).trim(); const dataSimpan = { nip: nipStr, nama: String(nama).trim().toUpperCase(), kode: String(row['KODE\n(1-5 huruf atau angka)'] || row['KODE'] || '').trim().toUpperCase(), username: String(row['USERNAME\n(unique/jangan sama)\nhuruf kecil'] || row['USERNAME'] || nipStr).trim().toLowerCase(), password: String(row['PASSWORD'] || nipStr).trim(), isActive: true, jabatan: 'GURU KELAS' }; const ex = state.masterGuru.find(x => x.nip === dataSimpan.nip); if (ex && ex.id) { await updateDoc(doc(db, 'master_guru', ex.id), dataSimpan); } else { await addDoc(collection(db, 'master_guru'), dataSimpan); } success++; } alert(`Berhasil memproses ${success} data guru dari Excel!`); } catch(err) { console.error("Error import excel guru:", err); alert("Terjadi kesalahan sistem. Pastikan format kolom sesuai dengan template."); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('fileImportGuru').value = ''; loadGuru(); } }; r.readAsArrayBuffer(f); };
+window.prosesImportGuru = async (e) => { const f = e.target.files[0]; if(!f) return; document.getElementById('loadingIndicator').classList.remove('hidden'); const r = new FileReader(); r.onload = async (evt) => { try { const d = new Uint8Array(evt.target.result); const wb = XLSX.read(d, {type:'array'}); const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let success = 0; for (const row of json) { const nip = row['NIP/NUPTK\n(4-12 angka)'] || row['NIP/NUPTK'] || row['NIP']; const nama = row['Nama\n(2-50 huruf atau angka)'] || row['Nama'] || row['NAMA']; if (!nip || !nama) continue; let nipStr = String(nip).trim(); const dataSimpan = { nip: nipStr, nama: String(nama).trim().toUpperCase(), kode: String(row['KODE\n(1-5 huruf atau angka)'] || row['KODE'] || '').trim().toUpperCase(), username: String(row['USERNAME\n(unique/jangan sama)\nhuruf kecil'] || row['USERNAME'] || nipStr).trim().toLowerCase(), password: String(row['PASSWORD'] || nipStr).trim(), isActive: true, jabatan: 'GURU KELAS' }; const ex = state.masterGuru.find(x => x.nip === dataSimpan.nip); if (ex && ex.id) { await updateDoc(doc(db, 'master_guru', ex.id), dataSimpan); } else { await addDoc(collection(db, 'master_guru'), dataSimpan); } success++; } alert(`Berhasil memproses ${success} data guru dari Excel!`); } catch(err) { console.error("Error import excel guru:", err); alert("Terjadi kesalahan sistem."); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('fileImportGuru').value = ''; loadGuru(); } }; r.readAsArrayBuffer(f); };
 
 window.loadEkskul = async () => { /* Logika dipertahankan */ };
 window.renderTableEkskul = () => { /* Logika dipertahankan */ };
@@ -219,15 +157,15 @@ window.editKelas = (id) => { /* Logika dipertahankan */ };
 window.hapusKelas = async (id) => { /* Logika dipertahankan */ };
 window.kenaikanKelas = () => { /* Logika dipertahankan */ };
 
-window.loadSiswa = async () => { /* Logika dipertahankan */ };
-window.renderTableSiswa = () => { /* Logika dipertahankan */ };
-window.openModalSiswa = () => { /* Logika dipertahankan */ };
-window.generatePassword = () => { /* Logika dipertahankan */ };
-window.simpanSiswa = async () => { /* Logika dipertahankan */ };
-window.editSiswa = (id) => { /* Logika dipertahankan */ };
-window.hapusSiswa = async (id) => { /* Logika dipertahankan */ };
-window.downloadFormatSiswa = () => { /* Logika dipertahankan */ };
-window.prosesImportSiswa = async (e) => { /* Logika dipertahankan */ };
+window.loadSiswa = async () => { try { const snap = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; snap.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()})); state.masterSiswa.sort((a,b) => { if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || ''); return (a.kelas || '').localeCompare(b.kelas || ''); }); window.renderTableSiswa(); } catch(e) { console.error(e); } };
+window.renderTableSiswa = () => { const tb = document.getElementById('tableSiswaBody'); tb.innerHTML = ''; if (state.masterSiswa.length === 0) return tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500">Belum ada siswa.</td></tr>'; state.masterSiswa.forEach((s, i) => { const avatar = s.jk === 'P' ? '👩' : '👦'; const colorJk = s.jk === 'P' ? 'bg-pink-500' : 'bg-blue-500'; const badgeAktif = s.isActive === false ? `<span class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Nonaktif</span>` : `<span class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Aktif</span>`; tb.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 text-center border-r"><input type="checkbox" class="w-4 h-4"></td><td class="p-3 text-center font-bold text-slate-500 border-r">${i+1}</td><td class="p-3 border-r"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-slate-200 rounded-full flex justify-center items-center text-2xl border">${avatar}</div><div><p class="font-bold text-[15px] uppercase">${s.nama}</p><div class="flex gap-1 mt-1"><span class="bg-teal-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">KELAS ${s.kelas || '-'}</span><span class="${colorJk} text-white px-2 py-0.5 rounded text-[10px] font-bold">${s.jk || 'L'}</span>${badgeAktif}</div></div></div></td><td class="p-3 border-r"><p class="text-[11px] text-slate-500 font-bold mb-0.5">No Ujian: <span class="text-blue-600 text-sm font-black tracking-widest">${s.nis || '-'}</span></p><p class="text-[11px] text-slate-500 font-bold">NISN: <span class="text-slate-800 text-sm font-black tracking-widest">${s.nisn || '-'}</span></p></td><td class="p-3 text-center space-y-1"><button onclick="editSiswa('${s.id}')" class="bg-amber-400 w-full px-3 py-1.5 rounded text-xs font-bold transition">✏️ Edit</button><button onclick="hapusSiswa('${s.id}')" class="bg-red-500 text-white w-full px-3 py-1.5 rounded text-xs font-bold transition">🗑️ Hapus</button></td></tr>`; }); };
+window.openModalSiswa = () => { document.getElementById('siswaId').value = ''; document.getElementById('siswaNisn').value = ''; document.getElementById('siswaNama').value = ''; document.getElementById('siswaUsername').value = ''; document.getElementById('siswaPassword').value = ''; document.getElementById('modalSiswa').classList.remove('hidden'); };
+window.generatePassword = () => { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let p = ''; for (let i = 0; i < 6; i++) p += c.charAt(Math.floor(Math.random() * c.length)); document.getElementById('pesertaPassword').value = p; };
+window.simpanSiswa = async () => { const id = document.getElementById('siswaId').value; const nisn = document.getElementById('siswaNisn').value.trim(); const nama = document.getElementById('siswaNama').value.trim().toUpperCase(); if(!nisn || !nama) return; const data = { nisn, nis: document.getElementById('siswaNis').value.trim(), nama, jk: document.getElementById('siswaJk').value, kelas: document.getElementById('siswaKelas').value.trim().toUpperCase(), username: document.getElementById('siswaUsername').value.trim() || nisn, password: document.getElementById('siswaPassword').value.trim() || nisn, isActive: document.getElementById('siswaStatus').checked }; try { if(id) await updateDoc(doc(db, 'master_siswa', id), data); else await addDoc(collection(db, 'master_siswa'), data); closeModal('modalSiswa'); loadSiswa(); } catch(e) { console.error(e); } };
+window.editSiswa = (id) => { const s = state.masterSiswa.find(x => x.id === id); if(!s) return; document.getElementById('siswaId').value = s.id; document.getElementById('siswaNisn').value = s.nisn || ''; document.getElementById('siswaNis').value = s.nis || ''; document.getElementById('siswaNama').value = s.nama || ''; document.getElementById('siswaJk').value = s.jk || 'L'; document.getElementById('siswaKelas').value = s.kelas || ''; document.getElementById('siswaUsername').value = s.username || ''; document.getElementById('siswaPassword').value = s.password || ''; document.getElementById('siswaStatus').checked = s.isActive !== false; document.getElementById('modalSiswa').classList.remove('hidden'); };
+window.hapusSiswa = async (id) => { if(confirm("Yakin hapus?")) { await deleteDoc(doc(db, 'master_siswa', id)); loadSiswa(); } };
+window.downloadFormatSiswa = () => { const headers = ['NO', 'NISN*', 'NIS*', 'NAMA SISWA*', 'JENIS KELAMIN\n(L/P) *', 'USERNAME*', 'PASSWORD*', 'KELAS AWAL *\n(gunakan nomor\n1-12)', 'TANGGAL DI TERIMA\nFORMAT (YYYY-MM-DD) CONTOH (2018-07-20)', 'SEKOLAH ASAL', 'TEMPAT LAHIR', 'TANGGAL LAHIR FORMAT\n(DD-MM-YYY) CONTOH (05-06-1990)', 'AGAMA ', 'NOMOR TELEPON', 'EMAIL', 'ANAK KE', 'STATUS DALAM KELUARGA\n1 = Anak Kandung\n2 = Anak Tiri\n 3 = Anak Angkat', 'ALAMAT', 'RT', 'RW', 'DESA/KELURAHAN', 'KECAMATAN', 'KABUPATEN/KOTA', 'PROVINSI', 'KODE POS', 'NAMA AYAH', 'TANGGAL LAHIR AYAH', 'PENDIDIKAN AYAH', 'PEKERJAAN AYAH', 'NOMOR TELEPON AYAH', 'ALAMAT AYAH', 'NAMA IBU', 'TANGGAL LAHIR IBU', 'PENDIDIKAN\nIBU', 'PEKERJAAN IBU', 'NOMOR TELEPON IBU', 'ALAMAT IBU', 'NAMA WALI', 'TANGGAL LAHIR WALI', 'PENDIDIKAN\nWALI', 'PEKERJAAN WALI', 'NOMOR TELEPON WALI', 'ALAMAT WALI']; let dataExport = []; if(state.masterSiswa.length === 0) { let dummy = {}; headers.forEach(h => dummy[h] = ''); dummy['NO'] = 1; dummy['NISN*'] = '001021022'; dummy['NIS*'] = '1022'; dummy['NAMA SISWA*'] = 'ADAM APSAR'; dummy['JENIS KELAMIN\n(L/P) *'] = 'L'; dummy['USERNAME*'] = 'adam'; dummy['PASSWORD*'] = '123456'; dummy['KELAS AWAL *\n(gunakan nomor\n1-12)'] = '5A'; dataExport.push(dummy); } else { state.masterSiswa.forEach((s, i) => { let row = {}; headers.forEach(h => row[h] = ''); row['NO'] = i+1; row['NISN*'] = s.nisn; row['NIS*'] = s.nis || ''; row['NAMA SISWA*'] = s.nama; row['JENIS KELAMIN\n(L/P) *'] = s.jk || 'L'; row['USERNAME*'] = s.username || s.nisn; row['PASSWORD*'] = s.password || s.nisn; row['KELAS AWAL *\n(gunakan nomor\n1-12)'] = s.kelas || ''; dataExport.push(row); }); } const ws = XLSX.utils.json_to_sheet(dataExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data_Siswa"); XLSX.writeFile(wb, "format_siswa.xlsx"); };
+window.prosesImportSiswa = async (e) => { const f = e.target.files[0]; if(!f) return; document.getElementById('loadingIndicator').classList.remove('hidden'); const r = new FileReader(); r.onload = async (evt) => { try { const d = new Uint8Array(evt.target.result); const wb = XLSX.read(d, {type:'array'}); const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let success = 0; for (const row of json) { const nisn = row['NISN*'] || row['NISN']; const nama = row['NAMA SISWA*'] || row['NAMA SISWA'] || row['NAMA']; if (!nisn || !nama) continue; let nisnStr = String(nisn).trim(); let pwd = row['PASSWORD*'] || row['PASSWORD'] || nisnStr; const dataSimpan = { nisn: nisnStr, nis: String(row['NIS*'] || row['NIS'] || '').trim(), nama: String(nama).trim().toUpperCase(), jk: String(row['JENIS KELAMIN\n(L/P) *'] || row['JENIS KELAMIN'] || 'L').trim().toUpperCase().charAt(0), username: String(row['USERNAME*'] || row['USERNAME'] || nisnStr).trim(), password: String(pwd).trim(), kelas: String(row['KELAS AWAL *\n(gunakan nomor\n1-12)'] || row['KELAS AWAL'] || row['KELAS'] || '').trim().toUpperCase(), isActive: true }; const ex = state.masterSiswa.find(x => x.nisn === dataSimpan.nisn); if (ex && ex.id) { await updateDoc(doc(db, 'master_siswa', ex.id), dataSimpan); } else { await addDoc(collection(db, 'master_siswa'), dataSimpan); } success++; } alert(`Berhasil memproses ${success} data siswa dari Excel!`); } catch(err) { console.error("Error import excel guru:", err); alert("Terjadi kesalahan sistem. Pastikan format kolom sesuai dengan template."); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('fileImportSiswa').value = ''; loadSiswa(); } }; r.readAsArrayBuffer(f); };
 
 window.loadTahunPelajaran = async () => { /* Logika dipertahankan */ };
 window.loadMataPelajaran = async () => { /* Logika dipertahankan */ };
