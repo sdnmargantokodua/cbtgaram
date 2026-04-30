@@ -1,0 +1,336 @@
+// js/ui/adminUI.js
+import { state } from '../services/store.js';
+import { db, doc, collection, addDoc, updateDoc, deleteDoc, setDoc, initFirebase } from '../services/api.js';
+
+// ==========================================
+// LOGIN ADMIN
+// ==========================================
+window.handleLogin = (e) => {
+    e.preventDefault();
+    const inputPin = document.getElementById('inputPinAdmin').value;
+    if (inputPin === state.ADMIN_PIN) {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
+        document.getElementById('appScreen').classList.add('flex');
+        initFirebase(); 
+    } else {
+        document.getElementById('loginError').classList.remove('hidden');
+    }
+};
+
+window.logoutAdmin = () => {
+    document.getElementById('inputPinAdmin').value = '';
+    document.getElementById('loginError').classList.add('hidden');
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('appScreen').classList.add('hidden');
+    document.getElementById('appScreen').classList.remove('flex');
+};
+
+// ==========================================
+// PROFIL SEKOLAH
+// ==========================================
+window.isiFormProfil = () => {
+    document.getElementById('profSekolah').value = state.schoolProfile.namaSekolah || '';
+    document.getElementById('profAlamat').value = state.schoolProfile.alamat || '';
+    document.getElementById('profKepsek').value = state.schoolProfile.kepsek || '';
+    document.getElementById('profNIP').value = state.schoolProfile.nipKepsek || '';
+    document.getElementById('profPengawas').value = state.schoolProfile.pengawas || '';
+    document.getElementById('profNIPPengawas').value = state.schoolProfile.nipPengawas || '';
+    document.getElementById('profProktor').value = state.schoolProfile.proktor || '';
+    document.getElementById('profTahun').value = state.schoolProfile.tahunAjaran || '';
+};
+
+window.simpanProfil = async () => {
+    const btn = document.getElementById('btnSimpanProfil');
+    try {
+        btn.disabled = true; btn.innerText = "Menyimpan...";
+        const dataSimpan = {
+            namaSekolah: document.getElementById('profSekolah').value.toUpperCase(),
+            alamat: document.getElementById('profAlamat').value,
+            kepsek: document.getElementById('profKepsek').value,
+            nipKepsek: document.getElementById('profNIP').value,
+            pengawas: document.getElementById('profPengawas').value,
+            nipPengawas: document.getElementById('profNIPPengawas').value,
+            proktor: document.getElementById('profProktor').value,
+            tahunAjaran: document.getElementById('profTahun').value,
+        };
+        await setDoc(doc(db, 'school_profile', 'main_profile'), dataSimpan, { merge: true });
+        alert("Profil berhasil disimpan!");
+    } catch (error) { console.error(error); alert("Gagal simpan profil.");
+    } finally { btn.disabled = false; btn.innerText = "Simpan Profil"; }
+};
+
+// ==========================================
+// MATA PELAJARAN
+// ==========================================
+window.changeSubject = () => {
+    state.currentSubject = document.getElementById('subjectSelector').value;
+    document.getElementById('labelSubjectNilai').innerText = state.currentSubject;
+    document.getElementById('labelSubjectSoal').innerText = state.currentSubject;
+    document.getElementById('cetakMapelLabel').innerText = state.currentSubject;
+    if(window.renderTableNilai) window.renderTableNilai();
+    if(window.renderTableSoal) window.renderTableSoal();
+};
+
+window.tambahPelajaranBaru = () => {
+    const baru = prompt("Masukkan nama Mata Pelajaran baru (Contoh: Bahasa Inggris):");
+    if (baru && baru.trim() !== '') {
+        state.allSubjectsSet.add(baru.trim());
+        window.updateDropdownUI();
+        document.getElementById('subjectSelector').value = baru.trim();
+        window.changeSubject();
+        if(window.renderTableUjian) window.renderTableUjian(); 
+    }
+};
+
+window.updateSubjectDropdownDinamis = () => {
+    state.allQuestions.forEach(q => { if(q.subject) state.allSubjectsSet.add(q.subject); });
+    state.allResults.forEach(r => { if(r.subject) state.allSubjectsSet.add(r.subject); });
+    window.updateDropdownUI(); 
+    if(window.renderTableUjian) window.renderTableUjian();
+};
+
+window.updateDropdownUI = () => {
+    const sel = document.getElementById('subjectSelector');
+    const currentSelected = sel.value || state.currentSubject;
+    sel.innerHTML = '';
+    Array.from(state.allSubjectsSet).sort().forEach(sub => {
+        const opt = document.createElement('option');
+        opt.value = sub; opt.innerText = sub;
+        sel.appendChild(opt);
+    });
+    if(state.allSubjectsSet.has(currentSelected)) { sel.value = currentSelected; } 
+    else { sel.value = "Pendidikan Pancasila"; state.currentSubject = "Pendidikan Pancasila"; }
+    document.getElementById('labelSubjectNilai').innerText = sel.value;
+    document.getElementById('labelSubjectSoal').innerText = sel.value;
+    document.getElementById('cetakMapelLabel').innerText = sel.value;
+};
+
+// ==========================================
+// TABEL & RENDER NILAI
+// ==========================================
+window.renderTableNilai = () => {
+    const filteredResults = state.allResults.filter(r => (r.subject || "Pendidikan Pancasila") === state.currentSubject);
+    const tbody = document.getElementById('tableNilaiBody');
+    document.getElementById('totalStudents').innerText = filteredResults.length;
+    tbody.innerHTML = '';
+    if(filteredResults.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada siswa yang mengumpulkan ujian.</td></tr>'; return;
+    }
+    filteredResults.forEach(res => {
+        let timeStr = res.timestamp ? new Date(res.timestamp.seconds * 1000).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'}) : '-';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-4">${timeStr}</td><td class="p-4 font-bold text-slate-700">${res.absen || '-'}</td><td class="p-4 font-semibold text-slate-800 uppercase">${res.nama || 'Anonim'}</td><td class="p-4 text-center font-black text-blue-600 text-lg">${res.nilaiPG || 0}</td><td class="p-4 text-center"><button onclick="lihatDetailNilai('${res.id}')" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded font-bold">Lihat</button></td>`;
+        tbody.appendChild(tr);
+    });
+};
+
+window.lihatDetailNilai = (id) => {
+    const res = state.allResults.find(r => r.id === id);
+    if(!res) return;
+    document.getElementById('detailNamaSiswa').innerText = res.nama;
+    document.getElementById('detailAbsenSiswa').innerText = res.absen;
+    document.getElementById('detailSkorSiswa').innerText = res.nilaiPG;
+    const container = document.getElementById('detailJawabanContainer');
+    container.innerHTML = `<h4 class="font-bold mb-3 border-b pb-2">Uraian (${res.subject || "Pendidikan Pancasila"}):</h4>`;
+    let hasUraian = false; let urut = 1;
+    if(res.tipeSoal && res.jawaban) {
+        res.tipeSoal.forEach((tipe, index) => {
+            if(tipe === 'URAIAN') {
+                hasUraian = true;
+                const jawab = res.jawaban[index] || '<span class="italic text-slate-400">(Tidak dijawab)</span>';
+                container.innerHTML += `<div class="mb-4 bg-yellow-50 p-4 rounded"><p class="font-bold mb-2">Soal Uraian ${urut++}</p><p class="whitespace-pre-wrap">${jawab}</p></div>`;
+            }
+        });
+    }
+    if(!hasUraian) container.innerHTML += '<p class="text-slate-500 italic">Tidak ada jawaban uraian.</p>';
+    if (window.MathJax) MathJax.typesetPromise([container]);
+    document.getElementById('modalDetailNilai').classList.remove('hidden');
+};
+
+// ==========================================
+// RENDER SOAL & EDITOR
+// ==========================================
+window.renderTableSoal = () => {
+    const filteredQuestions = state.allQuestions.filter(q => (q.subject || "Pendidikan Pancasila") === state.currentSubject);
+    const tbody = document.getElementById('tableSoalBody');
+    tbody.innerHTML = '';
+    if(filteredQuestions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Bank Soal <b>${state.currentSubject}</b> masih kosong.</td></tr>`; return;
+    }
+    let counter = 1;
+    filteredQuestions.forEach((q) => {
+        let badgeClass = 'bg-blue-100 text-blue-800'; let typeName = q.type;
+        if(q.type === 'URAIAN') { badgeClass = 'bg-purple-100 text-purple-800'; }
+        else if(q.type === 'PG_KOMPLEKS') { badgeClass = 'bg-indigo-100 text-indigo-800'; typeName = 'PG-K'; }
+        else if(q.type === 'MENCOCOKKAN') { badgeClass = 'bg-cyan-100 text-cyan-800'; typeName = 'MATCH'; }
+        else if(q.type === 'BENAR_SALAH') { badgeClass = 'bg-teal-100 text-teal-800'; typeName = 'B/S'; }
+        else if(q.type === 'ISIAN') { badgeClass = 'bg-orange-100 text-orange-800'; typeName = 'ISI'; }
+        else if(q.type === 'MENGURUTKAN') { badgeClass = 'bg-fuchsia-100 text-fuchsia-800'; typeName = 'URUT'; }
+        else if(q.type === 'HOTSPOT') { badgeClass = 'bg-rose-100 text-rose-800'; typeName = 'HOTSPOT'; }
+        else if(q.type === 'POLLING') { badgeClass = 'bg-slate-200 text-slate-800'; typeName = 'POLL'; }
+
+        let badge = `<span class="${badgeClass} px-2 py-1 rounded text-[10px] font-bold tracking-wider">${typeName}</span>`;
+        let kunciInfo = '';
+        switch(q.type) {
+            case 'PG': kunciInfo = `Kunci: <span class="font-bold text-green-600">${q.ans}</span>`; break;
+            case 'PG_KOMPLEKS': kunciInfo = `Kunci: <span class="font-bold text-green-600">${(q.ans||[]).join(', ')}</span>`; break;
+            case 'BENAR_SALAH': kunciInfo = `Kunci: <span class="font-bold text-green-600">${q.ans}</span>`; break;
+            case 'ISIAN': kunciInfo = `Kunci: <span class="font-bold text-green-600 truncate block max-w-[100px] mx-auto">${q.ans}</span>`; break;
+            case 'MENCOCOKKAN': kunciInfo = `<span class="text-slate-600">${(q.pairs||[]).length} Psg</span>`; break;
+            case 'MENGURUTKAN': kunciInfo = `<span class="text-slate-600">${(q.items||[]).length} Itm</span>`; break;
+            case 'HOTSPOT': kunciInfo = `<span class="text-xs text-slate-500">X:${q.hotspot?.x},Y:${q.hotspot?.y}</span>`; break;
+            case 'POLLING': kunciInfo = `<span class="text-slate-400 italic text-xs">Tanpa Kunci</span>`; break;
+            case 'URAIAN': kunciInfo = `<span class="text-slate-400 italic text-xs">Manual</span>`; break;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-4 text-center font-bold text-slate-400">${counter++}</td><td class="p-4 text-center">${badge}</td><td class="p-4"><div class="line-clamp-2 text-sm">${q.qImg ? `🖼️ ` : ''}${q.q}</div></td><td class="p-4 text-center text-sm">${kunciInfo}</td><td class="p-4 text-center space-x-2"><button onclick="editSoal('${q.id}')" class="text-amber-500">✏️</button><button onclick="hapusSoal('${q.id}')" class="text-red-500">🗑️</button></td>`;
+        tbody.appendChild(tr);
+    });
+    if (window.MathJax) MathJax.typesetPromise([tbody]);
+};
+
+window.openSoalModal = () => {
+    document.getElementById('formSoal').reset(); document.getElementById('soalId').value = '';
+    document.getElementById('modalSoalTitle').innerText = "Tambah Soal Baru";
+    document.getElementById('modalSoalSubjectBadge').innerText = "Mata Pelajaran: " + state.currentSubject;
+    ['soalGambar', 'optAImg', 'optBImg', 'optCImg', 'optDImg'].forEach(id => {
+        hapusPreview(id, 'preview' + id.charAt(0).toUpperCase() + id.slice(1), id + 'Base64', 'btnHapus' + id.charAt(0).toUpperCase() + id.slice(1));
+    });
+    document.getElementById('containerMencocokkan').innerHTML = '';
+    document.getElementById('containerMengurutkan').innerHTML = '';
+    document.getElementById('containerPolling').innerHTML = '';
+    window.toggleFormSoalType(); document.getElementById('modalFormSoal').classList.remove('hidden');
+};
+
+window.simpanSoal = async () => {
+    // Logika simpan soal sama persis dengan inline sebelumnya, cukup ganti addDoc ke fungsi API.
+    const btn = document.getElementById('btnSimpanSoal');
+    const id = document.getElementById('soalId').value;
+    const tipe = document.getElementById('soalTipe').value;
+    const pertanyaan = document.getElementById('soalPertanyaan').value;
+    const qImg = document.getElementById('soalGambarBase64').value;
+
+    if(!pertanyaan.trim() && !qImg) { alert("Pertanyaan atau Gambar tidak boleh kosong!"); return; }
+    let dataSimpan = { type: tipe, q: pertanyaan, subject: state.currentSubject, qImg: qImg || null };
+
+    if(tipe === 'PG') {
+        let opts = {}; let optsImg = {};
+        ['A','B','C','D'].forEach(o => {
+            opts[o] = document.getElementById('opt'+o).value;
+            optsImg[o] = document.getElementById('opt'+o+'ImgBase64').value || null;
+        });
+        if(!opts.A && !optsImg.A) { alert("Semua opsi harus diisi!"); return; }
+        let ans = null;
+        for(let r of document.getElementsByName('kunciJawabanPG')) if(r.checked) ans = r.value;
+        if(!ans) { alert("Pilih kunci jawaban!"); return; }
+        dataSimpan.opts = opts; dataSimpan.optsImg = optsImg; dataSimpan.ans = ans;
+    }
+    else if (tipe === 'PG_KOMPLEKS') {
+        let opts = {}; ['A','B','C','D'].forEach(o => opts[o] = document.getElementById('opt'+o+'_K').value.trim());
+        const ansArr = [];
+        for(let c of document.getElementsByName('kunciJawabanKompleks')) if(c.checked) ansArr.push(c.value);
+        if(ansArr.length === 0) { alert("Pilih minimal satu kunci jawaban!"); return; }
+        dataSimpan.opts = opts; dataSimpan.ans = ansArr;
+    }
+    else if (tipe === 'BENAR_SALAH') {
+        let ans = null;
+        for(let r of document.getElementsByName('kunciBS')) if(r.checked) ans = r.value;
+        if(!ans) { alert("Tentukan Benar atau Salah!"); return; }
+        dataSimpan.ans = ans;
+    }
+    else if (tipe === 'ISIAN') {
+        const ans = document.getElementById('kunciIsian').value.trim();
+        if(!ans) { alert("Kunci jawaban tidak boleh kosong!"); return; }
+        dataSimpan.ans = ans;
+    }
+    else if (tipe === 'MENCOCOKKAN') {
+        const pairs = [];
+        document.querySelectorAll('.row-mencocokkan').forEach(r => {
+            const kiri = r.querySelector('.input-kiri').value.trim(); const kanan = r.querySelector('.input-kanan').value.trim();
+            if(kiri && kanan) pairs.push({kiri, kanan});
+        });
+        if(pairs.length < 2) { alert("Masukkan minimal 2 pasangan data!"); return; }
+        dataSimpan.pairs = pairs;
+    }
+    else if (tipe === 'MENGURUTKAN') {
+        const items = [];
+        document.querySelectorAll('.row-mengurutkan').forEach(r => {
+            const i = r.querySelector('.input-item').value.trim(); if(i) items.push(i);
+        });
+        if(items.length < 2) { alert("Masukkan minimal 2 item urutan!"); return; }
+        dataSimpan.items = items;
+    }
+    else if (tipe === 'POLLING') {
+        const opts = [];
+        document.querySelectorAll('.row-polling').forEach(r => {
+            const o = r.querySelector('.input-opsi').value.trim(); if(o) opts.push(o);
+        });
+        if(opts.length < 2) { alert("Masukkan minimal 2 opsi polling!"); return; }
+        dataSimpan.opts = opts;
+    }
+    else if (tipe === 'HOTSPOT') {
+        if(!qImg) { alert("Pertanyaan Hotspot MEWAJIBKAN unggahan Gambar Soal!"); return; }
+        dataSimpan.hotspot = { 
+            x: parseInt(document.getElementById('hotspotX').value), 
+            y: parseInt(document.getElementById('hotspotY').value), 
+            r: parseInt(document.getElementById('hotspotR').value) || 30 
+        };
+    }
+
+    try {
+        btn.disabled = true; btn.innerText = "Menyimpan...";
+        if(id) await updateDoc(doc(db, 'exam_questions', id), dataSimpan);
+        else await addDoc(collection(db, 'exam_questions'), dataSimpan);
+        window.closeModal('modalFormSoal');
+    } catch (e) { console.error(e); alert("Gagal menyimpan soal.");
+    } finally { btn.disabled = false; btn.innerText = "Simpan Soal"; }
+};
+
+window.hapusSoal = async (id) => {
+    if(confirm("Yakin ingin menghapus soal ini?")) await deleteDoc(doc(db, 'exam_questions', id));
+};
+
+// ==========================================
+// RENDER JADWAL, PESERTA & UTILITAS DOM
+// ==========================================
+window.renderTableUjian = () => {
+    const tbody = document.getElementById('tableUjianBody'); tbody.innerHTML = '';
+    const subjectsArray = Array.from(state.allSubjectsSet).sort();
+    if(subjectsArray.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada mata pelajaran.</td></tr>`; return; }
+    subjectsArray.forEach((subject) => {
+        const schedule = state.examSchedules.find(s => s.subject === subject) || { isActive: false, duration: 90, token: '' };
+        const statusBadge = schedule.isActive ? `<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">AKTIF</span>` : `<span class="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">TUTUP</span>`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-4 font-semibold">${subject}</td><td class="p-4 text-center">${statusBadge}</td><td class="p-4 text-center font-mono">${schedule.duration} Menit</td><td class="p-4 text-center font-mono uppercase tracking-widest">${schedule.token || 'Tanpa Token'}</td><td class="p-4 text-center"><button onclick="bukaPengaturanUjian('${subject}')" class="bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-1 rounded font-bold">Atur</button></td>`;
+        tbody.appendChild(tr);
+    });
+};
+
+window.renderTablePeserta = () => {
+    const tbody = document.getElementById('tablePesertaBody');
+    document.getElementById('cetakJumlahPeserta').innerText = state.examParticipants.length;
+    tbody.innerHTML = '';
+    if(state.examParticipants.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">Belum ada data peserta.</td></tr>`; return; }
+    state.examParticipants.forEach((p) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-4 text-center font-mono font-bold">${p.absen}</td><td class="p-4 text-center font-mono">${p.noUjian || '-'}</td><td class="p-4 font-bold uppercase">${p.nama}</td><td class="p-4 text-center">${p.ruang || '-'}</td><td class="p-4 text-center">${p.sesi || '-'}</td><td class="p-4 text-center tracking-widest">${p.password || 'Sama dgn Absen'}</td><td class="p-4 text-center space-x-2"><button onclick="editPeserta('${p.id}')" class="text-amber-500">✏️</button><button onclick="hapusPeserta('${p.id}')" class="text-red-500">🗑️</button></td>`;
+        tbody.appendChild(tr);
+    });
+};
+
+window.switchTab = (tabId) => {
+    const tabs = ['viewNilai', 'viewSoal', 'viewUjian', 'viewPeserta', 'viewProfil', 'viewAdmin'];
+    const btns = ['btnTabNilai', 'btnTabSoal', 'btnTabUjian', 'btnTabPeserta', 'btnTabProfil', 'btnTabAdmin'];
+    tabs.forEach(id => document.getElementById(id).classList.add('hidden'));
+    const inactiveClass = "px-2 py-2 text-sm font-medium hover:text-blue-400 transition text-slate-300 whitespace-nowrap";
+    btns.forEach(id => document.getElementById(id).className = inactiveClass);
+    if(document.getElementById(tabId.replace('btnT','v'))) document.getElementById(tabId.replace('btnT','v').replace('ab','iew')).classList.remove('hidden');
+    document.getElementById(tabId).className = "px-2 py-2 text-sm font-medium hover:text-blue-400 transition tab-active whitespace-nowrap";
+};
+
+window.closeModal = (modalId) => document.getElementById(modalId).classList.add('hidden');
+
+// Modals Setup Helpers (editSoal, editPeserta, hapusPreview dll akan menggunakan struktur yang sama)
+// Seluruh logic helper untuk form dan modal dipetakan ke window.xxx agar berfungsi.
