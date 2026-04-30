@@ -429,3 +429,108 @@ window.editPeserta = (id) => {
 window.hapusPeserta = async (id) => {
     if(confirm("Hapus peserta ini?")) await deleteDoc(doc(db, 'exam_participants', id));
 };
+
+// ==========================================
+// EXPORT & IMPORT EXCEL (PESERTA)
+// ==========================================
+
+window.downloadFormatPeserta = () => {
+    let dataExport = [];
+    
+    // Jika data peserta kosong, berikan 1 baris contoh kosong sebagai format
+    if (state.examParticipants.length === 0) {
+        dataExport.push({
+            NO_ABSEN: 1,
+            NO_UJIAN: "001-01",
+            NAMA_LENGKAP: "NAMA SISWA CONTOH",
+            RUANG: "R-01",
+            SESI: "1",
+            PASSWORD: "1"
+        });
+    } else {
+        // Jika sudah ada data, Export data tersebut
+        state.examParticipants.forEach(p => {
+            dataExport.push({
+                NO_ABSEN: p.absen,
+                NO_UJIAN: p.noUjian || '',
+                NAMA_LENGKAP: p.nama,
+                RUANG: p.ruang || '',
+                SESI: p.sesi || '',
+                PASSWORD: p.password || p.absen
+            });
+        });
+    }
+
+    // Buat worksheet dan workbook baru
+    const ws = XLSX.utils.json_to_sheet(dataExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data_Peserta");
+    
+    // Unduh file
+    XLSX.writeFile(wb, "Peserta_Ujian_CBT.xlsx");
+};
+
+window.prosesImportPeserta = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Munculkan loading indicator saat memproses
+    document.getElementById('loadingIndicator').classList.remove('hidden');
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0]; // Ambil sheet pertama
+            const sheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(sheet);
+
+            if (json.length === 0) {
+                alert("File Excel kosong atau format tidak sesuai!");
+                return;
+            }
+
+            let successCount = 0;
+            // Proses baris per baris
+            for (const row of json) {
+                // Syarat mutlak: Harus ada NO_ABSEN dan NAMA_LENGKAP
+                if (!row.NO_ABSEN || !row.NAMA_LENGKAP) continue;
+
+                const absenStr = String(row.NO_ABSEN).trim();
+                const namaStr = String(row.NAMA_LENGKAP).trim().toUpperCase();
+                
+                const dataSimpan = {
+                    absen: absenStr,
+                    noUjian: row.NO_UJIAN ? String(row.NO_UJIAN).trim() : '',
+                    nama: namaStr,
+                    ruang: row.RUANG ? String(row.RUANG).trim() : '',
+                    sesi: row.SESI ? String(row.SESI).trim() : '',
+                    password: row.PASSWORD ? String(row.PASSWORD).trim() : absenStr
+                };
+
+                // Cek apakah No Absen ini sudah ada di database (state)
+                const exist = state.examParticipants.find(p => p.absen === absenStr);
+
+                if (exist && exist.id) {
+                    // Jika sudah ada, UPDATE data yang lama
+                    await updateDoc(doc(db, 'exam_participants', exist.id), dataSimpan);
+                } else {
+                    // Jika belum ada, TAMBAH data baru
+                    await addDoc(collection(db, 'exam_participants'), dataSimpan);
+                }
+                successCount++;
+            }
+
+            alert(`Berhasil mengimpor/memperbarui ${successCount} data peserta!`);
+        } catch (error) {
+            console.error("Error import excel:", error);
+            alert("Terjadi kesalahan saat membaca file. Pastikan format kolom sesuai dengan template (Export).");
+        } finally {
+            // Sembunyikan loading dan reset input file agar bisa import file yang sama lagi jika perlu
+            document.getElementById('loadingIndicator').classList.add('hidden');
+            document.getElementById('fileImportPeserta').value = ''; 
+        }
+    };
+    reader.readAsArrayBuffer(file);
+};
