@@ -392,6 +392,26 @@ window.openPesertaModal = () => {
     document.getElementById('modalPeserta').classList.remove('hidden');
 };
 
+window.generatePassword = () => {
+    // Karakter yang digunakan (sengaja menghilangkan huruf O, angka 0, huruf I, dan angka 1 agar siswa tidak bingung saat membaca Kartu Ujian)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
+    let password = '';
+    
+    // Membuat 6 digit password acak
+    for (let i = 0; i < 6; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    const inputPassword = document.getElementById('pesertaPassword');
+    inputPassword.value = password;
+    
+    // Memberikan efek visual (flash) sebentar agar admin tahu tombolnya bekerja
+    inputPassword.classList.add('bg-green-100');
+    setTimeout(() => {
+        inputPassword.classList.remove('bg-green-100');
+    }, 300);
+};
+
 window.simpanPeserta = async () => {
     const btn = document.getElementById('btnSimpanPeserta');
     const id = document.getElementById('pesertaId').value;
