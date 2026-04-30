@@ -1,6 +1,6 @@
 import { state } from '../services/store.js';
 import { db, doc, collection, addDoc, updateDoc, deleteDoc, setDoc, initFirebase } from '../services/api.js';
-import { getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // ==========================================
 // UTILS NAVIGASI & MODAL
@@ -10,22 +10,13 @@ window.switchTab = (sectionId, title) => {
     document.querySelectorAll('.menu-btn').forEach(btn => {
         btn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition";
     });
-
     const sectionTarget = document.getElementById(sectionId);
     if(sectionTarget) sectionTarget.classList.remove('hidden');
-    
     const activeBtn = document.getElementById('btn-' + sectionId);
     if(activeBtn) activeBtn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/50";
-    
-    if(title) {
-        const titleEl = document.getElementById('pageTitle');
-        if(titleEl) titleEl.innerText = title;
-    }
-
+    if(title) { const titleEl = document.getElementById('pageTitle'); if(titleEl) titleEl.innerText = title; }
     const sidebar = document.getElementById('sidebar');
-    if(window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
-        sidebar.classList.add('-translate-x-full');
-    }
+    if(window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) { sidebar.classList.add('-translate-x-full'); }
 };
 
 window.toggleSidebar = () => {
@@ -34,9 +25,7 @@ window.toggleSidebar = () => {
     else sidebar.classList.add('-translate-x-full');
 };
 
-window.closeModal = (modalId) => {
-    document.getElementById(modalId).classList.add('hidden');
-};
+window.closeModal = (modalId) => { document.getElementById(modalId).classList.add('hidden'); };
 
 // ==========================================
 // LOGIN ADMIN & SESSION
@@ -60,9 +49,7 @@ window.handleLogin = (e) => {
         document.getElementById('appScreen').classList.remove('hidden');
         document.getElementById('appScreen').classList.add('flex');
         initFirebase(); 
-    } else {
-        document.getElementById('loginError').classList.remove('hidden');
-    }
+    } else { document.getElementById('loginError').classList.remove('hidden'); }
 };
 
 window.logoutAdmin = () => {
@@ -76,132 +63,201 @@ window.logoutAdmin = () => {
 window.checkAdminSession();
 
 // ==========================================
+// DATA UMUM: MATA PELAJARAN
+// ==========================================
+state.masterSubjects = [];
+
+window.loadMataPelajaran = async () => {
+    try {
+        const querySnapshot = await getDocs(collection(db, 'master_subjects'));
+        state.masterSubjects = [];
+        querySnapshot.forEach((doc) => { state.masterSubjects.push({ id: doc.id, ...doc.data() }); });
+        
+        // Auto-Generate Mapel Tingkat SD Jika Kosong
+        if(state.masterSubjects.length === 0) {
+            const defaultMapel = [
+                { nama: 'Pendidikan Agama dan Budi Pekerti', kode: 'PABP', kelompok: 'Kelompok A (Wajib)', noUrut: 1, isActive: true },
+                { nama: 'Pendidikan Pancasila', kode: 'PPKN', kelompok: 'Kelompok A (Wajib)', noUrut: 2, isActive: true },
+                { nama: 'Bahasa Indonesia', kode: 'BIND', kelompok: 'Kelompok A (Wajib)', noUrut: 3, isActive: true },
+                { nama: 'Matematika', kode: 'MTK', kelompok: 'Kelompok A (Wajib)', noUrut: 4, isActive: true },
+                { nama: 'Ilmu Pengetahuan Alam dan Sosial', kode: 'IPAS', kelompok: 'Kelompok A (Wajib)', noUrut: 5, isActive: true },
+                { nama: 'Pendidikan Jasmani Olahraga dan Kesehatan', kode: 'PJOK', kelompok: 'Kelompok A (Wajib)', noUrut: 6, isActive: true },
+                { nama: 'Seni Budaya dan Prakarya', kode: 'SBDP', kelompok: 'Kelompok B (Muatan Lokal)', noUrut: 7, isActive: true },
+                { nama: 'Bahasa Daerah', kode: 'BHSDRH', kelompok: 'Kelompok B (Muatan Lokal)', noUrut: 8, isActive: true },
+                { nama: 'Bahasa Inggris', kode: 'BING', kelompok: 'Kelompok B (Muatan Lokal)', noUrut: 9, isActive: true }
+            ];
+            for (const m of defaultMapel) {
+                const docRef = await addDoc(collection(db, 'master_subjects'), m);
+                state.masterSubjects.push({ id: docRef.id, ...m });
+            }
+        }
+
+        // Urutkan berdasarkan Kelompok, baru Nomor Urut
+        state.masterSubjects.sort((a, b) => {
+            if (a.kelompok === b.kelompok) return (a.noUrut || 0) - (b.noUrut || 0);
+            return a.kelompok.localeCompare(b.kelompok);
+        });
+
+        window.renderTableMataPelajaran();
+        window.updateSubjectDropdownDinamis();
+    } catch(e) { console.error("Gagal load mapel", e); }
+};
+
+window.renderTableMataPelajaran = () => {
+    const tbody = document.getElementById('tableMapelBody');
+    tbody.innerHTML = '';
+    if(state.masterSubjects.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">Belum ada data mata pelajaran</td></tr>';
+        return;
+    }
+
+    state.masterSubjects.forEach((m, i) => {
+        const statusBadge = m.isActive 
+            ? `<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">AKTIF</span>`
+            : `<span class="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">NONAKTIF</span>`;
+        
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="p-4 text-center font-bold text-slate-500 border-r">${i+1}</td>
+                <td class="p-4 font-mono font-bold text-blue-600 border-r">${m.kode}</td>
+                <td class="p-4 font-bold border-r">${m.nama}</td>
+                <td class="p-4 border-r text-center text-sm">${m.kelompok}</td>
+                <td class="p-4 text-center border-r">${statusBadge}</td>
+                <td class="p-4 text-center space-x-1">
+                    <button onclick="editMapel('${m.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-xs font-bold transition">Edit</button>
+                    <button onclick="hapusMapel('${m.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold transition">Hapus</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalMapel = () => {
+    document.getElementById('mapelId').value = '';
+    document.getElementById('inputNamaMapel').value = '';
+    document.getElementById('inputKodeMapel').value = '';
+    document.getElementById('inputKelompokMapel').value = 'Kelompok A (Wajib)';
+    document.getElementById('inputStatusMapel').checked = true;
+    document.getElementById('modalMataPelajaran').classList.remove('hidden');
+};
+
+window.simpanMapel = async () => {
+    const id = document.getElementById('mapelId').value;
+    const nama = document.getElementById('inputNamaMapel').value.trim();
+    const kode = document.getElementById('inputKodeMapel').value.trim().toUpperCase();
+    const kelompok = document.getElementById('inputKelompokMapel').value;
+    const isActive = document.getElementById('inputStatusMapel').checked;
+
+    if(!nama || !kode) return alert("Nama dan Kode Mapel harus diisi!");
+
+    const btn = document.getElementById('btnSimpanMapel');
+    btn.disabled = true; btn.innerText = "Menyimpan...";
+
+    const data = { nama, kode, kelompok, isActive, noUrut: state.masterSubjects.length + 1 };
+
+    try {
+        if(id) await updateDoc(doc(db, 'master_subjects', id), { nama, kode, kelompok, isActive });
+        else await addDoc(collection(db, 'master_subjects'), data);
+        
+        window.closeModal('modalMataPelajaran');
+        window.loadMataPelajaran();
+    } catch(e) { console.error(e); alert("Gagal menyimpan mapel.");
+    } finally { btn.disabled = false; btn.innerText = "Simpan"; }
+};
+
+window.editMapel = (id) => {
+    const m = state.masterSubjects.find(x => x.id === id);
+    if(!m) return;
+    document.getElementById('mapelId').value = m.id;
+    document.getElementById('inputNamaMapel').value = m.nama;
+    document.getElementById('inputKodeMapel').value = m.kode;
+    document.getElementById('inputKelompokMapel').value = m.kelompok;
+    document.getElementById('inputStatusMapel').checked = m.isActive;
+    document.getElementById('modalMataPelajaran').classList.remove('hidden');
+};
+
+window.hapusMapel = async (id) => {
+    if(!confirm("Yakin ingin menghapus mata pelajaran ini?")) return;
+    try {
+        await deleteDoc(doc(db, 'master_subjects', id));
+        window.loadMataPelajaran();
+    } catch(e) { console.error(e); alert("Gagal menghapus."); }
+};
+
+// ==========================================
 // DATA UMUM: TAHUN PELAJARAN & SEMESTER
 // ==========================================
-state.academicConfig = {
-    years: [],
-    activeSemester: 'Ganjil'
-};
+state.academicConfig = { years: [], activeSemester: 'Ganjil' };
 
 window.loadTahunPelajaran = async () => {
     try {
         const docRef = doc(db, 'settings', 'academic_config');
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            state.academicConfig = docSnap.data();
-        } else {
-            // Default setup jika kosong
-            state.academicConfig = {
-                years: [{ id: Date.now().toString(), name: '2025/2026', isActive: true }],
-                activeSemester: 'Ganjil'
-            };
+        if (docSnap.exists()) { state.academicConfig = docSnap.data(); } 
+        else {
+            state.academicConfig = { years: [{ id: Date.now().toString(), name: '2025/2026', isActive: true }], activeSemester: 'Ganjil' };
             await setDoc(docRef, state.academicConfig);
         }
         window.renderTableTahunSemester();
-    } catch (e) {
-        console.error("Gagal memuat tahun pelajaran", e);
-    }
+    } catch (e) { console.error("Gagal memuat tahun pelajaran", e); }
 };
 
 window.renderTableTahunSemester = () => {
     const tbodyTahun = document.getElementById('tableTahunBody');
     const tbodySemester = document.getElementById('tableSemesterBody');
 
-    // Render Tabel Tahun Pelajaran
     tbodyTahun.innerHTML = '';
-    if(state.academicConfig.years.length === 0) {
-        tbodyTahun.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">Belum ada tahun pelajaran.</td></tr>`;
-    } else {
+    if(state.academicConfig.years.length === 0) { tbodyTahun.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">Belum ada tahun pelajaran.</td></tr>`; } 
+    else {
         state.academicConfig.years.forEach((y, i) => {
-            const statusBadge = y.isActive
-                ? `<span class="text-green-600 font-bold flex items-center justify-center gap-1">✔ AKTIF</span>`
-                : `<button onclick="setAktifTahun('${y.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold w-full max-w-[100px] mx-auto transition">AKTIFKAN</button>`;
-
-            tbodyTahun.innerHTML += `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="p-3 border-r text-center font-bold text-slate-500">${i+1}</td>
-                    <td class="p-3 border-r text-center font-medium">${y.name}</td>
-                    <td class="p-3 border-r text-center align-middle">${statusBadge}</td>
-                    <td class="p-3 text-center space-x-1">
-                        <button onclick="editTahun('${y.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-4 py-1.5 rounded shadow-sm text-xs font-bold transition">Edit</button>
-                        <button onclick="hapusTahun('${y.id}')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded shadow-sm text-xs font-bold transition">Hapus</button>
-                    </td>
-                </tr>
-            `;
+            const statusBadge = y.isActive ? `<span class="text-green-600 font-bold flex items-center justify-center gap-1">✔ AKTIF</span>` : `<button onclick="setAktifTahun('${y.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold w-full max-w-[100px] mx-auto transition">AKTIFKAN</button>`;
+            tbodyTahun.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 border-r text-center font-bold text-slate-500">${i+1}</td><td class="p-3 border-r text-center font-medium">${y.name}</td><td class="p-3 border-r text-center align-middle">${statusBadge}</td><td class="p-3 text-center space-x-1"><button onclick="editTahun('${y.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-4 py-1.5 rounded shadow-sm text-xs font-bold transition">Edit</button><button onclick="hapusTahun('${y.id}')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded shadow-sm text-xs font-bold transition">Hapus</button></td></tr>`;
         });
     }
 
-    // Render Tabel Semester
     tbodySemester.innerHTML = '';
     ['Ganjil', 'Genap'].forEach((sem, i) => {
         const isActive = state.academicConfig.activeSemester === sem;
-        const statusBadge = isActive
-            ? `<span class="text-green-600 font-bold flex items-center justify-center gap-1">✔ AKTIF</span>`
-            : `<button onclick="setAktifSemester('${sem}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold w-full max-w-[100px] mx-auto transition">AKTIFKAN</button>`;
-
-        tbodySemester.innerHTML += `
-            <tr class="hover:bg-slate-50 transition">
-                <td class="p-3 border-r text-center font-bold text-slate-500">${i+1}</td>
-                <td class="p-3 border-r text-center font-medium">${sem}</td>
-                <td class="p-3 text-center align-middle">${statusBadge}</td>
-            </tr>
-        `;
+        const statusBadge = isActive ? `<span class="text-green-600 font-bold flex items-center justify-center gap-1">✔ AKTIF</span>` : `<button onclick="setAktifSemester('${sem}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold w-full max-w-[100px] mx-auto transition">AKTIFKAN</button>`;
+        tbodySemester.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 border-r text-center font-bold text-slate-500">${i+1}</td><td class="p-3 border-r text-center font-medium">${sem}</td><td class="p-3 text-center align-middle">${statusBadge}</td></tr>`;
     });
 };
 
-window.openModalTahun = () => {
-    document.getElementById('tahunId').value = '';
-    document.getElementById('inputNamaTahun').value = '';
-    document.getElementById('modalTahunPelajaran').classList.remove('hidden');
-};
+window.openModalTahun = () => { document.getElementById('tahunId').value = ''; document.getElementById('inputNamaTahun').value = ''; document.getElementById('modalTahunPelajaran').classList.remove('hidden'); };
 
 window.simpanTahunPelajaran = async () => {
     const id = document.getElementById('tahunId').value;
     const name = document.getElementById('inputNamaTahun').value.trim();
     if(!name) return alert("Nama Tahun Pelajaran tidak boleh kosong");
-
     let newYears = [...(state.academicConfig.years || [])];
-
-    if(id) {
-        const index = newYears.findIndex(y => y.id === id);
-        if(index !== -1) newYears[index].name = name;
-    } else {
-        newYears.push({ id: Date.now().toString(), name: name, isActive: newYears.length === 0 });
-    }
-
+    if(id) { const index = newYears.findIndex(y => y.id === id); if(index !== -1) newYears[index].name = name; } 
+    else { newYears.push({ id: Date.now().toString(), name: name, isActive: newYears.length === 0 }); }
     state.academicConfig.years = newYears;
     await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
-    window.closeModal('modalTahunPelajaran');
-    window.renderTableTahunSemester();
+    window.closeModal('modalTahunPelajaran'); window.renderTableTahunSemester();
 };
 
 window.editTahun = (id) => {
     const y = state.academicConfig.years.find(y => y.id === id);
     if(!y) return;
-    document.getElementById('tahunId').value = y.id;
-    document.getElementById('inputNamaTahun').value = y.name;
+    document.getElementById('tahunId').value = y.id; document.getElementById('inputNamaTahun').value = y.name;
     document.getElementById('modalTahunPelajaran').classList.remove('hidden');
 };
 
 window.hapusTahun = async (id) => {
     if(!confirm("Hapus tahun pelajaran ini?")) return;
     state.academicConfig.years = state.academicConfig.years.filter(y => y.id !== id);
-    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
-    window.renderTableTahunSemester();
+    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig); window.renderTableTahunSemester();
 };
 
 window.setAktifTahun = async (id) => {
-    state.academicConfig.years = state.academicConfig.years.map(y => ({
-        ...y, isActive: y.id === id
-    }));
-    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
-    window.renderTableTahunSemester();
+    state.academicConfig.years = state.academicConfig.years.map(y => ({ ...y, isActive: y.id === id }));
+    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig); window.renderTableTahunSemester();
 };
 
 window.setAktifSemester = async (sem) => {
     state.academicConfig.activeSemester = sem;
-    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
-    window.renderTableTahunSemester();
+    await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig); window.renderTableTahunSemester();
 };
 
 // ==========================================
@@ -237,27 +293,11 @@ window.simpanProfil = async () => {
     try {
         btn.disabled = true; btn.innerText = "Menyimpan...";
         const dataSimpan = {
-            namaSekolah: document.getElementById('profSekolah').value.toUpperCase(),
-            alamat: document.getElementById('profAlamat').value,
-            email: document.getElementById('profEmail').value,
-            website: document.getElementById('profWebsite').value,
-            namaUjian: document.getElementById('profNamaUjian').value,
-            kelas: document.getElementById('profKelas').value,
-            kepsek: document.getElementById('profKepsek').value,
-            nipKepsek: document.getElementById('profNIP').value,
-            pengawas: document.getElementById('profPengawas').value,
-            nipPengawas: document.getElementById('profNIPPengawas').value,
-            proktor: document.getElementById('profProktor').value,
-            tahunAjaran: document.getElementById('profTahun').value,
-            logoKab: document.getElementById('logoKabBase64').value || null,
-            logoSekolah: document.getElementById('logoSekolahBase64').value || null
+            namaSekolah: document.getElementById('profSekolah').value.toUpperCase(), alamat: document.getElementById('profAlamat').value, email: document.getElementById('profEmail').value, website: document.getElementById('profWebsite').value, namaUjian: document.getElementById('profNamaUjian').value, kelas: document.getElementById('profKelas').value, kepsek: document.getElementById('profKepsek').value, nipKepsek: document.getElementById('profNIP').value, pengawas: document.getElementById('profPengawas').value, nipPengawas: document.getElementById('profNIPPengawas').value, proktor: document.getElementById('profProktor').value, tahunAjaran: document.getElementById('profTahun').value, logoKab: document.getElementById('logoKabBase64').value || null, logoSekolah: document.getElementById('logoSekolahBase64').value || null
         };
         await setDoc(doc(db, 'school_profile', 'main_profile'), dataSimpan, { merge: true });
         alert("Profil berhasil disimpan!");
-    } catch (error) { 
-        console.error(error); 
-        alert("Gagal simpan profil.");
-    } finally { btn.disabled = false; btn.innerText = "Simpan Profil"; }
+    } catch (error) { console.error(error); alert("Gagal simpan profil."); } finally { btn.disabled = false; btn.innerText = "Simpan Profil"; }
 };
 
 window.previewImage = (input, previewId, base64Id) => {
@@ -273,13 +313,9 @@ window.previewImage = (input, previewId, base64Id) => {
                 if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
                 else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
                 canvas.width = width; canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
+                const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
                 const compressedDataUrl = canvas.toDataURL('image/webp', 0.8);
-
-                document.getElementById(previewId).src = compressedDataUrl;
-                document.getElementById(previewId).classList.remove('hidden');
-                document.getElementById(base64Id).value = compressedDataUrl;
+                document.getElementById(previewId).src = compressedDataUrl; document.getElementById(previewId).classList.remove('hidden'); document.getElementById(base64Id).value = compressedDataUrl;
             }
             img.src = e.target.result;
         }
@@ -288,7 +324,7 @@ window.previewImage = (input, previewId, base64Id) => {
 };
 
 // ==========================================
-// MATA PELAJARAN
+// MATA PELAJARAN (SINKRONISASI DROPDOWN)
 // ==========================================
 window.changeSubject = () => {
     state.currentSubject = document.getElementById('subjectSelector').value;
@@ -300,19 +336,18 @@ window.changeSubject = () => {
 };
 
 window.tambahPelajaranBaru = () => {
-    const baru = prompt("Masukkan nama Mata Pelajaran baru (Contoh: Bahasa Inggris):");
-    if (baru && baru.trim() !== '') {
-        state.allSubjectsSet.add(baru.trim());
-        window.updateDropdownUI();
-        document.getElementById('subjectSelector').value = baru.trim();
-        window.changeSubject();
-        if(window.renderTableUjian) window.renderTableUjian(); 
-    }
+    window.switchTab('viewMataPelajaran', 'Data Mata Pelajaran'); 
+    window.openModalMapel();
 };
 
 window.updateSubjectDropdownDinamis = () => {
-    state.allQuestions.forEach(q => { if(q.subject) state.allSubjectsSet.add(q.subject); });
-    state.allResults.forEach(r => { if(r.subject) state.allSubjectsSet.add(r.subject); });
+    state.allSubjectsSet.clear();
+    if (state.masterSubjects && state.masterSubjects.length > 0) {
+        state.masterSubjects.forEach(m => { if(m.isActive) state.allSubjectsSet.add(m.nama); });
+    } else {
+        state.allQuestions.forEach(q => { if(q.subject) state.allSubjectsSet.add(q.subject); });
+        state.allResults.forEach(r => { if(r.subject) state.allSubjectsSet.add(r.subject); });
+    }
     window.updateDropdownUI(); 
     if(window.renderTableUjian) window.renderTableUjian();
 };
@@ -322,12 +357,11 @@ window.updateDropdownUI = () => {
     const currentSelected = sel.value || state.currentSubject;
     sel.innerHTML = '';
     Array.from(state.allSubjectsSet).sort().forEach(sub => {
-        const opt = document.createElement('option');
-        opt.value = sub; opt.innerText = sub;
-        sel.appendChild(opt);
+        const opt = document.createElement('option'); opt.value = sub; opt.innerText = sub; sel.appendChild(opt);
     });
     if(state.allSubjectsSet.has(currentSelected)) { sel.value = currentSelected; } 
-    else { sel.value = "Pendidikan Pancasila"; state.currentSubject = "Pendidikan Pancasila"; }
+    else { sel.value = Array.from(state.allSubjectsSet)[0] || "Pendidikan Pancasila"; state.currentSubject = sel.value; }
+    
     document.getElementById('labelSubjectNilai').innerText = sel.value;
     document.getElementById('labelSubjectSoal').innerText = sel.value;
     document.getElementById('cetakMapelLabel').innerText = sel.value;
@@ -341,9 +375,7 @@ window.renderTableNilai = () => {
     const tbody = document.getElementById('tableNilaiBody');
     document.getElementById('totalStudents').innerText = filteredResults.length;
     tbody.innerHTML = '';
-    if(filteredResults.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada siswa yang mengumpulkan ujian.</td></tr>'; return;
-    }
+    if(filteredResults.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada siswa yang mengumpulkan ujian.</td></tr>'; return; }
     filteredResults.forEach(res => {
         let timeStr = res.timestamp ? new Date(res.timestamp.seconds * 1000).toLocaleString('id-ID', {day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'}) : '-';
         const tr = document.createElement('tr');
@@ -355,17 +387,14 @@ window.renderTableNilai = () => {
 window.lihatDetailNilai = (id) => {
     const res = state.allResults.find(r => r.id === id);
     if(!res) return;
-    document.getElementById('detailNamaSiswa').innerText = res.nama;
-    document.getElementById('detailAbsenSiswa').innerText = res.absen;
-    document.getElementById('detailSkorSiswa').innerText = res.nilaiPG;
+    document.getElementById('detailNamaSiswa').innerText = res.nama; document.getElementById('detailAbsenSiswa').innerText = res.absen; document.getElementById('detailSkorSiswa').innerText = res.nilaiPG;
     const container = document.getElementById('detailJawabanContainer');
     container.innerHTML = `<h4 class="font-bold mb-3 border-b pb-2">Uraian (${res.subject || "Pendidikan Pancasila"}):</h4>`;
     let hasUraian = false; let urut = 1;
     if(res.tipeSoal && res.jawaban) {
         res.tipeSoal.forEach((tipe, index) => {
             if(tipe === 'URAIAN') {
-                hasUraian = true;
-                const jawab = res.jawaban[index] || '<span class="italic text-slate-400">(Tidak dijawab)</span>';
+                hasUraian = true; const jawab = res.jawaban[index] || '<span class="italic text-slate-400">(Tidak dijawab)</span>';
                 container.innerHTML += `<div class="mb-4 bg-yellow-50 p-4 rounded border border-yellow-200"><p class="font-bold mb-2">Soal Uraian ${urut++}</p><p class="whitespace-pre-wrap">${jawab}</p></div>`;
             }
         });
@@ -380,25 +409,14 @@ window.lihatDetailNilai = (id) => {
 // ==========================================
 window.renderTableSoal = () => {
     const filteredQuestions = state.allQuestions.filter(q => (q.subject || "Pendidikan Pancasila") === state.currentSubject);
-    const tbody = document.getElementById('tableSoalBody');
-    tbody.innerHTML = '';
-    if(filteredQuestions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Bank Soal <b>${state.currentSubject}</b> masih kosong.</td></tr>`; return;
-    }
+    const tbody = document.getElementById('tableSoalBody'); tbody.innerHTML = '';
+    if(filteredQuestions.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Bank Soal <b>${state.currentSubject}</b> masih kosong.</td></tr>`; return; }
     let counter = 1;
     filteredQuestions.forEach((q) => {
         let badgeClass = 'bg-blue-100 text-blue-800'; let typeName = q.type;
-        if(q.type === 'URAIAN') { badgeClass = 'bg-purple-100 text-purple-800'; }
-        else if(q.type === 'PG_KOMPLEKS') { badgeClass = 'bg-indigo-100 text-indigo-800'; typeName = 'PG-K'; }
-        else if(q.type === 'MENCOCOKKAN') { badgeClass = 'bg-cyan-100 text-cyan-800'; typeName = 'MATCH'; }
-        else if(q.type === 'BENAR_SALAH') { badgeClass = 'bg-teal-100 text-teal-800'; typeName = 'B/S'; }
-        else if(q.type === 'ISIAN') { badgeClass = 'bg-orange-100 text-orange-800'; typeName = 'ISI'; }
-        else if(q.type === 'MENGURUTKAN') { badgeClass = 'bg-fuchsia-100 text-fuchsia-800'; typeName = 'URUT'; }
-        
+        if(q.type === 'URAIAN') { badgeClass = 'bg-purple-100 text-purple-800'; } else if(q.type === 'PG_KOMPLEKS') { badgeClass = 'bg-indigo-100 text-indigo-800'; typeName = 'PG-K'; } else if(q.type === 'MENCOCOKKAN') { badgeClass = 'bg-cyan-100 text-cyan-800'; typeName = 'MATCH'; } else if(q.type === 'BENAR_SALAH') { badgeClass = 'bg-teal-100 text-teal-800'; typeName = 'B/S'; } else if(q.type === 'ISIAN') { badgeClass = 'bg-orange-100 text-orange-800'; typeName = 'ISI'; } else if(q.type === 'MENGURUTKAN') { badgeClass = 'bg-fuchsia-100 text-fuchsia-800'; typeName = 'URUT'; }
         let badge = `<span class="${badgeClass} px-2 py-1 rounded text-[10px] font-bold tracking-wider">${typeName}</span>`;
-        let kunciInfo = q.ans || '<span class="text-slate-400 italic text-xs">-</span>';
-        if(Array.isArray(q.ans)) kunciInfo = q.ans.join(', ');
-
+        let kunciInfo = q.ans || '<span class="text-slate-400 italic text-xs">-</span>'; if(Array.isArray(q.ans)) kunciInfo = q.ans.join(', ');
         const tr = document.createElement('tr');
         tr.innerHTML = `<td class="p-4 text-center font-bold text-slate-400">${counter++}</td><td class="p-4 text-center">${badge}</td><td class="p-4"><div class="line-clamp-2 text-sm">${q.qImg ? `🖼️ ` : ''}${q.q}</div></td><td class="p-4 text-center text-sm font-bold text-green-600">${kunciInfo}</td><td class="p-4 text-center space-x-2"><button onclick="hapusSoal('${q.id}')" class="text-red-500 hover:text-red-700 font-bold">Hapus</button></td>`;
         tbody.appendChild(tr);
@@ -407,78 +425,35 @@ window.renderTableSoal = () => {
 };
 
 window.openSoalModal = () => {
-    document.getElementById('formSoal').reset(); 
-    document.getElementById('soalId').value = '';
-    document.getElementById('modalSoalTitle').innerText = "Tambah Soal Baru";
-    document.getElementById('modalSoalSubjectBadge').innerText = "Mata Pelajaran: " + state.currentSubject;
-    document.getElementById('previewSoal').classList.add('hidden');
-    document.getElementById('soalGambarBase64').value = '';
-    window.toggleFormSoalType(); 
-    document.getElementById('modalFormSoal').classList.remove('hidden');
+    document.getElementById('formSoal').reset(); document.getElementById('soalId').value = ''; document.getElementById('modalSoalTitle').innerText = "Tambah Soal Baru"; document.getElementById('modalSoalSubjectBadge').innerText = "Mata Pelajaran: " + state.currentSubject; document.getElementById('previewSoal').classList.add('hidden'); document.getElementById('soalGambarBase64').value = ''; window.toggleFormSoalType(); document.getElementById('modalFormSoal').classList.remove('hidden');
 };
 
 window.toggleFormSoalType = () => {
     const tipe = document.getElementById('soalTipe').value;
-    ['containerPG', 'containerPGKompleks', 'containerBS', 'containerIsian'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.classList.add('hidden');
-    });
-
-    if(tipe === 'PG') document.getElementById('containerPG').classList.remove('hidden');
-    else if(tipe === 'PG_KOMPLEKS') document.getElementById('containerPGKompleks').classList.remove('hidden');
-    else if(tipe === 'BENAR_SALAH') document.getElementById('containerBS').classList.remove('hidden');
-    else if(tipe === 'ISIAN') document.getElementById('containerIsian').classList.remove('hidden');
+    ['containerPG', 'containerPGKompleks', 'containerBS', 'containerIsian'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
+    if(tipe === 'PG') document.getElementById('containerPG').classList.remove('hidden'); else if(tipe === 'PG_KOMPLEKS') document.getElementById('containerPGKompleks').classList.remove('hidden'); else if(tipe === 'BENAR_SALAH') document.getElementById('containerBS').classList.remove('hidden'); else if(tipe === 'ISIAN') document.getElementById('containerIsian').classList.remove('hidden');
 };
 
 window.simpanSoal = async () => {
     const btn = document.getElementById('btnSimpanSoal');
-    const id = document.getElementById('soalId').value;
-    const tipe = document.getElementById('soalTipe').value;
-    const pertanyaan = document.getElementById('soalPertanyaan').value;
-    const qImg = document.getElementById('soalGambarBase64').value;
-
+    const id = document.getElementById('soalId').value; const tipe = document.getElementById('soalTipe').value; const pertanyaan = document.getElementById('soalPertanyaan').value; const qImg = document.getElementById('soalGambarBase64').value;
     if(!pertanyaan.trim() && !qImg) { alert("Pertanyaan atau Gambar tidak boleh kosong!"); return; }
     let dataSimpan = { type: tipe, q: pertanyaan, subject: state.currentSubject, qImg: qImg || null };
 
     if(tipe === 'PG') {
-        let opts = {};
-        opts['A'] = document.getElementById('optA').value; opts['B'] = document.getElementById('optB').value;
-        opts['C'] = document.getElementById('optC').value; opts['D'] = document.getElementById('optD').value;
-        let ans = null;
-        for(let r of document.getElementsByName('kunciJawabanPG')) if(r.checked) ans = r.value;
-        if(!ans) { alert("Pilih kunci jawaban!"); return; }
-        dataSimpan.opts = opts; dataSimpan.ans = ans;
+        let opts = {}; opts['A'] = document.getElementById('optA').value; opts['B'] = document.getElementById('optB').value; opts['C'] = document.getElementById('optC').value; opts['D'] = document.getElementById('optD').value; let ans = null; for(let r of document.getElementsByName('kunciJawabanPG')) if(r.checked) ans = r.value; if(!ans) { alert("Pilih kunci jawaban!"); return; } dataSimpan.opts = opts; dataSimpan.ans = ans;
     } else if (tipe === 'PG_KOMPLEKS') {
-        let opts = {}; 
-        opts['A'] = document.getElementById('optA_K').value.trim(); opts['B'] = document.getElementById('optB_K').value.trim();
-        opts['C'] = document.getElementById('optC_K').value.trim(); opts['D'] = document.getElementById('optD_K').value.trim();
-        const ansArr = [];
-        for(let c of document.getElementsByName('kunciJawabanKompleks')) if(c.checked) ansArr.push(c.value);
-        if(ansArr.length === 0) { alert("Pilih minimal satu kunci jawaban!"); return; }
-        dataSimpan.opts = opts; dataSimpan.ans = ansArr;
+        let opts = {}; opts['A'] = document.getElementById('optA_K').value.trim(); opts['B'] = document.getElementById('optB_K').value.trim(); opts['C'] = document.getElementById('optC_K').value.trim(); opts['D'] = document.getElementById('optD_K').value.trim(); const ansArr = []; for(let c of document.getElementsByName('kunciJawabanKompleks')) if(c.checked) ansArr.push(c.value); if(ansArr.length === 0) { alert("Pilih minimal satu kunci jawaban!"); return; } dataSimpan.opts = opts; dataSimpan.ans = ansArr;
     } else if (tipe === 'BENAR_SALAH') {
-        let ans = null;
-        for(let r of document.getElementsByName('kunciBS')) if(r.checked) ans = r.value;
-        if(!ans) { alert("Tentukan Benar atau Salah!"); return; }
-        dataSimpan.ans = ans;
+        let ans = null; for(let r of document.getElementsByName('kunciBS')) if(r.checked) ans = r.value; if(!ans) { alert("Tentukan Benar atau Salah!"); return; } dataSimpan.ans = ans;
     } else if (tipe === 'ISIAN') {
-        const ans = document.getElementById('kunciIsian').value.trim();
-        if(!ans) { alert("Kunci jawaban tidak boleh kosong!"); return; }
-        dataSimpan.ans = ans;
+        const ans = document.getElementById('kunciIsian').value.trim(); if(!ans) { alert("Kunci jawaban tidak boleh kosong!"); return; } dataSimpan.ans = ans;
     }
 
-    try {
-        btn.disabled = true; btn.innerText = "Menyimpan...";
-        if(id) await updateDoc(doc(db, 'exam_questions', id), dataSimpan);
-        else await addDoc(collection(db, 'exam_questions'), dataSimpan);
-        window.closeModal('modalFormSoal');
-    } catch (e) { console.error(e); alert("Gagal menyimpan soal.");
-    } finally { btn.disabled = false; btn.innerText = "Simpan Soal"; }
+    try { btn.disabled = true; btn.innerText = "Menyimpan..."; if(id) await updateDoc(doc(db, 'exam_questions', id), dataSimpan); else await addDoc(collection(db, 'exam_questions'), dataSimpan); window.closeModal('modalFormSoal'); } catch (e) { console.error(e); alert("Gagal menyimpan soal."); } finally { btn.disabled = false; btn.innerText = "Simpan Soal"; }
 };
 
-window.hapusSoal = async (id) => {
-    if(confirm("Yakin ingin menghapus soal ini?")) await deleteDoc(doc(db, 'exam_questions', id));
-};
+window.hapusSoal = async (id) => { if(confirm("Yakin ingin menghapus soal ini?")) await deleteDoc(doc(db, 'exam_questions', id)); };
 
 // ==========================================
 // RENDER JADWAL UJIAN
@@ -498,39 +473,21 @@ window.renderTableUjian = () => {
 
 window.bukaPengaturanUjian = (subject) => {
     const schedule = state.examSchedules.find(s => s.subject === subject) || { isActive: false, duration: 90, token: '' };
-    document.getElementById('ujianSubject').value = subject;
-    document.getElementById('ujianDurasi').value = schedule.duration;
-    document.getElementById('ujianToken').value = schedule.token || '';
-    document.getElementById('ujianStatus').checked = schedule.isActive;
-    document.getElementById('modalPengaturanUjian').classList.remove('hidden');
+    document.getElementById('ujianSubject').value = subject; document.getElementById('ujianDurasi').value = schedule.duration; document.getElementById('ujianToken').value = schedule.token || ''; document.getElementById('ujianStatus').checked = schedule.isActive; document.getElementById('modalPengaturanUjian').classList.remove('hidden');
 };
 
 window.simpanPengaturanUjian = async () => {
-    const subject = document.getElementById('ujianSubject').value;
-    const schedule = state.examSchedules.find(s => s.subject === subject);
-    const data = {
-        subject: subject,
-        duration: parseInt(document.getElementById('ujianDurasi').value) || 90,
-        token: document.getElementById('ujianToken').value.toUpperCase(),
-        isActive: document.getElementById('ujianStatus').checked
-    };
-    try {
-        if(schedule && schedule.id) await updateDoc(doc(db, 'exam_schedules', schedule.id), data);
-        else await addDoc(collection(db, 'exam_schedules'), data);
-        window.closeModal('modalPengaturanUjian');
-    } catch (e) { console.error(e); alert("Gagal mengatur ujian."); }
+    const subject = document.getElementById('ujianSubject').value; const schedule = state.examSchedules.find(s => s.subject === subject);
+    const data = { subject: subject, duration: parseInt(document.getElementById('ujianDurasi').value) || 90, token: document.getElementById('ujianToken').value.toUpperCase(), isActive: document.getElementById('ujianStatus').checked };
+    try { if(schedule && schedule.id) await updateDoc(doc(db, 'exam_schedules', schedule.id), data); else await addDoc(collection(db, 'exam_schedules'), data); window.closeModal('modalPengaturanUjian'); } catch (e) { console.error(e); alert("Gagal mengatur ujian."); }
 };
 
 // ==========================================
 // RENDER & CRUD PESERTA
 // ==========================================
 window.renderTablePeserta = () => {
-    const tbody = document.getElementById('tablePesertaBody');
-    document.getElementById('cetakJumlahPeserta').innerText = state.examParticipants.length;
-    tbody.innerHTML = '';
-    
+    const tbody = document.getElementById('tablePesertaBody'); document.getElementById('cetakJumlahPeserta').innerText = state.examParticipants.length; tbody.innerHTML = '';
     if(state.examParticipants.length === 0) { tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-500">Belum ada data peserta.</td></tr>`; return; }
-    
     state.examParticipants.forEach((p) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td class="p-4 text-center font-mono font-bold">${p.absen}</td><td class="p-4 text-center font-mono">${p.noUjian || '-'}</td><td class="p-4 font-bold uppercase">${p.nama}</td><td class="p-4 text-center font-bold text-blue-600">${p.kelas || '-'}</td><td class="p-4 text-center">${p.ruang || '-'}</td><td class="p-4 text-center">${p.sesi || '-'}</td><td class="p-4 text-center tracking-widest">${p.password || p.absen}</td><td class="p-4 text-center space-x-2"><button onclick="editPeserta('${p.id}')" class="text-amber-500">✏️</button><button onclick="hapusPeserta('${p.id}')" class="text-red-500">🗑️</button></td>`;
@@ -538,128 +495,42 @@ window.renderTablePeserta = () => {
     });
 };
 
-window.openPesertaModal = () => {
-    document.getElementById('formPeserta').reset();
-    document.getElementById('pesertaId').value = '';
-    document.getElementById('modalPeserta').classList.remove('hidden');
-};
-
-window.generatePassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
-    let password = '';
-    for (let i = 0; i < 6; i++) { password += chars.charAt(Math.floor(Math.random() * chars.length)); }
-    const inputPassword = document.getElementById('pesertaPassword');
-    inputPassword.value = password;
-    inputPassword.classList.add('bg-green-100');
-    setTimeout(() => { inputPassword.classList.remove('bg-green-100'); }, 300);
-};
+window.openPesertaModal = () => { document.getElementById('formPeserta').reset(); document.getElementById('pesertaId').value = ''; document.getElementById('modalPeserta').classList.remove('hidden'); };
+window.generatePassword = () => { const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let password = ''; for (let i = 0; i < 6; i++) { password += chars.charAt(Math.floor(Math.random() * chars.length)); } const inputPassword = document.getElementById('pesertaPassword'); inputPassword.value = password; inputPassword.classList.add('bg-green-100'); setTimeout(() => { inputPassword.classList.remove('bg-green-100'); }, 300); };
 
 window.simpanPeserta = async () => {
-    const btn = document.getElementById('btnSimpanPeserta');
-    const id = document.getElementById('pesertaId').value;
-    const data = {
-        absen: document.getElementById('pesertaAbsen').value,
-        noUjian: document.getElementById('pesertaNoUjian').value,
-        nama: document.getElementById('pesertaNama').value.toUpperCase(),
-        kelas: document.getElementById('pesertaKelas').value.toUpperCase(),
-        ruang: document.getElementById('pesertaRuang').value,
-        sesi: document.getElementById('pesertaSesi').value,
-        password: document.getElementById('pesertaPassword').value || document.getElementById('pesertaAbsen').value
-    };
-
-    try {
-        btn.disabled = true; btn.innerText = "Menyimpan...";
-        if(id) await updateDoc(doc(db, 'exam_participants', id), data);
-        else await addDoc(collection(db, 'exam_participants'), data);
-        window.closeModal('modalPeserta');
-    } catch (e) { console.error(e); alert("Gagal menyimpan peserta.");
-    } finally { btn.disabled = false; btn.innerText = "Simpan"; }
+    const btn = document.getElementById('btnSimpanPeserta'); const id = document.getElementById('pesertaId').value;
+    const data = { absen: document.getElementById('pesertaAbsen').value, noUjian: document.getElementById('pesertaNoUjian').value, nama: document.getElementById('pesertaNama').value.toUpperCase(), kelas: document.getElementById('pesertaKelas').value.toUpperCase(), ruang: document.getElementById('pesertaRuang').value, sesi: document.getElementById('pesertaSesi').value, password: document.getElementById('pesertaPassword').value || document.getElementById('pesertaAbsen').value };
+    try { btn.disabled = true; btn.innerText = "Menyimpan..."; if(id) await updateDoc(doc(db, 'exam_participants', id), data); else await addDoc(collection(db, 'exam_participants'), data); window.closeModal('modalPeserta'); } catch (e) { console.error(e); alert("Gagal menyimpan peserta."); } finally { btn.disabled = false; btn.innerText = "Simpan"; }
 };
 
-window.editPeserta = (id) => {
-    const p = state.examParticipants.find(x => x.id === id);
-    if(!p) return;
-    document.getElementById('pesertaId').value = p.id;
-    document.getElementById('pesertaAbsen').value = p.absen;
-    document.getElementById('pesertaNoUjian').value = p.noUjian;
-    document.getElementById('pesertaNama').value = p.nama;
-    document.getElementById('pesertaKelas').value = p.kelas || ''; 
-    document.getElementById('pesertaRuang').value = p.ruang;
-    document.getElementById('pesertaSesi').value = p.sesi;
-    document.getElementById('pesertaPassword').value = p.password === p.absen ? '' : p.password;
-    document.getElementById('modalPeserta').classList.remove('hidden');
-};
-
-window.hapusPeserta = async (id) => {
-    if(confirm("Hapus peserta ini?")) await deleteDoc(doc(db, 'exam_participants', id));
-};
+window.editPeserta = (id) => { const p = state.examParticipants.find(x => x.id === id); if(!p) return; document.getElementById('pesertaId').value = p.id; document.getElementById('pesertaAbsen').value = p.absen; document.getElementById('pesertaNoUjian').value = p.noUjian; document.getElementById('pesertaNama').value = p.nama; document.getElementById('pesertaKelas').value = p.kelas || ''; document.getElementById('pesertaRuang').value = p.ruang; document.getElementById('pesertaSesi').value = p.sesi; document.getElementById('pesertaPassword').value = p.password === p.absen ? '' : p.password; document.getElementById('modalPeserta').classList.remove('hidden'); };
+window.hapusPeserta = async (id) => { if(confirm("Hapus peserta ini?")) await deleteDoc(doc(db, 'exam_participants', id)); };
 
 // ==========================================
 // EXPORT & IMPORT EXCEL (PESERTA)
 // ==========================================
 window.downloadFormatPeserta = () => {
-    let dataExport = [];
-    if (state.examParticipants.length === 0) {
-        dataExport.push({ NO_ABSEN: 1, NO_UJIAN: "001-01", NAMA_LENGKAP: "NAMA SISWA CONTOH", KELAS: "VI", RUANG: "R-01", SESI: "1", PASSWORD: "1" });
-    } else {
-        state.examParticipants.forEach(p => {
-            dataExport.push({ NO_ABSEN: p.absen, NO_UJIAN: p.noUjian || '', NAMA_LENGKAP: p.nama, KELAS: p.kelas || '', RUANG: p.ruang || '', SESI: p.sesi || '', PASSWORD: p.password || p.absen });
-        });
-    }
-
-    const ws = XLSX.utils.json_to_sheet(dataExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data_Peserta");
-    XLSX.writeFile(wb, "Peserta_Ujian_CBT.xlsx");
+    let dataExport = []; if (state.examParticipants.length === 0) { dataExport.push({ NO_ABSEN: 1, NO_UJIAN: "001-01", NAMA_LENGKAP: "NAMA SISWA CONTOH", KELAS: "VI", RUANG: "R-01", SESI: "1", PASSWORD: "1" }); } else { state.examParticipants.forEach(p => { dataExport.push({ NO_ABSEN: p.absen, NO_UJIAN: p.noUjian || '', NAMA_LENGKAP: p.nama, KELAS: p.kelas || '', RUANG: p.ruang || '', SESI: p.sesi || '', PASSWORD: p.password || p.absen }); }); }
+    const ws = XLSX.utils.json_to_sheet(dataExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data_Peserta"); XLSX.writeFile(wb, "Peserta_Ujian_CBT.xlsx");
 };
 
 window.prosesImportPeserta = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    document.getElementById('loadingIndicator').classList.remove('hidden');
-    const reader = new FileReader();
+    const file = e.target.files[0]; if (!file) return; document.getElementById('loadingIndicator').classList.remove('hidden'); const reader = new FileReader();
     reader.onload = async (evt) => {
         try {
-            const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0]; 
-            const sheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(sheet);
-
+            const data = new Uint8Array(evt.target.result); const workbook = XLSX.read(data, { type: 'array' }); const sheetName = workbook.SheetNames[0]; const sheet = workbook.Sheets[sheetName]; const json = XLSX.utils.sheet_to_json(sheet);
             if (json.length === 0) { alert("File Excel kosong atau format tidak sesuai!"); return; }
-
             let successCount = 0;
             for (const row of json) {
                 if (!row.NO_ABSEN || !row.NAMA_LENGKAP) continue;
-
                 const absenStr = String(row.NO_ABSEN).trim();
-                const dataSimpan = {
-                    absen: absenStr,
-                    noUjian: row.NO_UJIAN ? String(row.NO_UJIAN).trim() : '',
-                    nama: String(row.NAMA_LENGKAP).trim().toUpperCase(),
-                    kelas: row.KELAS ? String(row.KELAS).trim().toUpperCase() : '', 
-                    ruang: row.RUANG ? String(row.RUANG).trim() : '',
-                    sesi: row.SESI ? String(row.SESI).trim() : '',
-                    password: row.PASSWORD ? String(row.PASSWORD).trim() : absenStr
-                };
-
+                const dataSimpan = { absen: absenStr, noUjian: row.NO_UJIAN ? String(row.NO_UJIAN).trim() : '', nama: String(row.NAMA_LENGKAP).trim().toUpperCase(), kelas: row.KELAS ? String(row.KELAS).trim().toUpperCase() : '', ruang: row.RUANG ? String(row.RUANG).trim() : '', sesi: row.SESI ? String(row.SESI).trim() : '', password: row.PASSWORD ? String(row.PASSWORD).trim() : absenStr };
                 const exist = state.examParticipants.find(p => p.absen === absenStr);
-                if (exist && exist.id) {
-                    await updateDoc(doc(db, 'exam_participants', exist.id), dataSimpan);
-                } else {
-                    await addDoc(collection(db, 'exam_participants'), dataSimpan);
-                }
-                successCount++;
+                if (exist && exist.id) { await updateDoc(doc(db, 'exam_participants', exist.id), dataSimpan); } else { await addDoc(collection(db, 'exam_participants'), dataSimpan); } successCount++;
             }
             alert(`Berhasil mengimpor/memperbarui ${successCount} data peserta!`);
-        } catch (error) {
-            console.error("Error import excel:", error);
-            alert("Terjadi kesalahan! Pastikan format/judul kolom persis seperti template Export.");
-        } finally {
-            document.getElementById('loadingIndicator').classList.add('hidden');
-            document.getElementById('fileImportPeserta').value = ''; 
-        }
+        } catch (error) { console.error("Error import excel:", error); alert("Terjadi kesalahan! Pastikan format/judul kolom persis seperti template Export."); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('fileImportPeserta').value = ''; }
     };
     reader.readAsArrayBuffer(file);
 };
