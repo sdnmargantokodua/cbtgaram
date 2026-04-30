@@ -87,6 +87,8 @@ window.checkAdminSession();
 window.isiFormProfil = () => {
     document.getElementById('profSekolah').value = state.schoolProfile.namaSekolah || '';
     document.getElementById('profAlamat').value = state.schoolProfile.alamat || '';
+    document.getElementById('profEmail').value = state.schoolProfile.email || '';
+    document.getElementById('profWebsite').value = state.schoolProfile.website || '';
     document.getElementById('profKepsek').value = state.schoolProfile.kepsek || '';
     document.getElementById('profNIP').value = state.schoolProfile.nipKepsek || '';
     document.getElementById('profPengawas').value = state.schoolProfile.pengawas || '';
@@ -125,6 +127,8 @@ window.simpanProfil = async () => {
         const dataSimpan = {
             namaSekolah: document.getElementById('profSekolah').value.toUpperCase(),
             alamat: document.getElementById('profAlamat').value,
+            email: document.getElementById('profEmail').value,
+            website: document.getElementById('profWebsite').value,
             kepsek: document.getElementById('profKepsek').value,
             nipKepsek: document.getElementById('profNIP').value,
             pengawas: document.getElementById('profPengawas').value,
