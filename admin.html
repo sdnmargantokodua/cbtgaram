@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - CBT GARAM</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Library SheetJS untuk Import/Export Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js"></script>
     
     <!-- MathJax -->
     <script>
@@ -149,12 +152,31 @@
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider"><tr><th class="p-4 border-b">Mata Pelajaran</th><th class="p-4 border-b text-center">Status</th><th class="p-4 border-b text-center">Durasi</th><th class="p-4 border-b text-center">Token</th><th class="p-4 border-b text-center">Pengaturan</th></tr></thead><tbody id="tableUjianBody" class="text-sm divide-y divide-slate-100"></tbody></table></div></div>
                 </section>
 
-                <!-- SECTION PESERTA -->
+              <!-- SECTION PESERTA -->
                 <section id="viewPeserta" class="hidden view-section">
-                    <div class="flex justify-between items-end mb-4">
-                        <div><h3 class="text-xl font-black text-slate-800">Data Peserta Ujian</h3><p class="text-slate-500 text-sm">Total Peserta: <span id="cetakJumlahPeserta">0</span> Siswa</p></div>
-                        <button onclick="openPesertaModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg shadow transition">+ Tambah</button>
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800">Data Peserta Ujian</h3>
+                            <p class="text-slate-500 text-sm">Total Peserta: <span id="cetakJumlahPeserta">0</span> Siswa</p>
+                        </div>
+                        
+                        <!-- Grup Tombol Excel & Tambah -->
+                        <div class="flex gap-2 flex-wrap">
+                            <button onclick="downloadFormatPeserta()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg shadow transition flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export / Format
+                            </button>
+                            
+                            <!-- Input File Tersembunyi -->
+                            <input type="file" id="fileImportPeserta" accept=".xlsx, .xls" class="hidden" onchange="prosesImportPeserta(event)">
+                            
+                            <button onclick="document.getElementById('fileImportPeserta').click()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg shadow transition flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> Import Excel
+                            </button>
+                            
+                            <button onclick="openPesertaModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg shadow transition">+ Tambah</button>
+                        </div>
                     </div>
+                    <!-- (Tabel tetap sama) -->
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider"><tr><th class="p-4 border-b w-16 text-center">Absen</th><th class="p-4 border-b text-center">No Peserta</th><th class="p-4 border-b">Nama Lengkap</th><th class="p-4 border-b text-center">Ruang</th><th class="p-4 border-b text-center">Sesi</th><th class="p-4 border-b text-center">Password</th><th class="p-4 border-b text-center w-24">Aksi</th></tr></thead><tbody id="tablePesertaBody" class="text-sm divide-y divide-slate-100"></tbody></table></div></div>
                 </section>
 
