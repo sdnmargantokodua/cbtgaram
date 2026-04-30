@@ -89,6 +89,8 @@ window.isiFormProfil = () => {
     document.getElementById('profAlamat').value = state.schoolProfile.alamat || '';
     document.getElementById('profEmail').value = state.schoolProfile.email || '';
     document.getElementById('profWebsite').value = state.schoolProfile.website || '';
+    document.getElementById('profNamaUjian').value = state.schoolProfile.namaUjian || 'Penilaian Akhir Jenjang (PAJ)';
+    document.getElementById('profKelas').value = state.schoolProfile.kelas || '';
     document.getElementById('profKepsek').value = state.schoolProfile.kepsek || '';
     document.getElementById('profNIP').value = state.schoolProfile.nipKepsek || '';
     document.getElementById('profPengawas').value = state.schoolProfile.pengawas || '';
@@ -129,6 +131,8 @@ window.simpanProfil = async () => {
             alamat: document.getElementById('profAlamat').value,
             email: document.getElementById('profEmail').value,
             website: document.getElementById('profWebsite').value,
+            namaUjian: document.getElementById('profNamaUjian').value,
+            kelas: document.getElementById('profKelas').value,
             kepsek: document.getElementById('profKepsek').value,
             nipKepsek: document.getElementById('profNIP').value,
             pengawas: document.getElementById('profPengawas').value,
