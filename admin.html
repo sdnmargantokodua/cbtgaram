@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - CBT GARAM</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
+    
     <!-- Library SheetJS untuk Import/Export Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js"></script>
-    
+
     <!-- MathJax -->
     <script>
         window.MathJax = {
@@ -121,7 +123,7 @@
                 
                 <div id="loadingIndicator" class="hidden justify-center items-center py-10">
                     <svg class="animate-spin h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    <span class="ml-3 text-lg font-medium text-slate-600">Menyinkronkan Data...</span>
+                    <span class="ml-3 text-lg font-medium text-slate-600">Memproses Data...</span>
                 </div>
 
                 <!-- SECTION NILAI -->
@@ -152,7 +154,7 @@
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider"><tr><th class="p-4 border-b">Mata Pelajaran</th><th class="p-4 border-b text-center">Status</th><th class="p-4 border-b text-center">Durasi</th><th class="p-4 border-b text-center">Token</th><th class="p-4 border-b text-center">Pengaturan</th></tr></thead><tbody id="tableUjianBody" class="text-sm divide-y divide-slate-100"></tbody></table></div></div>
                 </section>
 
-              <!-- SECTION PESERTA -->
+                <!-- SECTION PESERTA -->
                 <section id="viewPeserta" class="hidden view-section">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
                         <div>
@@ -176,48 +178,47 @@
                             <button onclick="openPesertaModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg shadow transition">+ Tambah</button>
                         </div>
                     </div>
-                    <!-- (Tabel tetap sama) -->
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider"><tr><th class="p-4 border-b w-16 text-center">Absen</th><th class="p-4 border-b text-center">No Peserta</th><th class="p-4 border-b">Nama Lengkap</th><th class="p-4 border-b text-center">Ruang</th><th class="p-4 border-b text-center">Sesi</th><th class="p-4 border-b text-center">Password</th><th class="p-4 border-b text-center w-24">Aksi</th></tr></thead><tbody id="tablePesertaBody" class="text-sm divide-y divide-slate-100"></tbody></table></div></div>
                 </section>
 
-              <!-- SECTION PROFIL -->
-<section id="viewProfil" class="hidden view-section max-w-4xl">
-    <div class="mb-4"><h3 class="text-xl font-black text-slate-800">Profil & Kop Surat Sekolah</h3></div>
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <form id="formProfil">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Sekolah</label><input type="text" id="profSekolah" class="w-full p-3 border border-slate-300 rounded-lg outline-none uppercase bg-slate-50 focus:bg-white focus:border-blue-500"></div>
-                <div><label class="block text-sm font-bold text-slate-700 mb-1">Alamat Sekolah</label><input type="text" id="profAlamat" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
-                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Kepala Sekolah</label><input type="text" id="profKepsek" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
-                <div><label class="block text-sm font-bold text-slate-700 mb-1">NIP Kepala Sekolah</label><input type="text" id="profNIP" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
-                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Pengawas Ruang</label><input type="text" id="profPengawas" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
-                <div><label class="block text-sm font-bold text-slate-700 mb-1">NIP Pengawas (Opsional)</label><input type="text" id="profNIPPengawas" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
-                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Proktor</label><input type="text" id="profProktor" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
-                <div><label class="block text-sm font-bold text-slate-700 mb-1">Tahun Pelajaran</label><input type="text" id="profTahun" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500" placeholder="2025/2026"></div>
-            </div>
-            
-            <!-- Tambahan Form Logo -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Logo Kabupaten (Kiri Kop)</label>
-                    <input type="file" accept="image/*" onchange="previewImage(this, 'previewLogoKab', 'logoKabBase64')" class="w-full text-sm p-2 border border-slate-300 rounded-lg bg-white cursor-pointer">
-                    <input type="hidden" id="logoKabBase64">
-                    <img id="previewLogoKab" class="hidden mt-3 max-h-24 rounded border object-contain bg-white p-1 shadow-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">Logo Sekolah (Kanan Kop)</label>
-                    <input type="file" accept="image/*" onchange="previewImage(this, 'previewLogoSekolah', 'logoSekolahBase64')" class="w-full text-sm p-2 border border-slate-300 rounded-lg bg-white cursor-pointer">
-                    <input type="hidden" id="logoSekolahBase64">
-                    <img id="previewLogoSekolah" class="hidden mt-3 max-h-24 rounded border object-contain bg-white p-1 shadow-sm">
-                </div>
-            </div>
+                <!-- SECTION PROFIL -->
+                <section id="viewProfil" class="hidden view-section max-w-4xl">
+                    <div class="mb-4"><h3 class="text-xl font-black text-slate-800">Profil & Kop Surat Sekolah</h3></div>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <form id="formProfil">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Sekolah</label><input type="text" id="profSekolah" class="w-full p-3 border border-slate-300 rounded-lg outline-none uppercase bg-slate-50 focus:bg-white focus:border-blue-500"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Alamat Sekolah</label><input type="text" id="profAlamat" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Kepala Sekolah</label><input type="text" id="profKepsek" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">NIP Kepala Sekolah</label><input type="text" id="profNIP" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Pengawas Ruang</label><input type="text" id="profPengawas" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">NIP Pengawas (Opsional)</label><input type="text" id="profNIPPengawas" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Proktor</label><input type="text" id="profProktor" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Tahun Pelajaran</label><input type="text" id="profTahun" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500" placeholder="2025/2026"></div>
+                            </div>
+                            
+                            <!-- Tambahan Form Logo -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Logo Kabupaten (Kiri Kop)</label>
+                                    <input type="file" accept="image/*" onchange="previewImage(this, 'previewLogoKab', 'logoKabBase64')" class="w-full text-sm p-2 border border-slate-300 rounded-lg bg-white cursor-pointer">
+                                    <input type="hidden" id="logoKabBase64">
+                                    <img id="previewLogoKab" class="hidden mt-3 max-h-24 rounded border object-contain bg-white p-1 shadow-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Logo Sekolah (Kanan Kop)</label>
+                                    <input type="file" accept="image/*" onchange="previewImage(this, 'previewLogoSekolah', 'logoSekolahBase64')" class="w-full text-sm p-2 border border-slate-300 rounded-lg bg-white cursor-pointer">
+                                    <input type="hidden" id="logoSekolahBase64">
+                                    <img id="previewLogoSekolah" class="hidden mt-3 max-h-24 rounded border object-contain bg-white p-1 shadow-sm">
+                                </div>
+                            </div>
 
-            <div class="text-right">
-                <button type="button" onclick="simpanProfil()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition" id="btnSimpanProfil">Simpan Profil</button>
-            </div>
-        </form>
-    </div>
-</section>
+                            <div class="text-right">
+                                <button type="button" onclick="simpanProfil()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition" id="btnSimpanProfil">Simpan Profil</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
 
                 <!-- SECTION CETAK ADMIN -->
                 <section id="viewAdmin" class="hidden view-section">
@@ -343,7 +344,16 @@
                         <div><label class="block text-sm font-bold text-slate-700 mb-1">Ruang</label><input type="text" id="pesertaRuang" class="w-full p-2 border border-slate-300 rounded outline-none" placeholder="R-01"></div>
                         <div><label class="block text-sm font-bold text-slate-700 mb-1">Sesi</label><input type="text" id="pesertaSesi" class="w-full p-2 border border-slate-300 rounded outline-none" placeholder="1"></div>
                     </div>
-                    <div><label class="block text-sm font-bold text-slate-700 mb-1">Password (Opsional)</label><input type="text" id="pesertaPassword" class="w-full p-2 border border-slate-300 rounded outline-none" placeholder="Biarkan kosong agar = No Absen"></div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Password (Opsional)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="pesertaPassword" class="flex-1 p-2 border border-slate-300 rounded outline-none font-mono tracking-widest uppercase" placeholder="Kosong = No Absen">
+                            <!-- Tombol Generate -->
+                            <button type="button" onclick="generatePassword()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded font-bold text-sm transition shadow-sm" title="Buat Password Acak">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="p-4 border-t border-slate-200 flex justify-end gap-3">
