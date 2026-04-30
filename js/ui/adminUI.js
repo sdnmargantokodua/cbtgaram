@@ -12,110 +12,173 @@ window.switchTab = (id, title) => { document.querySelectorAll('.view-section').f
 window.toggleSidebar = () => { const s = document.getElementById('sidebar'); s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); };
 window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
-
 // ==========================================
-// DATA UJIAN: RUANG UJIAN (BARU)
+// DATA UJIAN: ATUR RUANG DAN SESI (BARU)
 // ==========================================
-state.masterRuangUjian = [];
-
-window.loadRuangUjian = async () => {
+window.loadAturRuangSesi = async () => {
     try {
-        const snap = await getDocs(collection(db, 'master_ruang_ujian'));
-        state.masterRuangUjian = [];
-        snap.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
-        
-        // Auto-Generate Data Awal Jika Kosong
+        // Memastikan Semua Data Master (Kelas, Ruang, Sesi, Siswa) sudah termuat
+        if(state.masterKelas.length === 0) {
+            const snap = await getDocs(collection(db, 'master_kelas'));
+            state.masterKelas = []; snap.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
+            state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        }
         if(state.masterRuangUjian.length === 0) {
-            const defaultRuang = [ { nama: 'Ruang 1', kode: 'IX', jumSesi: 2, noUrut: 1 } ];
-            for (const r of defaultRuang) {
-                const docRef = await addDoc(collection(db, 'master_ruang_ujian'), r);
-                state.masterRuangUjian.push({ id: docRef.id, ...r });
-            }
+            const snap = await getDocs(collection(db, 'master_ruang_ujian'));
+            state.masterRuangUjian = []; snap.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
+            state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        }
+        if(state.masterSesiUjian.length === 0) {
+            const snap = await getDocs(collection(db, 'master_sesi_ujian'));
+            state.masterSesiUjian = []; snap.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()}));
+            state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        }
+        
+        // Data siswa di-reload agar selalu sinkron jika ada perubahan nama/kelas
+        const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+        state.masterSiswa = []; snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+
+        // Populate Dropdowns Filter & Bulk Action
+        const filterKelas = document.getElementById('filterKelasAtur');
+        filterKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        state.masterKelas.forEach(k => { filterKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; });
+
+        const bulkRuang = document.getElementById('bulkRuang');
+        bulkRuang.innerHTML = '<option value="">Pilih ruang</option>';
+        state.masterRuangUjian.forEach(r => { bulkRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`; });
+
+        const bulkSesi = document.getElementById('bulkSesi');
+        bulkSesi.innerHTML = '<option value="">Pilih sesi</option>';
+        state.masterSesiUjian.forEach(s => { bulkSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`; });
+
+        // Auto-select kelas pertama jika ada
+        if(state.masterKelas.length > 0) {
+            filterKelas.value = state.masterKelas[0].nama;
         }
 
-        // Urutkan berdasarkan noUrut
-        state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
-        window.renderTableRuangUjian();
-    } catch(e) { console.error("Error loading ruang ujian:", e); }
+        window.renderTableAturRuangSesi();
+    } catch(e) { console.error("Error loading atur ruang sesi:", e); }
 };
 
-window.renderTableRuangUjian = () => {
-    const tb = document.getElementById('tableRuangUjianBody');
-    tb.innerHTML = '';
+window.renderTableAturRuangSesi = () => {
+    const kelasVal = document.getElementById('filterKelasAtur').value;
+    const tb = document.getElementById('tableAturRuangSesiBody');
+    const lbl = document.getElementById('labelBulkAction');
     
-    if (state.masterRuangUjian.length === 0) {
-        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>';
+    lbl.innerText = `Gabungkan siswa ${kelasVal ? kelasVal : ''} ke ruang dan sesi:`;
+    tb.innerHTML = '';
+
+    if (!kelasVal) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500">Pilih kelas terlebih dahulu.</td></tr>';
         return;
     }
 
-    state.masterRuangUjian.forEach((r, i) => {
+    const filteredSiswa = state.masterSiswa.filter(s => s.kelas === kelasVal).sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
+
+    if (filteredSiswa.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Tidak ada siswa yang terdaftar di kelas ini.</td></tr>';
+        return;
+    }
+
+    // Persiapan string options untuk select dinamis
+    let optRuang = '<option value="">Pilih ruang</option>';
+    state.masterRuangUjian.forEach(r => { optRuang += `<option value="${r.nama}">${r.nama}</option>`; });
+
+    let optSesi = '<option value="">Pilih sesi</option>';
+    state.masterSesiUjian.forEach(s => { optSesi += `<option value="${s.nama}">${s.nama}</option>`; });
+
+    // Render Baris Siswa
+    filteredSiswa.forEach((s, i) => {
         tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition">
-                <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
-                <td class="p-3 text-center border-r">${i+1}</td>
-                <td class="p-3 border-r">${r.nama || '-'}</td>
-                <td class="p-3 border-r text-center font-mono">${r.kode || '-'}</td>
-                <td class="p-3 border-r text-center">${r.jumSesi || '-'}</td>
-                <td class="p-3 text-center space-x-1">
-                    <button onclick="editRuangUjian('${r.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button>
+            <tr class="hover:bg-slate-50 transition" data-id="${s.id}">
+                <td class="p-3 text-center border border-slate-200 text-slate-500 font-bold">${i+1}</td>
+                <td class="p-3 border border-slate-200 font-bold uppercase text-slate-800">${s.nama}</td>
+                <td class="p-3 border border-slate-200 text-center font-bold text-slate-600">${s.kelas}</td>
+                <td class="p-2 border border-slate-200 bg-slate-50">
+                    <select class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 select-ruang text-sm bg-white">
+                        ${optRuang}
+                    </select>
+                </td>
+                <td class="p-2 border border-slate-200 bg-slate-50">
+                    <select class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 select-sesi text-sm bg-white">
+                        ${optSesi}
+                    </select>
                 </td>
             </tr>
         `;
     });
+
+    // Mengembalikan nilai dropdown sebelumnya sesuai data yang sudah ada di Firebase
+    setTimeout(() => {
+        const rows = tb.querySelectorAll('tr[data-id]');
+        rows.forEach(row => {
+            const id = row.getAttribute('data-id');
+            const s = filteredSiswa.find(x => x.id === id);
+            if(s) {
+                if(s.ruang) row.querySelector('.select-ruang').value = s.ruang;
+                if(s.sesi) row.querySelector('.select-sesi').value = s.sesi;
+            }
+        });
+    }, 50);
 };
 
-window.openModalRuangUjian = () => {
-    document.getElementById('ruangUjianId').value = '';
-    document.getElementById('inputNamaRuang').value = '';
-    document.getElementById('inputKodeRuang').value = '';
-    document.getElementById('inputJumSesi').value = '1';
-    document.getElementById('modalRuangUjian').classList.remove('hidden');
-};
-
-window.simpanRuangUjian = async () => {
-    const id = document.getElementById('ruangUjianId').value;
-    const nama = document.getElementById('inputNamaRuang').value.trim();
-    const kode = document.getElementById('inputKodeRuang').value.trim().toUpperCase();
-    const jumSesi = document.getElementById('inputJumSesi').value;
-
-    if(!nama) return alert("Nama Kelompok/Ruang Ujian wajib diisi!");
+window.applyBulkRuangSesi = () => {
+    const ruangVal = document.getElementById('bulkRuang').value;
+    const sesiVal = document.getElementById('bulkSesi').value;
+    const tb = document.getElementById('tableAturRuangSesiBody');
+    const rows = tb.querySelectorAll('tr[data-id]');
     
-    const data = { 
-        nama, 
-        kode, 
-        jumSesi,
-        noUrut: state.masterRuangUjian.length + 1 
-    };
+    rows.forEach(row => {
+        if(ruangVal) row.querySelector('.select-ruang').value = ruangVal;
+        if(sesiVal) row.querySelector('.select-sesi').value = sesiVal;
+    });
+};
+
+window.simpanAturRuangSesi = async () => {
+    const btn = document.getElementById('btnSimpanAtur');
+    btn.disabled = true; btn.innerText = "Menyimpan...";
+
+    const tb = document.getElementById('tableAturRuangSesiBody');
+    const rows = tb.querySelectorAll('tr[data-id]');
     
     try {
-        if(id) {
-            // Mempertahankan noUrut lama jika update
-            const old = state.masterRuangUjian.find(x => x.id === id);
-            if(old) data.noUrut = old.noUrut;
-            await updateDoc(doc(db, 'master_ruang_ujian', id), data);
-        } else {
-            await addDoc(collection(db, 'master_ruang_ujian'), data);
-        }
-        closeModal('modalRuangUjian');
-        loadRuangUjian(); 
-    } catch(e) { alert("Gagal menyimpan data ruang ujian."); console.error(e); }
-};
+        const promises = [];
+        rows.forEach(row => {
+            const id = row.getAttribute('data-id');
+            const ruang = row.querySelector('.select-ruang').value;
+            const sesi = row.querySelector('.select-sesi').value;
+            
+            // Update local state agar tidak perlu refresh berat
+            const s = state.masterSiswa.find(x => x.id === id);
+            if(s) {
+                s.ruang = ruang;
+                s.sesi = sesi;
+            }
 
-window.editRuangUjian = (id) => {
-    const r = state.masterRuangUjian.find(x => x.id === id);
-    if(!r) return;
-    document.getElementById('ruangUjianId').value = r.id;
-    document.getElementById('inputNamaRuang').value = r.nama || '';
-    document.getElementById('inputKodeRuang').value = r.kode || '';
-    document.getElementById('inputJumSesi').value = r.jumSesi || '';
-    document.getElementById('modalRuangUjian').classList.remove('hidden');
-};
+            // Push ke array promise batch update Firebase
+            promises.push(updateDoc(doc(db, 'master_siswa', id), { ruang, sesi }));
+        });
 
+        await Promise.all(promises);
+        alert("Data Ruang dan Sesi Siswa berhasil disimpan dan disinkronisasikan!");
+    } catch(e) {
+        console.error(e);
+        alert("Terjadi kesalahan sistem saat menyimpan pemetaan.");
+    } finally {
+        btn.disabled = false; btn.innerText = "💾 Simpan";
+    }
+};
 
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
-state.masterSesiUjian = []; state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+state.masterRuangUjian = []; state.masterSesiUjian = []; state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+
+window.loadRuangUjian = async () => { try { const snap = await getDocs(collection(db, 'master_ruang_ujian')); state.masterRuangUjian = []; snap.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()})); if(state.masterRuangUjian.length === 0) { const defaultRuang = [ { nama: 'Ruang 1', kode: 'IX', jumSesi: 2, noUrut: 1 } ]; for (const r of defaultRuang) { const docRef = await addDoc(collection(db, 'master_ruang_ujian'), r); state.masterRuangUjian.push({ id: docRef.id, ...r }); } } state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); window.renderTableRuangUjian(); } catch(e) { console.error(e); } };
+window.renderTableRuangUjian = () => { const tb = document.getElementById('tableRuangUjianBody'); tb.innerHTML = ''; if (state.masterRuangUjian.length === 0) return tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>'; state.masterRuangUjian.forEach((r, i) => { tb.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td><td class="p-3 text-center border-r">${i+1}</td><td class="p-3 border-r">${r.nama || '-'}</td><td class="p-3 border-r text-center font-mono">${r.kode || '-'}</td><td class="p-3 border-r text-center">${r.jumSesi || '-'}</td><td class="p-3 text-center space-x-1"><button onclick="editRuangUjian('${r.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button></td></tr>`; }); };
+window.openModalRuangUjian = () => { document.getElementById('ruangUjianId').value = ''; document.getElementById('inputNamaRuang').value = ''; document.getElementById('inputKodeRuang').value = ''; document.getElementById('inputJumSesi').value = '1'; document.getElementById('modalRuangUjian').classList.remove('hidden'); };
+window.simpanRuangUjian = async () => { const id = document.getElementById('ruangUjianId').value; const nama = document.getElementById('inputNamaRuang').value.trim(); const data = { nama, kode: document.getElementById('inputKodeRuang').value.trim().toUpperCase(), jumSesi: document.getElementById('inputJumSesi').value, noUrut: state.masterRuangUjian.length + 1 }; try { if(id) { const old = state.masterRuangUjian.find(x => x.id === id); if(old) data.noUrut = old.noUrut; await updateDoc(doc(db, 'master_ruang_ujian', id), data); } else { await addDoc(collection(db, 'master_ruang_ujian'), data); } closeModal('modalRuangUjian'); loadRuangUjian(); } catch(e) { console.error(e); } };
+window.editRuangUjian = (id) => { const r = state.masterRuangUjian.find(x => x.id === id); if(!r) return; document.getElementById('ruangUjianId').value = r.id; document.getElementById('inputNamaRuang').value = r.nama || ''; document.getElementById('inputKodeRuang').value = r.kode || ''; document.getElementById('inputJumSesi').value = r.jumSesi || ''; document.getElementById('modalRuangUjian').classList.remove('hidden'); };
 
 window.loadSesiUjian = async () => { try { const snap = await getDocs(collection(db, 'master_sesi_ujian')); state.masterSesiUjian = []; snap.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()})); if(state.masterSesiUjian.length === 0) { const defaultSesi = [ { nama: 'Sesi 1', kode: 'S1', waktuMulai: '07:30:00', waktuSelesai: '09:30:00', noUrut: 1 }, { nama: 'Sesi 2', kode: 'S2', waktuMulai: '10:00:32', waktuSelesai: '12:00:40', noUrut: 2 } ]; for (const s of defaultSesi) { const docRef = await addDoc(collection(db, 'master_sesi_ujian'), s); state.masterSesiUjian.push({ id: docRef.id, ...s }); } } state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); window.renderTableSesiUjian(); } catch(e) { console.error(e); } };
 window.renderTableSesiUjian = () => { const tb = document.getElementById('tableSesiUjianBody'); tb.innerHTML = ''; if (state.masterSesiUjian.length === 0) return tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 bg-slate-100">No data available in table</td></tr>'; state.masterSesiUjian.forEach((s, i) => { tb.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td><td class="p-3 text-center border-r">${i+1}</td><td class="p-3 border-r">${s.nama || '-'}</td><td class="p-3 border-r text-center font-mono">${s.kode || '-'}</td><td class="p-3 border-r text-center font-mono">${s.waktuMulai || '-'} s/d ${s.waktuSelesai || '-'}</td><td class="p-3 text-center space-x-1"><button onclick="editSesiUjian('${s.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition flex items-center justify-center gap-1 w-full max-w-[80px] mx-auto">✏️ Edit</button></td></tr>`; }); };
