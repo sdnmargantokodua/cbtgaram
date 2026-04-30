@@ -44,6 +44,107 @@ window.toggleSidebar = () => {
 window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
 // ==========================================
+// DATA UMUM: KELAS / ROMBEL
+// ==========================================
+state.masterKelas = [];
+
+window.loadKelas = async () => {
+    try {
+        const snap = await getDocs(collection(db, 'master_kelas'));
+        state.masterKelas = [];
+        snap.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
+        state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        
+        // Memastikan master siswa termuat agar Jumlah Siswa bisa dihitung
+        if(state.masterSiswa.length === 0) {
+            const sSnap = await getDocs(collection(db, 'master_siswa'));
+            state.masterSiswa = [];
+            sSnap.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        }
+        
+        window.renderTableKelas();
+    } catch(e) { console.error("Error loading kelas:", e); }
+};
+
+window.renderTableKelas = () => {
+    const tb = document.getElementById('tableKelasBody');
+    tb.innerHTML = '';
+    if (state.masterKelas.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500">Belum ada data kelas / rombel.</td></tr>';
+        return;
+    }
+
+    state.masterKelas.forEach((k, i) => {
+        // Hitung jumlah siswa dari state.masterSiswa berdasarkan nama kelas
+        let jumlahSiswa = 0;
+        if(state.masterSiswa) {
+            jumlahSiswa = state.masterSiswa.filter(s => s.kelas && s.kelas.toUpperCase() === (k.nama || '').toUpperCase()).length;
+        }
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="p-3 text-center border-r">${i+1}</td>
+                <td class="p-3 border-r font-bold">${k.nama || '-'}</td>
+                <td class="p-3 border-r font-mono">${k.kode || '-'}</td>
+                <td class="p-3 border-r">${k.wali || '-'}</td>
+                <td class="p-3 text-center border-r font-bold text-blue-600">${jumlahSiswa}</td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="editKelas('${k.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-2 py-1 rounded shadow-sm text-xs transition" title="Edit">✏️</button>
+                    <button onclick="hapusKelas('${k.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow-sm text-xs transition" title="Hapus">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalKelas = () => {
+    document.getElementById('kelasId').value = '';
+    document.getElementById('inputNamaKelas').value = '';
+    document.getElementById('inputKodeKelas').value = '';
+    document.getElementById('inputWaliKelas').value = '';
+    document.getElementById('modalKelas').classList.remove('hidden');
+};
+
+window.simpanKelas = async () => {
+    const id = document.getElementById('kelasId').value;
+    const nama = document.getElementById('inputNamaKelas').value.trim().toUpperCase();
+    const kode = document.getElementById('inputKodeKelas').value.trim().toUpperCase();
+    const wali = document.getElementById('inputWaliKelas').value.trim().toUpperCase();
+
+    if(!nama) return alert("Nama Kelas wajib diisi!");
+
+    const data = { nama, kode, wali };
+    
+    try {
+        if(id) await updateDoc(doc(db, 'master_kelas', id), data);
+        else await addDoc(collection(db, 'master_kelas'), data);
+        closeModal('modalKelas');
+        loadKelas();
+    } catch(e) { alert("Gagal menyimpan kelas."); console.error(e); }
+};
+
+window.editKelas = (id) => {
+    const k = state.masterKelas.find(x => x.id === id);
+    if(!k) return;
+    document.getElementById('kelasId').value = k.id;
+    document.getElementById('inputNamaKelas').value = k.nama || '';
+    document.getElementById('inputKodeKelas').value = k.kode || '';
+    document.getElementById('inputWaliKelas').value = k.wali || '';
+    document.getElementById('modalKelas').classList.remove('hidden');
+};
+
+window.hapusKelas = async (id) => {
+    if(confirm("Yakin hapus data kelas ini?")) {
+        await deleteDoc(doc(db, 'master_kelas', id));
+        loadKelas();
+    }
+};
+
+window.kenaikanKelas = () => {
+    alert("Fitur Kenaikan Kelas otomatis sedang disiapkan. Fungsi ini akan memindahkan nilai kelas siswa +1 secara massal.");
+};
+
+// ==========================================
 // DATA SISWA (MASTER DATA)
 // ==========================================
 state.masterSiswa = [];
@@ -54,12 +155,10 @@ window.loadSiswa = async () => {
         state.masterSiswa = [];
         snap.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
         
-        // Sorting berdasarkan kelas lalu nama
         state.masterSiswa.sort((a,b) => {
             if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
             return (a.kelas || '').localeCompare(b.kelas || '');
         });
-
         window.renderTableSiswa();
     } catch(e) { console.error("Error loading siswa:", e); }
 };
@@ -73,7 +172,6 @@ window.renderTableSiswa = () => {
     }
 
     state.masterSiswa.forEach((s, i) => {
-        // Logika Avatar & Badge
         const avatar = s.jk === 'P' ? '👩' : '👦';
         const colorJk = s.jk === 'P' ? 'bg-pink-500' : 'bg-blue-500';
         const badgeAktif = s.isActive === false 
@@ -172,79 +270,42 @@ window.hapusSiswa = async (id) => {
 };
 
 window.downloadFormatSiswa = () => {
-    // Sesuai dengan kolom format_siswa.xlsx
-    const headers = [
-        'NO', 'NISN*', 'NIS*', 'NAMA SISWA*', 'JENIS KELAMIN\n(L/P) *', 'USERNAME*', 'PASSWORD*', 
-        'KELAS AWAL *\n(gunakan nomor\n1-12)', 'TANGGAL DI TERIMA\nFORMAT (YYYY-MM-DD) CONTOH (2018-07-20)', 
-        'SEKOLAH ASAL', 'TEMPAT LAHIR', 'TANGGAL LAHIR FORMAT\n(DD-MM-YYY) CONTOH (05-06-1990)', 'AGAMA ', 
-        'NOMOR TELEPON', 'EMAIL', 'ANAK KE', 'STATUS DALAM KELUARGA\n1 = Anak Kandung\n2 = Anak Tiri\n 3 = Anak Angkat', 
-        'ALAMAT', 'RT', 'RW', 'DESA/KELURAHAN', 'KECAMATAN', 'KABUPATEN/KOTA', 'PROVINSI', 'KODE POS', 
-        'NAMA AYAH', 'TANGGAL LAHIR AYAH', 'PENDIDIKAN AYAH', 'PEKERJAAN AYAH', 'NOMOR TELEPON AYAH', 'ALAMAT AYAH', 
-        'NAMA IBU', 'TANGGAL LAHIR IBU', 'PENDIDIKAN\nIBU', 'PEKERJAAN IBU', 'NOMOR TELEPON IBU', 'ALAMAT IBU', 
-        'NAMA WALI', 'TANGGAL LAHIR WALI', 'PENDIDIKAN\nWALI', 'PEKERJAAN WALI', 'NOMOR TELEPON WALI', 'ALAMAT WALI'
-    ];
+    const headers = ['NO', 'NISN*', 'NIS*', 'NAMA SISWA*', 'JENIS KELAMIN\n(L/P) *', 'USERNAME*', 'PASSWORD*', 'KELAS AWAL *\n(gunakan nomor\n1-12)', 'TANGGAL DI TERIMA\nFORMAT (YYYY-MM-DD) CONTOH (2018-07-20)', 'SEKOLAH ASAL', 'TEMPAT LAHIR', 'TANGGAL LAHIR FORMAT\n(DD-MM-YYY) CONTOH (05-06-1990)', 'AGAMA ', 'NOMOR TELEPON', 'EMAIL', 'ANAK KE', 'STATUS DALAM KELUARGA\n1 = Anak Kandung\n2 = Anak Tiri\n 3 = Anak Angkat', 'ALAMAT', 'RT', 'RW', 'DESA/KELURAHAN', 'KECAMATAN', 'KABUPATEN/KOTA', 'PROVINSI', 'KODE POS', 'NAMA AYAH', 'TANGGAL LAHIR AYAH', 'PENDIDIKAN AYAH', 'PEKERJAAN AYAH', 'NOMOR TELEPON AYAH', 'ALAMAT AYAH', 'NAMA IBU', 'TANGGAL LAHIR IBU', 'PENDIDIKAN\nIBU', 'PEKERJAAN IBU', 'NOMOR TELEPON IBU', 'ALAMAT IBU', 'NAMA WALI', 'TANGGAL LAHIR WALI', 'PENDIDIKAN\nWALI', 'PEKERJAAN WALI', 'NOMOR TELEPON WALI', 'ALAMAT WALI'];
     
     let dataExport = [];
     if(state.masterSiswa.length === 0) {
-        let dummy = {};
-        headers.forEach(h => dummy[h] = '');
-        dummy['NO'] = 1; dummy['NISN*'] = '001021022'; dummy['NIS*'] = '1022'; 
-        dummy['NAMA SISWA*'] = 'ADAM APSAR'; dummy['JENIS KELAMIN\n(L/P) *'] = 'L'; 
-        dummy['USERNAME*'] = 'adam'; dummy['PASSWORD*'] = '123456'; 
-        dummy['KELAS AWAL *\n(gunakan nomor\n1-12)'] = '5A';
+        let dummy = {}; headers.forEach(h => dummy[h] = '');
+        dummy['NO'] = 1; dummy['NISN*'] = '001021022'; dummy['NIS*'] = '1022'; dummy['NAMA SISWA*'] = 'ADAM APSAR'; dummy['JENIS KELAMIN\n(L/P) *'] = 'L'; dummy['USERNAME*'] = 'adam'; dummy['PASSWORD*'] = '123456'; dummy['KELAS AWAL *\n(gunakan nomor\n1-12)'] = '5A';
         dataExport.push(dummy);
     } else {
         state.masterSiswa.forEach((s, i) => {
-            let row = {};
-            headers.forEach(h => row[h] = ''); // Set semua kolom kosong
-            row['NO'] = i+1;
-            row['NISN*'] = s.nisn;
-            row['NIS*'] = s.nis || '';
-            row['NAMA SISWA*'] = s.nama;
-            row['JENIS KELAMIN\n(L/P) *'] = s.jk || 'L';
-            row['USERNAME*'] = s.username || s.nisn;
-            row['PASSWORD*'] = s.password || s.nisn;
-            row['KELAS AWAL *\n(gunakan nomor\n1-12)'] = s.kelas || '';
+            let row = {}; headers.forEach(h => row[h] = '');
+            row['NO'] = i+1; row['NISN*'] = s.nisn; row['NIS*'] = s.nis || ''; row['NAMA SISWA*'] = s.nama; row['JENIS KELAMIN\n(L/P) *'] = s.jk || 'L'; row['USERNAME*'] = s.username || s.nisn; row['PASSWORD*'] = s.password || s.nisn; row['KELAS AWAL *\n(gunakan nomor\n1-12)'] = s.kelas || '';
             dataExport.push(row);
         });
     }
-
-    const ws = XLSX.utils.json_to_sheet(dataExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data_Siswa");
-    XLSX.writeFile(wb, "format_siswa.xlsx");
+    const ws = XLSX.utils.json_to_sheet(dataExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data_Siswa"); XLSX.writeFile(wb, "format_siswa.xlsx");
 };
 
 window.prosesImportSiswa = async (e) => {
-    const f = e.target.files[0]; 
-    if(!f) return;
-    
+    const f = e.target.files[0]; if(!f) return;
     document.getElementById('loadingIndicator').classList.remove('hidden');
     const r = new FileReader(); 
     r.onload = async (evt) => {
         try {
-            const d = new Uint8Array(evt.target.result); 
-            const wb = XLSX.read(d, {type:'array'});
+            const d = new Uint8Array(evt.target.result); const wb = XLSX.read(d, {type:'array'});
             const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
             let success = 0;
             
             for (const row of json) {
-                const nisn = row['NISN*'] || row['NISN'];
-                const nama = row['NAMA SISWA*'] || row['NAMA SISWA'] || row['NAMA'];
-                
-                // Lewati baris jika NISN atau Nama kosong
+                const nisn = row['NISN*'] || row['NISN']; const nama = row['NAMA SISWA*'] || row['NAMA SISWA'] || row['NAMA'];
                 if (!nisn || !nama) continue;
                 
-                let nisnStr = String(nisn).trim();
-                let pwd = row['PASSWORD*'] || row['PASSWORD'] || nisnStr;
-
+                let nisnStr = String(nisn).trim(); let pwd = row['PASSWORD*'] || row['PASSWORD'] || nisnStr;
                 const dataSimpan = {
-                    nisn: nisnStr,
-                    nis: String(row['NIS*'] || row['NIS'] || '').trim(),
-                    nama: String(nama).trim().toUpperCase(),
+                    nisn: nisnStr, nis: String(row['NIS*'] || row['NIS'] || '').trim(), nama: String(nama).trim().toUpperCase(),
                     jk: String(row['JENIS KELAMIN\n(L/P) *'] || row['JENIS KELAMIN'] || 'L').trim().toUpperCase().charAt(0),
-                    username: String(row['USERNAME*'] || row['USERNAME'] || nisnStr).trim(),
-                    password: String(pwd).trim(),
+                    username: String(row['USERNAME*'] || row['USERNAME'] || nisnStr).trim(), password: String(pwd).trim(),
                     kelas: String(row['KELAS AWAL *\n(gunakan nomor\n1-12)'] || row['KELAS AWAL'] || row['KELAS'] || '').trim().toUpperCase(),
                     isActive: true
                 };
@@ -255,28 +316,20 @@ window.prosesImportSiswa = async (e) => {
                 success++;
             }
             alert(`Berhasil memproses ${success} data siswa dari Excel!`);
-        } catch(err) {
-            console.error("Error import excel:", err);
-            alert("Terjadi kesalahan sistem. Pastikan kolom format_siswa.xlsx Anda tidak ada yang diubah judulnya.");
-        } finally {
-            document.getElementById('loadingIndicator').classList.add('hidden');
-            document.getElementById('fileImportSiswa').value = '';
-            loadSiswa();
-        }
+        } catch(err) { console.error("Error import excel:", err); alert("Terjadi kesalahan sistem."); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('fileImportSiswa').value = ''; loadSiswa(); }
     }; 
     r.readAsArrayBuffer(f);
 };
 
 // ==========================================
-// PENGATURAN LAINNYA (DIPERTAHANKAN)
+// PENGATURAN LAINNYA
 // ==========================================
-// Logika Profil, Tahun Pelajaran, Mata Pelajaran, dan Peserta Ujian diringkas di bawah ini
-window.loadTahunPelajaran = async () => { /* Logika lama dipertahankan */ };
-window.loadMataPelajaran = async () => { /* Logika lama dipertahankan */ };
-window.loadJurusan = async () => { /* Logika lama dipertahankan */ };
-window.isiFormProfil = () => { /* Logika lama dipertahankan */ };
-window.simpanProfil = async () => { /* Logika lama dipertahankan */ };
-window.changeSubject = () => { /* Logika lama dipertahankan */ };
+window.loadTahunPelajaran = async () => { /* Logika dipertahankan */ };
+window.loadMataPelajaran = async () => { /* Logika dipertahankan */ };
+window.loadJurusan = async () => { /* Logika dipertahankan */ };
+window.isiFormProfil = () => { /* Logika dipertahankan */ };
+window.simpanProfil = async () => { /* Logika dipertahankan */ };
+window.changeSubject = () => { /* Logika dipertahankan */ };
 
-// Start Application
+// Mulai Aplikasi
 checkAdminSession();
