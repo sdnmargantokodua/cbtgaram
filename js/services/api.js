@@ -5,19 +5,27 @@ import { signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/f
 import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 export async function initFirebase() {
-    document.getElementById('loadingIndicator').classList.remove('hidden');
+    const loader = document.getElementById('loadingIndicator');
+    if (loader) loader.classList.remove('hidden');
+
     try {
         await signInAnonymously(auth);
         onAuthStateChanged(auth, (user) => {
-            if (user) setupRealtimeListeners();
+            if (user) {
+                setupRealtimeListeners();
+                // Sembunyikan loader setelah listeners terpasang
+                if (loader) loader.classList.add('hidden');
+            }
         });
     } catch (e) {
         console.error("Firebase init failed", e);
-        alert("Gagal koneksi ke server database.");
+        alert("Gagal koneksi ke server database. Periksa koneksi internet Anda.");
+        if (loader) loader.classList.add('hidden');
     }
 }
 
 function setupRealtimeListeners() {
+    // Listener Hasil Ujian
     onSnapshot(collection(db, 'exam_results'), (snapshot) => {
         state.allResults = [];
         snapshot.forEach((doc) => state.allResults.push({ id: doc.id, ...doc.data() }));
@@ -26,20 +34,22 @@ function setupRealtimeListeners() {
         if(window.renderTableNilai) window.renderTableNilai();
     });
 
+    // Listener Bank Soal
     onSnapshot(collection(db, 'exam_questions'), (snapshot) => {
         state.allQuestions = [];
         snapshot.forEach((doc) => state.allQuestions.push({ id: doc.id, ...doc.data() }));
         if(window.updateSubjectDropdownDinamis) window.updateSubjectDropdownDinamis();
         if(window.renderTableSoal) window.renderTableSoal();
-        document.getElementById('loadingIndicator').classList.add('hidden');
     });
 
+    // Listener Jadwal
     onSnapshot(collection(db, 'exam_schedules'), (snapshot) => {
         state.examSchedules = [];
         snapshot.forEach((doc) => state.examSchedules.push({ id: doc.id, ...doc.data() }));
         if(window.renderTableUjian) window.renderTableUjian();
     });
 
+    // Listener Peserta
     onSnapshot(collection(db, 'exam_participants'), (snapshot) => {
         state.examParticipants = [];
         snapshot.forEach((doc) => state.examParticipants.push({ id: doc.id, ...doc.data() }));
@@ -47,6 +57,7 @@ function setupRealtimeListeners() {
         if(window.renderTablePeserta) window.renderTablePeserta();
     });
 
+    // Listener Profil Sekolah
     onSnapshot(doc(db, 'school_profile', 'main_profile'), (docSnap) => {
         if (docSnap.exists()) {
             state.schoolProfile = docSnap.data();
