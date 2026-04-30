@@ -93,6 +93,29 @@ window.isiFormProfil = () => {
     document.getElementById('profNIPPengawas').value = state.schoolProfile.nipPengawas || '';
     document.getElementById('profProktor').value = state.schoolProfile.proktor || '';
     document.getElementById('profTahun').value = state.schoolProfile.tahunAjaran || '';
+
+    // Load preview Logo Kabupaten
+    document.getElementById('logoKabBase64').value = state.schoolProfile.logoKab || '';
+    const previewKab = document.getElementById('previewLogoKab');
+    if(state.schoolProfile.logoKab) { 
+        previewKab.src = state.schoolProfile.logoKab; 
+        previewKab.classList.remove('hidden'); 
+    } else { 
+        previewKab.classList.add('hidden'); 
+    }
+
+    // Load preview Logo Sekolah
+    document.getElementById('logoSekolahBase64').value = state.schoolProfile.logoSekolah || '';
+    const previewSekolah = document.getElementById('previewLogoSekolah');
+    if(state.schoolProfile.logoSekolah) { 
+        previewSekolah.src = state.schoolProfile.logoSekolah; 
+        previewSekolah.classList.remove('hidden'); 
+    } else { 
+        previewSekolah.classList.add('hidden'); 
+    }
+
+    // Trigger update UI Preview Kop
+    if(window.updatePreviewKop) window.updatePreviewKop();
 };
 
 window.simpanProfil = async () => {
@@ -108,11 +131,18 @@ window.simpanProfil = async () => {
             nipPengawas: document.getElementById('profNIPPengawas').value,
             proktor: document.getElementById('profProktor').value,
             tahunAjaran: document.getElementById('profTahun').value,
+            logoKab: document.getElementById('logoKabBase64').value || null,
+            logoSekolah: document.getElementById('logoSekolahBase64').value || null
         };
         await setDoc(doc(db, 'school_profile', 'main_profile'), dataSimpan, { merge: true });
         alert("Profil berhasil disimpan!");
-    } catch (error) { console.error(error); alert("Gagal simpan profil.");
-    } finally { btn.disabled = false; btn.innerText = "Simpan Profil"; }
+    } catch (error) { 
+        console.error(error); 
+        alert("Gagal simpan profil.");
+    } finally { 
+        btn.disabled = false; 
+        btn.innerText = "Simpan Profil"; 
+    }
 };
 
 // ==========================================
