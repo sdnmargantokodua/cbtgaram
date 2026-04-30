@@ -192,23 +192,37 @@
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider"><tr><th class="p-4 border-b w-16 text-center">Absen</th><th class="p-4 border-b text-center">No Peserta</th><th class="p-4 border-b">Nama Lengkap</th><th class="p-4 border-b text-center">Ruang</th><th class="p-4 border-b text-center">Sesi</th><th class="p-4 border-b text-center">Password</th><th class="p-4 border-b text-center w-24">Aksi</th></tr></thead><tbody id="tablePesertaBody" class="text-sm divide-y divide-slate-100"></tbody></table></div></div>
                 </section>
 
-               <!-- SECTION PROFIL -->
+              <!-- SECTION PROFIL -->
                 <section id="viewProfil" class="hidden view-section max-w-4xl">
                     <div class="mb-4"><h3 class="text-xl font-black text-slate-800">Profil & Kop Surat Sekolah</h3></div>
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <form id="formProfil">
-                            <!-- Tambahan profEmail dan profWebsite di grid -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Sekolah</label><input type="text" id="profSekolah" oninput="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none uppercase bg-slate-50 focus:bg-white focus:border-blue-500"></div>
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">Alamat Sekolah</label><input type="text" id="profAlamat" oninput="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">Email Sekolah</label><input type="email" id="profEmail" oninput="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500" placeholder="emailsekolah@gmail.com"></div>
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">Website / Blog Sekolah</label><input type="text" id="profWebsite" oninput="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500" placeholder="www.sdnmargantoko2.my.id"></div>
+                                
+                                <!-- Tambahan Nama Ujian dan Kelas -->
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">Nama Ujian</label>
+                                    <select id="profNamaUjian" onchange="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500 font-bold text-blue-700">
+                                        <option value="Penilaian Akhir Jenjang (PAJ)">Penilaian Akhir Jenjang (PAJ)</option>
+                                        <option value="Sumatif Akhir Semester (SAS)">Sumatif Akhir Semester (SAS)</option>
+                                        <option value="Sumatif Tengah Semester (STS)">Sumatif Tengah Semester (STS)</option>
+                                        <option value="Sumatif Akhir Tahun (SAT)">Sumatif Akhir Tahun (SAT)</option>
+                                        <option value="Asesmen Nasional (ANBK)">Asesmen Nasional (ANBK)</option>
+                                        <option value="Ujian Sekolah (US)">Ujian Sekolah (US)</option>
+                                    </select>
+                                </div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Kelas Ujian</label><input type="text" id="profKelas" oninput="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500" placeholder="Contoh: VI (Enam)"></div>
+                                
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Tahun Pelajaran</label><input type="text" id="profTahun" oninput="updatePreviewKop()" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500" placeholder="2025/2026"></div>
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Kepala Sekolah</label><input type="text" id="profKepsek" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">NIP Kepala Sekolah</label><input type="text" id="profNIP" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Proktor</label><input type="text" id="profProktor" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Pengawas Ruang</label><input type="text" id="profPengawas" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">NIP Pengawas (Opsional)</label><input type="text" id="profNIPPengawas" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
-                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Nama Proktor</label><input type="text" id="profProktor" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500"></div>
-                                <div><label class="block text-sm font-bold text-slate-700 mb-1">Tahun Pelajaran</label><input type="text" id="profTahun" class="w-full p-3 border border-slate-300 rounded-lg outline-none bg-slate-50 focus:bg-white focus:border-blue-500" placeholder="2025/2026"></div>
                             </div>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-4 bg-slate-50 border border-slate-200 rounded-lg">
@@ -228,7 +242,7 @@
 
                             <!-- Preview Kop Surat Resmi -->
                             <div class="mb-8 p-6 bg-white border border-slate-300 rounded-lg shadow-sm">
-                                <p class="text-xs font-bold text-slate-500 mb-4 uppercase tracking-widest text-center">Preview Kop Surat pada Hasil Cetak</p>
+                                <p class="text-xs font-bold text-slate-500 mb-4 uppercase tracking-widest text-center">Preview Kop Surat & Judul pada Hasil Cetak</p>
                                 <div class="bg-white p-4">
                                     <div class="flex items-center justify-between kop-surat-preview">
                                         <div class="w-20 h-24 flex items-center justify-center">
@@ -239,7 +253,6 @@
                                             <h4 class="text-lg font-bold uppercase text-black">DINAS PENDIDIKAN</h4>
                                             <h2 class="text-2xl font-black uppercase text-black mt-1" id="kopNamaSekolah">UPTD SDN MARGANTOKO 2</h2>
                                             <p class="text-sm text-black mt-1" id="kopAlamatSekolah">Alamat Sekolah</p>
-                                            <!-- Tambahan baris email & website di sini -->
                                             <p class="text-xs text-black mt-0.5">
                                                 <span id="kopEmail">Email: -</span> | <span id="kopWebsite">Website: -</span>
                                             </p>
@@ -249,6 +262,13 @@
                                         </div>
                                     </div>
                                     <div class="kop-surat-garis-bawah"></div>
+                                    
+                                    <!-- Preview Judul Dokumen -->
+                                    <div class="mt-4 text-center text-black">
+                                        <h4 class="font-bold text-lg uppercase underline">DAFTAR HADIR PESERTA</h4>
+                                        <h5 class="font-bold text-md uppercase mt-1" id="previewNamaUjian">PENILAIAN AKHIR JENJANG (PAJ)</h5>
+                                        <p class="text-sm font-bold mt-1">Kelas: <span id="previewKelas">-</span> | Tahun Pelajaran: <span id="previewTahunPelajaran">20.../20...</span></p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -258,6 +278,38 @@
                         </form>
                     </div>
                 </section>
+                            <!-- FUNGSI UPDATE PREVIEW KOP -->
+    <script>
+        window.updatePreviewKop = () => {
+            const nama = document.getElementById('profSekolah').value || 'NAMA SEKOLAH';
+            const alamat = document.getElementById('profAlamat').value || 'Alamat Sekolah';
+            const email = document.getElementById('profEmail').value || 'email@sekolah.com';
+            const website = document.getElementById('profWebsite').value || 'www.sekolah.sch.id';
+            const namaUjian = document.getElementById('profNamaUjian').value || 'PENILAIAN AKHIR JENJANG (PAJ)';
+            const kelas = document.getElementById('profKelas').value || '-';
+            const tahun = document.getElementById('profTahun').value || '20.../20...';
+            
+            const logoKab = document.getElementById('logoKabBase64').value;
+            const logoSekolah = document.getElementById('logoSekolahBase64').value;
+
+            document.getElementById('kopNamaSekolah').innerText = nama;
+            document.getElementById('kopAlamatSekolah').innerText = alamat;
+            document.getElementById('kopEmail').innerText = "Email: " + email;
+            document.getElementById('kopWebsite').innerText = "Website: " + website;
+            
+            document.getElementById('previewNamaUjian').innerText = namaUjian;
+            document.getElementById('previewKelas').innerText = kelas;
+            document.getElementById('previewTahunPelajaran').innerText = tahun;
+
+            const imgKiri = document.getElementById('kopLogoKiri');
+            if(logoKab) { imgKiri.src = logoKab; imgKiri.classList.remove('hidden'); } 
+            else { imgKiri.classList.add('hidden'); }
+
+            const imgKanan = document.getElementById('kopLogoKanan');
+            if(logoSekolah) { imgKanan.src = logoSekolah; imgKanan.classList.remove('hidden'); } 
+            else { imgKanan.classList.add('hidden'); }
+        };
+    </script>
 
                 <!-- SECTION CETAK ADMIN -->
                 <section id="viewAdmin" class="hidden view-section">
