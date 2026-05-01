@@ -3518,12 +3518,24 @@ window.simpanPengumuman = async () => {
     const btn = document.querySelector('#viewPengumuman .bg-white:nth-child(2) button.bg-blue-600');
     if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
     
-    const data = {
-        kepada: document.getElementById('pengumumanKepada').value,
-        teks: document.getElementById('pengumumanTeks').value
-    };
-
     try {
+        // Pindahkan pengambilan data ke dalam blok try agar error HTML (jika ada) ikut tertangkap
+        const inputKepada = document.getElementById('pengumumanKepada');
+        const inputTeks = document.getElementById('pengumumanTeks');
+
+        // Cek dulu apakah elemen HTML-nya berhasil ditemukan
+        if (!inputKepada || !inputTeks) {
+            throw new Error("Elemen input HTML (pengumumanKepada / pengumumanTeks) tidak ditemukan di admin.html!");
+        }
+
+        const data = {
+            kepada: inputKepada.value,
+            teks: inputTeks.value
+        };
+
+        // CEK LANGKAH 1: Tampilkan data yang ditangkap ke Console
+        console.log("Data Pengumuman yang siap disimpan:", data);
+
         // Gunakan merge: true agar tidak menimpa data running text
         await setDoc(doc(db, 'settings', 'pengumuman_config'), data, { merge: true });
         alert('Pengumuman berhasil disimpan!');
@@ -3531,13 +3543,13 @@ window.simpanPengumuman = async () => {
         // Segarkan teks pengumuman di Dashboard
         if (typeof loadDashboard === 'function') loadDashboard();
     } catch(e) {
-        console.error(e);
-        alert('Gagal menyimpan pengumuman.');
+        // CEK LANGKAH 2: Tangkap error apapun yang menggagalkan proses
+        console.error("Proses simpan pengumuman GAGAL karena:", e);
+        alert('Gagal menyimpan pengumuman. Cek pesan warna merah di Console!');
     } finally {
         if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan"; }
     }
 };
-
 // Injection otomatis: Memastikan data dimuat saat menu Pengumuman diklik
 setTimeout(() => {
     const btnMenuPengumuman = document.getElementById('btn-viewPengumuman');
