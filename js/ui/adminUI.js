@@ -1312,3 +1312,169 @@ window.hapusRuangUjian = async (id) => {
         }
     }
 };
+
+// ==========================================
+// ATUR RUANG & SESI SISWA
+// ==========================================
+window.loadAturRuangSesi = async () => {
+    try {
+        // 1. Load Data Kelas
+        if (!state.masterKelas || state.masterKelas.length === 0) {
+            const snapKelas = await getDocs(collection(db, 'master_kelas'));
+            state.masterKelas = [];
+            snapKelas.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
+            state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        }
+
+        // 2. Load Data Ruang
+        if (!state.masterRuangUjian || state.masterRuangUjian.length === 0) {
+            const snapRuang = await getDocs(collection(db, 'master_ruang_ujian'));
+            state.masterRuangUjian = [];
+            snapRuang.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
+            state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        }
+
+        // 3. Load Data Sesi
+        if (!state.masterSesiUjian || state.masterSesiUjian.length === 0) {
+            const snapSesi = await getDocs(collection(db, 'master_sesi_ujian'));
+            state.masterSesiUjian = [];
+            snapSesi.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()}));
+            state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        }
+
+        // 4. Load Data Siswa
+        const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+        state.masterSiswa = [];
+        snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+
+        // 5. Render Dropdown Filter Kelas
+        const filterKelas = document.getElementById('filterKelasAtur');
+        filterKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        state.masterKelas.forEach(k => {
+            filterKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`;
+        });
+
+        // 6. Render Dropdown Bulk Action (Ruang & Sesi)
+        const bulkRuang = document.getElementById('bulkRuang');
+        bulkRuang.innerHTML = '<option value="">Pilih ruang</option>';
+        state.masterRuangUjian.forEach(r => {
+            bulkRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`;
+        });
+
+        const bulkSesi = document.getElementById('bulkSesi');
+        bulkSesi.innerHTML = '<option value="">Pilih sesi</option>';
+        state.masterSesiUjian.forEach(s => {
+            bulkSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
+        });
+
+        // Otomatis pilih kelas pertama jika ada
+        if(state.masterKelas.length > 0) {
+            filterKelas.value = state.masterKelas[0].nama;
+        }
+
+        window.renderTableAturRuangSesi();
+    } catch(e) {
+        console.error("Error load atur ruang sesi:", e);
+    }
+};
+
+window.renderTableAturRuangSesi = () => {
+    const kelasVal = document.getElementById('filterKelasAtur').value;
+    const tb = document.getElementById('tableAturRuangSesiBody');
+    const lbl = document.getElementById('labelBulkAction');
+    
+    tb.innerHTML = '';
+    lbl.innerText = `Gabungkan siswa ${kelasVal ? kelasVal : ''} ke ruang dan sesi:`;
+    
+    if (!kelasVal) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Silakan pilih kelas terlebih dahulu.</td></tr>';
+        return;
+    }
+
+    const filteredSiswa = state.masterSiswa.filter(s => s.kelas === kelasVal).sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
+    
+    if (filteredSiswa.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa yang terdaftar di kelas ini.</td></tr>';
+        return;
+    }
+
+    // Siapkan element option HTML untuk Ruang dan Sesi
+    let optRuang = '<option value="">Pilih ruang</option>';
+    state.masterRuangUjian.forEach(r => { optRuang += `<option value="${r.nama}">${r.nama}</option>`; });
+    
+    let optSesi = '<option value="">Pilih sesi</option>';
+    state.masterSesiUjian.forEach(s => { optSesi += `<option value="${s.nama}">${s.nama}</option>`; });
+
+    // Render baris tabel untuk setiap siswa
+    filteredSiswa.forEach((s, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-blue-50 transition border-b border-slate-100" data-id="${s.id}">
+                <td class="p-3 text-center border-r text-slate-500 font-bold">${i+1}</td>
+                <td class="p-3 border-r font-bold uppercase text-slate-800">${s.nama}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-600">${s.kelas}</td>
+                <td class="p-2 border-r bg-slate-50">
+                    <select class="w-full p-2 border border-slate-300 rounded outline-none select-ruang text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">${optRuang}</select>
+                </td>
+                <td class="p-2 border-r bg-slate-50">
+                    <select class="w-full p-2 border border-slate-300 rounded outline-none select-sesi text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">${optSesi}</select>
+                </td>
+            </tr>
+        `;
+    });
+
+    // Timeout kecil untuk memastikan elemen select sudah di-render ke DOM, lalu atur value (selected) sesuai data siswa
+    setTimeout(() => {
+        tb.querySelectorAll('tr[data-id]').forEach(row => {
+            const id = row.getAttribute('data-id');
+            const s = filteredSiswa.find(x => x.id === id);
+            if(s) {
+                if(s.ruang) row.querySelector('.select-ruang').value = s.ruang;
+                if(s.sesi) row.querySelector('.select-sesi').value = s.sesi;
+            }
+        });
+    }, 50);
+};
+
+// Fungsi Terapkan Ke Semua Siswa
+window.applyBulkRuangSesi = () => {
+    const ruangVal = document.getElementById('bulkRuang').value;
+    const sesiVal = document.getElementById('bulkSesi').value;
+    
+    document.getElementById('tableAturRuangSesiBody').querySelectorAll('tr[data-id]').forEach(row => {
+        if(ruangVal) row.querySelector('.select-ruang').value = ruangVal;
+        if(sesiVal) row.querySelector('.select-sesi').value = sesiVal;
+    });
+};
+
+window.simpanAturRuangSesi = async () => {
+    const btn = document.getElementById('btnSimpanAtur');
+    if (btn) { btn.disabled = true; btn.innerHTML = "Menyimpan..."; }
+    
+    try {
+        const promises = [];
+        
+        document.getElementById('tableAturRuangSesiBody').querySelectorAll('tr[data-id]').forEach(row => {
+            const id = row.getAttribute('data-id');
+            const ruang = row.querySelector('.select-ruang').value;
+            const sesi = row.querySelector('.select-sesi').value;
+            
+            // Update state lokal
+            const s = state.masterSiswa.find(x => x.id === id);
+            if(s) {
+                s.ruang = ruang;
+                s.sesi = sesi;
+            }
+            
+            // Push perintah update ke array promises untuk dieksekusi secara paralel (lebih cepat)
+            promises.push(updateDoc(doc(db, 'master_siswa', id), { ruang, sesi }));
+        });
+        
+        await Promise.all(promises);
+        alert("Penempatan Ruang dan Sesi berhasil disimpan!");
+    } catch(e) {
+        console.error("Gagal simpan ruang sesi:", e);
+        alert("Gagal menyimpan data ke server.");
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = "💾 Simpan"; }
+    }
+};
