@@ -14,87 +14,11 @@ window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
 
 // ==========================================
-// PELAKSANAAN: REKAP NILAI (BARU)
-// ==========================================
-window.loadRekapNilai = async () => {
-    try {
-        // Ensure academic config is loaded
-        if(!state.academicConfig || !state.academicConfig.years) {
-            const snapConfig = await getDoc(doc(db, 'settings', 'academic_config'));
-            if(snapConfig.exists()) {
-                state.academicConfig = snapConfig.data();
-            } else {
-                state.academicConfig = { years: [], activeSemester: 'Ganjil' };
-            }
-        }
-        
-        // Load jadwal ujian to see if any exist
-        if(state.masterJadwalUjian.length === 0) {
-            const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
-            state.masterJadwalUjian = [];
-            snapJadwal.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
-        }
-
-        window.renderRekapNilai();
-    } catch(e) {
-        console.error("Error load rekap nilai:", e);
-    }
-};
-
-window.renderRekapNilai = () => {
-    const container = document.getElementById('containerRekapNilai');
-    
-    // Get active year and semester
-    let activeYear = "2025/2026"; 
-    let activeSmt = "Ganjil"; 
-    
-    if(state.academicConfig && state.academicConfig.years) {
-        const y = state.academicConfig.years.find(x => x.isActive);
-        if(y) activeYear = y.name;
-    }
-    if(state.academicConfig && state.academicConfig.activeSemester) {
-        activeSmt = state.academicConfig.activeSemester;
-    }
-
-    // Simplification for UI check (if any active jadwal exists)
-    const hasJadwal = state.masterJadwalUjian && state.masterJadwalUjian.length > 0;
-
-    if(!hasJadwal) {
-        // Tampilan Peringatan seperti referensi gambar
-        container.innerHTML = `
-            <div class="bg-amber-100/80 border border-amber-200 text-amber-800 p-4 rounded shadow-sm text-sm">
-                Belum ada jadwal penilaian untuk Tahun Pelajaran <b>${activeYear}</b> Semester: <b>${activeSmt}</b>
-            </div>
-        `;
-    } else {
-        // Tampilan Tabel Rekap (Bisa Dikembangkan)
-        container.innerHTML = `
-            <div class="bg-amber-100/80 border border-amber-200 text-amber-800 p-4 rounded shadow-sm text-sm mb-4">
-                Menampilkan rekapitulasi penilaian untuk Tahun Pelajaran <b>${activeYear}</b> Semester: <b>${activeSmt}</b>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse border border-slate-200">
-                    <thead class="bg-blue-600 text-white text-sm">
-                        <tr>
-                            <th class="p-3 text-center w-16 border border-blue-500 font-medium">No.</th>
-                            <th class="p-3 border border-blue-500 font-medium">Jadwal Penilaian</th>
-                            <th class="p-3 border border-blue-500 text-center font-medium">Jumlah Peserta</th>
-                            <th class="p-3 border border-blue-500 text-center font-medium">Sudah Mengerjakan</th>
-                            <th class="p-3 border border-blue-500 text-center font-medium">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200 text-sm bg-white">
-                        <tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Data rekapitulasi per ujian sedang dihitung...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        `;
-    }
-};
-
-// ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
+window.loadRekapNilai = async () => { try { if(!state.academicConfig || !state.academicConfig.years) { const snapConfig = await getDoc(doc(db, 'settings', 'academic_config')); if(snapConfig.exists()) { state.academicConfig = snapConfig.data(); } else { state.academicConfig = { years: [], activeSemester: 'Ganjil' }; } } if(state.masterJadwalUjian.length === 0) { const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian')); state.masterJadwalUjian = []; snapJadwal.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); } window.renderRekapNilai(); } catch(e) { console.error(e); } };
+window.renderRekapNilai = () => { const container = document.getElementById('containerRekapNilai'); let activeYear = "2025/2026"; let activeSmt = "Ganjil"; if(state.academicConfig && state.academicConfig.years) { const y = state.academicConfig.years.find(x => x.isActive); if(y) activeYear = y.name; } if(state.academicConfig && state.academicConfig.activeSemester) { activeSmt = state.academicConfig.activeSemester; } const hasJadwal = state.masterJadwalUjian && state.masterJadwalUjian.length > 0; if(!hasJadwal) { container.innerHTML = `<div class="bg-amber-100/80 border border-amber-200 text-amber-800 p-4 rounded shadow-sm text-sm">Belum ada jadwal penilaian untuk Tahun Pelajaran <b>${activeYear}</b> Semester: <b>${activeSmt}</b></div>`; } else { container.innerHTML = `<div class="bg-amber-100/80 border border-amber-200 text-amber-800 p-4 rounded shadow-sm text-sm mb-4">Menampilkan rekapitulasi penilaian untuk Tahun Pelajaran <b>${activeYear}</b> Semester: <b>${activeSmt}</b></div><div class="overflow-x-auto"><table class="w-full text-left border-collapse border border-slate-200"><thead class="bg-blue-600 text-white text-sm"><tr><th class="p-3 text-center w-16 border border-blue-500 font-medium">No.</th><th class="p-3 border border-blue-500 font-medium">Jadwal Penilaian</th><th class="p-3 border border-blue-500 text-center font-medium">Jumlah Peserta</th><th class="p-3 border border-blue-500 text-center font-medium">Sudah Mengerjakan</th><th class="p-3 border border-blue-500 text-center font-medium">Aksi</th></tr></thead><tbody class="divide-y divide-slate-200 text-sm bg-white"><tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Data rekapitulasi per ujian sedang dihitung...</td></tr></tbody></table></div>`; } };
+
 window.loadAnalisaSoal = async () => { try { if(state.masterJadwalUjian.length === 0) { const s = await getDocs(collection(db, 'master_jadwal_ujian')); state.masterJadwalUjian = []; s.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); } const snapConfig = await getDoc(doc(db, 'settings', 'academic_config')); if(snapConfig.exists()) { state.academicConfig = snapConfig.data(); } const selTahun = document.getElementById('filterAnalisaTahun'); selTahun.innerHTML = ''; if(state.academicConfig && state.academicConfig.years) { state.academicConfig.years.forEach(y => { const sel = y.isActive ? 'selected' : ''; selTahun.innerHTML += `<option value="${y.name}" ${sel}>${y.name}</option>`; }); } else { selTahun.innerHTML = '<option value="2025/2026">2025/2026</option>'; } const selSmt = document.getElementById('filterAnalisaSmt'); if(state.academicConfig && state.academicConfig.activeSemester) { selSmt.value = state.academicConfig.activeSemester; } const selJadwal = document.getElementById('filterAnalisaJadwal'); selJadwal.innerHTML = '<option value="">Pilih Jadwal</option>'; state.masterJadwalUjian.filter(j => j.isActive).forEach(j => { selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} - ${j.jenis}</option>`; }); document.getElementById('containerHasilAnalisa').innerHTML = '<div class="p-8 text-center text-slate-500 italic bg-slate-50 rounded border border-slate-100">Silakan pilih Jadwal Ujian untuk menampilkan hasil analisa butir soal.</div>'; } catch(e) { console.error(e); } };
 window.renderAnalisaSoal = () => { const jadwalVal = document.getElementById('filterAnalisaJadwal').value; const container = document.getElementById('containerHasilAnalisa'); if(!jadwalVal) { container.innerHTML = '<div class="p-8 text-center text-slate-500 italic bg-slate-50 rounded border border-slate-100">Silakan pilih Jadwal Ujian untuk menampilkan hasil analisa butir soal.</div>'; return; } container.innerHTML = `<div class="flex justify-between items-center mb-4"><h4 class="font-bold text-slate-800">Analisa Butir Soal</h4><button onclick="alert('Mengekspor Analisa ke Excel...')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-bold shadow transition flex items-center gap-1">📄 Ekspor Excel</button></div><div class="overflow-x-auto"><table class="w-full text-left border-collapse border border-slate-200"><thead class="bg-slate-50 text-slate-700 text-sm border-b"><tr><th class="p-3 text-center border-r">No Soal</th><th class="p-3 text-center border-r">Tingkat Kesukaran</th><th class="p-3 text-center border-r">Daya Pembeda</th><th class="p-3 text-center border-r">Status</th></tr></thead><tbody class="divide-y divide-slate-100 text-sm"><tr><td colspan="4" class="p-8 text-center text-slate-500 italic">Data analisa sedang dihitung...</td></tr></tbody></table></div>`; };
 
