@@ -452,3 +452,181 @@ window.kenaikanKelas = () => alert("Fitur sedang disiapkan.");
 
 // Jalankan pengecekan sesi saat file dimuat
 window.checkAdminSession();
+
+// ==========================================
+// DATA EKSTRAKURIKULER & PENEMPATAN
+// ==========================================
+window.loadEkskul = async () => {
+    try {
+        // Load data Kelas untuk kebutuhan checkbox penempatan ekskul
+        if(!state.masterKelas || state.masterKelas.length === 0) {
+            const snapKelas = await getDocs(collection(db, 'master_kelas'));
+            state.masterKelas = [];
+            snapKelas.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
+            state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        }
+
+        // Load data Ekskul
+        const snap = await getDocs(collection(db, 'master_ekskul'));
+        state.masterEkskul = [];
+        snap.forEach(d => state.masterEkskul.push({id: d.id, ...d.data()}));
+        state.masterEkskul.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+
+        // Load data Penempatan Ekskul dari Document Settings
+        const penempatanSnap = await getDoc(doc(db, 'settings', 'penempatan_ekskul'));
+        if(penempatanSnap.exists()) {
+            state.penempatanEkskul = penempatanSnap.data();
+        } else {
+            state.penempatanEkskul = {};
+        }
+
+        window.renderTableEkskul();
+        window.renderPenempatanEkskul();
+    } catch(e) { 
+        console.error("Error load ekskul:", e); 
+    }
+};
+
+window.renderTableEkskul = () => {
+    const tb = document.getElementById('tableEkskulBody');
+    tb.innerHTML = '';
+    
+    if (!state.masterEkskul || state.masterEkskul.length === 0) {
+        tb.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500 italic">Belum ada data Ekstrakurikuler.</td></tr>';
+        return;
+    }
+    
+    state.masterEkskul.forEach((e, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-4 text-center border-r text-slate-500 font-bold">${i+1}</td>
+                <td class="p-4 border-r font-bold text-slate-800 uppercase">${e.nama || '-'}</td>
+                <td class="p-4 border-r text-center font-mono font-bold text-slate-600">${e.kode || '-'}</td>
+                <td class="p-4 text-center space-x-1">
+                    <button onclick="editEkskul('${e.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusEkskul('${e.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalEkskul = () => {
+    document.getElementById('ekskulId').value = '';
+    document.getElementById('inputNamaEkskul').value = '';
+    document.getElementById('inputKodeEkskul').value = '';
+    document.getElementById('modalEkskul').classList.remove('hidden');
+};
+
+window.simpanEkskul = async () => {
+    const id = document.getElementById('ekskulId').value;
+    const nama = document.getElementById('inputNamaEkskul').value.trim().toUpperCase();
+    const kode = document.getElementById('inputKodeEkskul').value.trim().toUpperCase();
+
+    if(!nama || !kode) {
+        return alert("Nama dan Kode Ekskul wajib diisi!");
+    }
+
+    const data = { nama, kode };
+
+    try {
+        if(id) {
+            await updateDoc(doc(db, 'master_ekskul', id), data);
+        } else {
+            await addDoc(collection(db, 'master_ekskul'), data);
+        }
+        closeModal('modalEkskul');
+        alert("Data Ekstrakurikuler berhasil disimpan!");
+        loadEkskul(); 
+    } catch(e) {
+        console.error(e);
+        alert("Gagal menyimpan data Ekstrakurikuler.");
+    }
+};
+
+window.editEkskul = (id) => {
+    const e = state.masterEkskul.find(x => x.id === id);
+    if(!e) return;
+    
+    document.getElementById('ekskulId').value = e.id;
+    document.getElementById('inputNamaEkskul').value = e.nama || '';
+    document.getElementById('inputKodeEkskul').value = e.kode || '';
+    document.getElementById('modalEkskul').classList.remove('hidden');
+};
+
+window.hapusEkskul = async (id) => {
+    if(confirm("Yakin ingin menghapus Ekstrakurikuler ini?")) {
+        try {
+            await deleteDoc(doc(db, 'master_ekskul', id));
+            loadEkskul(); 
+        } catch(e) {
+            console.error(e);
+        }
+    }
+};
+
+// --- FUNGSI UNTUK PENEMPATAN EKSKUL ---
+window.renderPenempatanEkskul = () => {
+    const container = document.getElementById('containerPenempatanEkskul');
+    container.innerHTML = '';
+    
+    if (!state.masterEkskul || state.masterEkskul.length === 0) {
+        container.innerHTML = '<p class="text-sm text-slate-500 italic p-2 border rounded bg-white">Tambahkan data ekstrakurikuler terlebih dahulu.</p>';
+        return;
+    }
+
+    if (!state.masterKelas || state.masterKelas.length === 0) {
+        container.innerHTML = '<p class="text-sm text-slate-500 italic p-2 border rounded bg-white">Data Kelas masih kosong. Tambahkan kelas terlebih dahulu agar bisa diatur penempatannya.</p>';
+        return;
+    }
+
+    state.masterEkskul.forEach(e => {
+        let options = '';
+        state.masterKelas.forEach(k => {
+            const isChecked = state.penempatanEkskul[e.id] && state.penempatanEkskul[e.id].includes(k.nama) ? 'checked' : '';
+            options += `
+                <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-blue-50 p-1.5 rounded transition border border-transparent hover:border-blue-100">
+                    <input type="checkbox" class="cb-penempatan-${e.id} accent-blue-600 w-4 h-4 rounded" value="${k.nama}" ${isChecked}>
+                    <span class="font-bold text-slate-700">${k.nama}</span>
+                </label>
+            `;
+        });
+
+        container.innerHTML += `
+            <div class="border border-slate-200 rounded-lg p-4 bg-white shadow-sm mb-3">
+                <p class="font-black text-blue-800 text-sm mb-3 border-b border-slate-100 pb-2 uppercase">${e.nama} (${e.kode})</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    ${options}
+                </div>
+            </div>
+        `;
+    });
+};
+
+window.simpanPenempatanEkskul = async () => {
+    if (!state.masterEkskul) return;
+    
+    // Cari tombol simpannya dan beri efek loading
+    const btn = document.querySelector('button[onclick="simpanPenempatanEkskul()"]');
+    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
+
+    const dataToSave = {};
+    
+    // Looping semua ekskul, dan ambil nilai checkbox kelas yang tercentang
+    state.masterEkskul.forEach(e => {
+        const checkboxes = document.querySelectorAll(`.cb-penempatan-${e.id}:checked`);
+        const selectedClasses = Array.from(checkboxes).map(cb => cb.value);
+        dataToSave[e.id] = selectedClasses;
+    });
+
+    try {
+        await setDoc(doc(db, 'settings', 'penempatan_ekskul'), dataToSave);
+        state.penempatanEkskul = dataToSave;
+        alert("Penempatan Kelas Ekskul berhasil disimpan!");
+    } catch(error) {
+        console.error("Gagal simpan penempatan:", error);
+        alert("Gagal menyimpan penempatan ekskul.");
+    } finally {
+        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+    }
+};
