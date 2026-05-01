@@ -2315,3 +2315,118 @@ window.hapusJadwalUjian = async (id) => {
         } catch(e) { console.error(e); }
     }
 };
+
+// ==========================================
+// PENGATURAN ALOKASI WAKTU UJIAN
+// ==========================================
+window.loadAlokasiWaktu = async () => {
+    try {
+        // 1. Pastikan data Jadwal, Bank Soal, dan Jenis Ujian sudah dimuat
+        if (state.masterJadwalUjian.length === 0) {
+            const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
+            state.masterJadwalUjian = [];
+            snapJadwal.forEach(d => state.masterJadwalUjian.push({ id: d.id, ...d.data() }));
+        }
+        if (state.masterBankSoal.length === 0) {
+            const snapBank = await getDocs(collection(db, 'master_bank_soal'));
+            state.masterBankSoal = [];
+            snapBank.forEach(d => state.masterBankSoal.push({ id: d.id, ...d.data() }));
+        }
+        if (state.masterJenisUjian.length === 0) {
+            const snapJenis = await getDocs(collection(db, 'master_jenis_ujian'));
+            state.masterJenisUjian = [];
+            snapJenis.forEach(d => state.masterJenisUjian.push({ id: d.id, ...d.data() }));
+        }
+
+        // 2. Isi Dropdown Jenis Penilaian
+        const filterJenis = document.getElementById('filterAlokasiJenis');
+        if (filterJenis) {
+            filterJenis.innerHTML = '<option value="">Semua Jenis</option>';
+            state.masterJenisUjian.forEach(j => {
+                filterJenis.innerHTML += `<option value="${j.nama}">${j.nama}</option>`;
+            });
+        }
+
+        window.renderTableAlokasiWaktu();
+    } catch (e) {
+        console.error("Error load alokasi waktu:", e);
+    }
+};
+
+window.renderTableAlokasiWaktu = () => {
+    const tb = document.getElementById('tableAlokasiWaktuBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+
+    const filterJenisVal = document.getElementById('filterAlokasiJenis').value;
+    
+    // Hanya tampilkan Jadwal yang statusnya Aktif
+    let jadwalAktif = state.masterJadwalUjian.filter(j => j.isActive);
+
+    if (filterJenisVal) {
+        jadwalAktif = jadwalAktif.filter(j => j.jenis === filterJenisVal);
+    }
+
+    if (jadwalAktif.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada Jadwal Ujian yang Aktif. Aktifkan jadwal terlebih dahulu di menu JADWAL.</td></tr>';
+        return;
+    }
+
+    // Urutkan berdasarkan tanggal mulai
+    jadwalAktif.sort((a, b) => new Date(a.tglMulai) - new Date(b.tglMulai));
+
+    jadwalAktif.forEach((j, i) => {
+        const bs = state.masterBankSoal.find(x => x.id === j.bankSoalId);
+        const kodeBS = bs ? bs.kode : '-';
+        const kelasBS = bs ? bs.kelas : '-';
+        const jamKe = j.jamKe || 1; // Default ke jam 1 jika belum diatur
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100" data-jadwal-id="${j.id}">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i + 1}</td>
+                <td class="p-3 border-r font-mono text-sm font-bold text-blue-700">${kodeBS}</td>
+                <td class="p-3 border-r">
+                    <p class="font-bold text-slate-800">${j.mapel}</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold">${j.jenis || 'Ujian'}</p>
+                </td>
+                <td class="p-3 border-r text-center font-bold text-slate-600">Kelas ${kelasBS}</td>
+                <td class="p-3 text-center bg-blue-50/30">
+                    <input type="number" 
+                        class="w-20 p-2 border border-slate-300 rounded text-center outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-black text-blue-700 input-jamke" 
+                        value="${jamKe}" min="0" max="10">
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.simpanAlokasiWaktu = async () => {
+    const btn = document.getElementById('btnSimpanAlokasi');
+    if (btn) { btn.disabled = true; btn.innerHTML = `Menyimpan...`; }
+
+    const tb = document.getElementById('tableAlokasiWaktuBody');
+    const rows = tb.querySelectorAll('tr[data-jadwal-id]');
+    
+    try {
+        const promises = [];
+        rows.forEach(row => {
+            const idJadwal = row.getAttribute('data-jadwal-id');
+            const jamKeVal = parseInt(row.querySelector('.input-jamke').value) || 0;
+            
+            // Update state lokal agar tampilan tidak reset saat render ulang
+            const jLocal = state.masterJadwalUjian.find(x => x.id === idJadwal);
+            if (jLocal) jLocal.jamKe = jamKeVal;
+            
+            // Simpan perubahan ke Firestore pada koleksi master_jadwal_ujian
+            promises.push(updateDoc(doc(db, 'master_jadwal_ujian', idJadwal), { jamKe: jamKeVal }));
+        });
+
+        await Promise.all(promises);
+        alert("Alokasi urutan waktu ujian berhasil disimpan!");
+    } catch (e) {
+        console.error("Gagal simpan alokasi waktu:", e);
+        alert("Terjadi kesalahan saat menyimpan data.");
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = `💾 Simpan Alokasi`; }
+    }
+};
