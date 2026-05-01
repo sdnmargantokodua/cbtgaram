@@ -1781,3 +1781,323 @@ window.simpanTokenSettings = async () => {
         alert("Gagal menyimpan pengaturan.");
     }
 };
+
+// ==========================================
+// PENGATURAN BANK SOAL
+// ==========================================
+window.loadBankSoal = async () => {
+    try {
+        // 1. Pastikan data pendukung Dropdown tersedia
+        if (state.masterSubjects.length === 0) {
+            const s1 = await getDocs(collection(db, 'master_subjects'));
+            state.masterSubjects = [];
+            s1.forEach(d => state.masterSubjects.push({id: d.id, ...d.data()}));
+        }
+        if (state.masterGuru.length === 0) {
+            const s2 = await getDocs(collection(db, 'master_guru'));
+            state.masterGuru = [];
+            s2.forEach(d => state.masterGuru.push({id: d.id, ...d.data()}));
+        }
+        if (state.masterKelas.length === 0) {
+            const s3 = await getDocs(collection(db, 'master_kelas'));
+            state.masterKelas = [];
+            s3.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
+        }
+
+        // 2. Isi Dropdown di Modal Bank Soal
+        const selMapel = document.getElementById('bsMapel');
+        selMapel.innerHTML = '<option value="">Pilih Mapel</option>';
+        state.masterSubjects.forEach(m => selMapel.innerHTML += `<option value="${m.nama}">${m.nama}</option>`);
+
+        const selGuru = document.getElementById('bsGuru');
+        selGuru.innerHTML = '<option value="">Pilih Guru Pengampu</option>';
+        state.masterGuru.forEach(g => selGuru.innerHTML += `<option value="${g.nama}">${g.nama}</option>`);
+
+        const selKelas = document.getElementById('bsKelas');
+        selKelas.innerHTML = '<option value="">Pilih Kelas</option>';
+        state.masterKelas.forEach(k => selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`);
+
+        // 3. Load Data Bank Soal Utama
+        const snap = await getDocs(collection(db, 'master_bank_soal'));
+        state.masterBankSoal = [];
+        snap.forEach(d => state.masterBankSoal.push({id: d.id, ...d.data()}));
+        
+        window.renderTableBankSoal();
+    } catch(e) {
+        console.error("Error load bank soal:", e);
+    }
+};
+
+window.renderTableBankSoal = () => {
+    const tb = document.getElementById('tableBankSoalBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+
+    if (state.masterBankSoal.length === 0) {
+        tb.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada Bank Soal. Silakan buat baru.</td></tr>';
+        return;
+    }
+
+    state.masterBankSoal.forEach((b, i) => {
+        const statusColor = b.isActive ? "bg-amber-400" : "bg-slate-400";
+        
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-l-4 ${b.isActive ? 'border-l-amber-400' : 'border-l-slate-400'} border-b border-slate-100">
+                <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 ${statusColor} rounded-full"></div>
+                        <span class="font-bold text-blue-700 font-mono tracking-tight">${b.kode || '-'}</span>
+                    </div>
+                </td>
+                <td class="p-3 border-r font-bold text-slate-800">${b.mapel || '-'}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-600">${b.kelas || '-'}</td>
+                <td class="p-3 border-r text-center font-black text-slate-700">${b.totalSoal || 0}</td>
+                <td class="p-3 text-center space-x-1 whitespace-nowrap">
+                    <button onclick="bukaSoalDetail('${b.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm text-xs font-bold transition">📝 Soal</button>
+                    <button onclick="editBankSoal('${b.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-2 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusBankSoal('${b.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow-sm text-xs transition">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.kalkulasiTotalSoalBobot = () => {
+    const getVal = (id) => parseInt(document.getElementById(id).value) || 0;
+    
+    const tSoal = getVal('bsPgJml') + getVal('bsPgkJml') + getVal('bsBsJml') + getVal('bsIsianJml') + getVal('bsUraianJml') + getVal('bsUrutJml');
+    const tBobot = getVal('bsPgBobot') + getVal('bsPgkBobot') + getVal('bsBsBobot') + getVal('bsIsianBobot') + getVal('bsUraianBobot') + getVal('bsUrutBobot');
+    
+    document.getElementById('bsLabelTotalSoal').innerText = tSoal;
+    const lblBobot = document.getElementById('bsLabelTotalBobot');
+    lblBobot.innerText = tBobot + "%";
+    
+    // Beri peringatan merah jika total bobot bukan 100%
+    if(tBobot !== 100 && tBobot !== 0) {
+        lblBobot.classList.replace('text-slate-800', 'text-red-600');
+    } else {
+        lblBobot.classList.replace('text-red-600', 'text-slate-800');
+    }
+};
+
+window.openModalBankSoal = () => {
+    document.getElementById('bankSoalId').value = '';
+    document.getElementById('bsKode').value = '';
+    document.getElementById('bsLevel').value = '1';
+    
+    // Reset semua input jumlah & bobot
+    ['Pg','Pgk','Bs','Isian','Uraian','Urut'].forEach(k => {
+        document.getElementById(`bs${k}Jml`).value = 0;
+        document.getElementById(`bs${k}Bobot`).value = 0;
+    });
+    
+    document.getElementById('bsStatus').value = 'true';
+    kalkulasiTotalSoalBobot();
+    document.getElementById('modalBankSoal').classList.remove('hidden');
+};
+
+window.simpanBankSoal = async () => {
+    const id = document.getElementById('bankSoalId').value;
+    const kode = document.getElementById('bsKode').value.trim().toUpperCase();
+    const mapel = document.getElementById('bsMapel').value;
+    const kelas = document.getElementById('bsKelas').value;
+
+    if(!kode || !mapel || !kelas) return alert("Kode, Mapel, dan Kelas wajib diisi!");
+
+    const getVal = (idx) => parseInt(document.getElementById(idx).value) || 0;
+    const totalSoal = getVal('bsPgJml') + getVal('bsPgkJml') + getVal('bsBsJml') + getVal('bsIsianJml') + getVal('bsUraianJml') + getVal('bsUrutJml');
+    const totalBobot = getVal('bsPgBobot') + getVal('bsPgkBobot') + getVal('bsBsBobot') + getVal('bsIsianBobot') + getVal('bsUraianBobot') + getVal('bsUrutBobot');
+
+    if(totalBobot !== 100 && totalBobot !== 0) {
+        if(!confirm("Peringatan: Total bobot tidak 100%. Lanjutkan?")) return;
+    }
+
+    const data = {
+        kode, mapel, kelas, totalSoal,
+        guru: document.getElementById('bsGuru').value,
+        level: document.getElementById('bsLevel').value,
+        isActive: document.getElementById('bsStatus').value === 'true',
+        kategoriAgama: document.getElementById('bsKategori').value,
+        komposisi: {
+            pg: { jml: getVal('bsPgJml'), bobot: getVal('bsPgBobot'), opsi: document.getElementById('bsPgOpsi').value },
+            pgk: { jml: getVal('bsPgkJml'), bobot: getVal('bsPgkBobot') },
+            bs: { jml: getVal('bsBsJml'), bobot: getVal('bsBsBobot') },
+            isian: { jml: getVal('bsIsianJml'), bobot: getVal('bsIsianBobot') },
+            uraian: { jml: getVal('bsUraianJml'), bobot: getVal('bsUraianBobot') },
+            urut: { jml: getVal('bsUrutJml'), bobot: getVal('bsUrutBobot') }
+        }
+    };
+
+    const btn = document.getElementById('btnSimpanBankSoal');
+    if(btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
+
+    try {
+        if(id) await updateDoc(doc(db, 'master_bank_soal', id), data);
+        else await addDoc(collection(db, 'master_bank_soal'), data);
+        
+        closeModal('modalBankSoal');
+        alert("Pengaturan Bank Soal berhasil disimpan!");
+        loadBankSoal();
+    } catch(e) {
+        console.error(e);
+        alert("Gagal menyimpan data.");
+    } finally {
+        if(btn) { btn.disabled = false; btn.innerText = "Simpan Bank Soal"; }
+    }
+};
+
+window.editBankSoal = (id) => {
+    const b = state.masterBankSoal.find(x => x.id === id);
+    if(!b) return;
+
+    document.getElementById('bankSoalId').value = b.id;
+    document.getElementById('bsKode').value = b.kode || '';
+    document.getElementById('bsMapel').value = b.mapel || '';
+    document.getElementById('bsGuru').value = b.guru || '';
+    document.getElementById('bsKelas').value = b.kelas || '';
+    document.getElementById('bsLevel').value = b.level || '1';
+    
+    if(b.komposisi) {
+        ['pg','pgk','bs','isian','uraian','urut'].forEach(k => {
+            const field = k.charAt(0).toUpperCase() + k.slice(1);
+            document.getElementById(`bs${field}Jml`).value = b.komposisi[k]?.jml || 0;
+            document.getElementById(`bs${field}Bobot`).value = b.komposisi[k]?.bobot || 0;
+        });
+        document.getElementById('bsPgOpsi').value = b.komposisi.pg?.opsi || '4';
+    }
+    
+    document.getElementById('bsKategori').value = b.kategoriAgama || 'Bukan Mapel Agama';
+    document.getElementById('bsStatus').value = b.isActive ? 'true' : 'false';
+    kalkulasiTotalSoalBobot();
+    document.getElementById('modalBankSoal').classList.remove('hidden');
+};
+
+window.hapusBankSoal = async (id) => {
+    if(confirm("Hapus Bank Soal ini? Semua butir soal di dalamnya juga akan terhapus.")) {
+        try {
+            await deleteDoc(doc(db, 'master_bank_soal', id));
+            loadBankSoal();
+        } catch(e) { console.error(e); }
+    }
+};
+
+// ==========================================
+// EDITOR BUTIR SOAL (ISI SOAL)
+// ==========================================
+state.currentButirSoal = [];
+state.activeSoalId = null;
+
+window.bukaSoalDetail = async (bankSoalId) => {
+    const bs = state.masterBankSoal.find(x => x.id === bankSoalId);
+    if(!bs) return;
+    
+    state.currentBankSoalId = bankSoalId;
+    document.getElementById('headerEditorSoal').innerText = `Editor Soal: ${bs.kode} - ${bs.mapel}`;
+    switchTab('viewEditorSoal', 'Editor Butir Soal');
+    document.getElementById('panelFormSoal').classList.add('hidden');
+    await loadDaftarButirSoal();
+};
+
+window.loadDaftarButirSoal = async () => {
+    try {
+        const snap = await getDocs(collection(db, `master_bank_soal/${state.currentBankSoalId}/butir_soal`));
+        state.currentButirSoal = [];
+        snap.forEach(d => state.currentButirSoal.push({ id: d.id, ...d.data() }));
+        
+        // Urutkan soal
+        state.currentButirSoal.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        
+        const container = document.getElementById('listButirSoal');
+        container.innerHTML = '';
+        
+        state.currentButirSoal.forEach((soal, i) => {
+            const isActive = state.activeSoalId === soal.id;
+            container.innerHTML += `
+                <button onclick="editButirSoal('${soal.id}', ${i+1})" 
+                    class="w-10 h-10 flex items-center justify-center rounded border font-bold transition 
+                    ${isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-blue-50'}">
+                    ${i+1}
+                </button>
+            `;
+        });
+    } catch(e) { console.error(e); }
+};
+
+window.tambahButirSoalBaru = () => {
+    state.activeSoalId = null;
+    document.getElementById('panelFormSoal').classList.remove('hidden');
+    document.getElementById('labelNomorSoal').innerText = `Soal Baru (No. ${state.currentButirSoal.length + 1})`;
+    
+    document.getElementById('editorTipeSoal').value = 'PG';
+    document.getElementById('editorPertanyaan').value = '';
+    ['A','B','C','D','E'].forEach(o => document.getElementById('opsi'+o).value = '');
+    document.getElementById('editorKunci').value = '';
+};
+
+window.editButirSoal = (id, noIndex) => {
+    state.activeSoalId = id;
+    const soal = state.currentButirSoal.find(x => x.id === id);
+    if(!soal) return;
+    
+    document.getElementById('panelFormSoal').classList.remove('hidden');
+    document.getElementById('labelNomorSoal').innerText = `Edit Soal No. ${noIndex}`;
+    
+    document.getElementById('editorTipeSoal').value = soal.tipe || 'PG';
+    document.getElementById('editorPertanyaan').value = soal.pertanyaan || '';
+    ['A','B','C','D','E'].forEach(o => {
+        document.getElementById('opsi'+o).value = soal.opsi ? (soal.opsi[o] || '') : '';
+    });
+    document.getElementById('editorKunci').value = soal.kunci || '';
+    
+    window.loadDaftarButirSoal(); // Untuk highlight tombol nomor
+};
+
+window.simpanButirSoal = async () => {
+    const btn = document.getElementById('btnSimpanButir');
+    btn.disabled = true; btn.innerText = "Menyimpan...";
+    
+    const data = {
+        tipe: document.getElementById('editorTipeSoal').value,
+        pertanyaan: document.getElementById('editorPertanyaan').value,
+        opsi: {
+            A: document.getElementById('opsiA').value,
+            B: document.getElementById('opsiB').value,
+            C: document.getElementById('opsiC').value,
+            D: document.getElementById('opsiD').value,
+            E: document.getElementById('opsiE').value
+        },
+        kunci: document.getElementById('editorKunci').value.toUpperCase(),
+        noUrut: state.activeSoalId ? (state.currentButirSoal.find(x => x.id === state.activeSoalId).noUrut) : (state.currentButirSoal.length + 1)
+    };
+
+    try {
+        const subCol = collection(db, `master_bank_soal/${state.currentBankSoalId}/butir_soal`);
+        if(state.activeSoalId) {
+            await updateDoc(doc(subCol, state.activeSoalId), data);
+        } else {
+            const newDoc = await addDoc(subCol, data);
+            state.activeSoalId = newDoc.id;
+        }
+        alert("Butir soal disimpan!");
+        await loadDaftarButirSoal();
+    } catch(e) {
+        console.error(e);
+        alert("Gagal menyimpan soal.");
+    } finally {
+        btn.disabled = false; btn.innerText = "💾 Simpan Soal";
+    }
+};
+
+window.hapusButirSoal = async () => {
+    if(!state.activeSoalId) return;
+    if(confirm("Hapus butir soal ini?")) {
+        try {
+            await deleteDoc(doc(db, `master_bank_soal/${state.currentBankSoalId}/butir_soal`, state.activeSoalId));
+            state.activeSoalId = null;
+            document.getElementById('panelFormSoal').classList.add('hidden');
+            await loadDaftarButirSoal();
+        } catch(e) { console.error(e); }
+    }
+};
