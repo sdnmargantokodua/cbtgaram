@@ -14,85 +14,88 @@ window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
 
 // ==========================================
-// PELAKSANAAN: HASIL UJIAN SISWA (BARU)
+// PELAKSANAAN: ANALISA SOAL (BARU)
 // ==========================================
-window.loadHasilUjian = async () => {
+window.loadAnalisaSoal = async () => {
     try {
-        // Load data dependencies jika masih kosong
-        if(state.masterKelas.length === 0) { 
-            const s1 = await getDocs(collection(db, 'master_kelas')); 
-            state.masterKelas = []; s1.forEach(d => state.masterKelas.push({id: d.id, ...d.data()})); 
-            state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || '')); 
-        }
         if(state.masterJadwalUjian.length === 0) { 
-            const s2 = await getDocs(collection(db, 'master_jadwal_ujian')); 
-            state.masterJadwalUjian = []; s2.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); 
+            const s = await getDocs(collection(db, 'master_jadwal_ujian')); 
+            state.masterJadwalUjian = []; s.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); 
         }
         
-        // Sengaja load ulang allResults untuk memastikan data terbaru
-        const s3 = await getDocs(collection(db, 'exam_results')); 
-        state.allResults = []; 
-        s3.forEach(d => state.allResults.push({id: d.id, ...d.data()}));
+        // Load config tahun pelajaran untuk default filter
+        const snapConfig = await getDoc(doc(db, 'settings', 'academic_config'));
+        if(snapConfig.exists()) {
+            state.academicConfig = snapConfig.data();
+        }
 
-        // Populate Dropdown Filter Kelas
-        const selKelas = document.getElementById('filterHasilKelas');
-        selKelas.innerHTML = '<option value="">Pilih Kelas</option>';
-        state.masterKelas.forEach(k => { 
-            selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; 
-        });
+        const selTahun = document.getElementById('filterAnalisaTahun');
+        selTahun.innerHTML = '';
+        if(state.academicConfig && state.academicConfig.years) {
+            state.academicConfig.years.forEach(y => {
+                const sel = y.isActive ? 'selected' : '';
+                selTahun.innerHTML += `<option value="${y.name}" ${sel}>${y.name}</option>`;
+            });
+        } else {
+            selTahun.innerHTML = '<option value="2025/2026">2025/2026</option>';
+        }
 
-        // Populate Dropdown Filter Jadwal
-        const selJadwal = document.getElementById('filterHasilJadwal');
+        const selSmt = document.getElementById('filterAnalisaSmt');
+        if(state.academicConfig && state.academicConfig.activeSemester) {
+            selSmt.value = state.academicConfig.activeSemester;
+        }
+
+        const selJadwal = document.getElementById('filterAnalisaJadwal');
         selJadwal.innerHTML = '<option value="">Pilih Jadwal</option>';
-        state.masterJadwalUjian.forEach(j => { 
+        state.masterJadwalUjian.filter(j => j.isActive).forEach(j => { 
             selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} - ${j.jenis}</option>`; 
         });
 
-        window.renderTableHasilUjian();
-    } catch(e) { console.error("Error load hasil ujian:", e); }
+        document.getElementById('containerHasilAnalisa').innerHTML = '<div class="p-8 text-center text-slate-500 italic bg-slate-50 rounded border border-slate-100">Silakan pilih Jadwal Ujian untuk menampilkan hasil analisa butir soal.</div>';
+
+    } catch(e) { console.error("Error load analisa soal:", e); }
 };
 
-window.renderTableHasilUjian = () => {
-    const kelasVal = document.getElementById('filterHasilKelas').value;
-    const jadwalVal = document.getElementById('filterHasilJadwal').value;
-    const tb = document.getElementById('tableHasilUjianBody');
-    tb.innerHTML = '';
-
-    if (!kelasVal || !jadwalVal) {
-        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 bg-slate-50">Silakan pilih Kelas dan Jadwal terlebih dahulu untuk menampilkan data.</td></tr>';
+window.renderAnalisaSoal = () => {
+    const jadwalVal = document.getElementById('filterAnalisaJadwal').value;
+    const container = document.getElementById('containerHasilAnalisa');
+    
+    if(!jadwalVal) {
+        container.innerHTML = '<div class="p-8 text-center text-slate-500 italic bg-slate-50 rounded border border-slate-100">Silakan pilih Jadwal Ujian untuk menampilkan hasil analisa butir soal.</div>';
         return;
     }
-
-    // Filter Hasil: Sesuaikan property (asumsikan r.kelas dan r.jadwalId tersimpan di exam_results saat siswa submit)
-    let filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal);
-
-    if (filteredResults.length === 0) {
-        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada data nilai yang masuk untuk kelas dan jadwal yang dipilih.</td></tr>';
-        return;
-    }
-
-    filteredResults.forEach((r, i) => {
-        tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
-                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
-                <td class="p-3 border-r font-bold uppercase text-slate-800">${r.nama || '-'}</td>
-                <td class="p-3 border-r text-center font-bold text-slate-600">${r.kelas || '-'}</td>
-                <td class="p-3 border-r text-center text-green-600 font-bold">${r.benar || 0}</td>
-                <td class="p-3 border-r text-center text-red-600 font-bold">${r.salah || 0}</td>
-                <td class="p-3 border-r text-center font-black text-blue-700 text-lg">${r.skor || 0}</td>
-                <td class="p-3 text-center">
-                    <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold transition w-full">🔍 Detail</button>
-                </td>
-            </tr>
-        `;
-    });
+    
+    // Tampilan Tabel Placeholder untuk Analisa
+    container.innerHTML = `
+        <div class="flex justify-between items-center mb-4">
+            <h4 class="font-bold text-slate-800">Analisa Butir Soal</h4>
+            <button onclick="alert('Mengekspor Analisa ke Excel...')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-bold shadow transition flex items-center gap-1">📄 Ekspor Excel</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse border border-slate-200">
+                <thead class="bg-slate-50 text-slate-700 text-sm border-b">
+                    <tr>
+                        <th class="p-3 text-center border-r">No Soal</th>
+                        <th class="p-3 text-center border-r">Tingkat Kesukaran</th>
+                        <th class="p-3 text-center border-r">Daya Pembeda</th>
+                        <th class="p-3 text-center border-r">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    <tr><td colspan="4" class="p-8 text-center text-slate-500 italic">Data analisa sedang dihitung berdasarkan persentase jawaban siswa. Fitur backend sedang dalam pengembangan...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    `;
 };
 
 
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
+window.loadHasilUjian = async () => { try { if(state.masterKelas.length === 0) { const s1 = await getDocs(collection(db, 'master_kelas')); state.masterKelas = []; s1.forEach(d => state.masterKelas.push({id: d.id, ...d.data()})); state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || '')); } if(state.masterJadwalUjian.length === 0) { const s2 = await getDocs(collection(db, 'master_jadwal_ujian')); state.masterJadwalUjian = []; s2.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); } const s3 = await getDocs(collection(db, 'exam_results')); state.allResults = []; s3.forEach(d => state.allResults.push({id: d.id, ...d.data()})); const selKelas = document.getElementById('filterHasilKelas'); selKelas.innerHTML = '<option value="">Pilih Kelas</option>'; state.masterKelas.forEach(k => { selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; }); const selJadwal = document.getElementById('filterHasilJadwal'); selJadwal.innerHTML = '<option value="">Pilih Jadwal</option>'; state.masterJadwalUjian.forEach(j => { selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} - ${j.jenis}</option>`; }); window.renderTableHasilUjian(); } catch(e) { console.error(e); } };
+window.renderTableHasilUjian = () => { const kelasVal = document.getElementById('filterHasilKelas').value; const jadwalVal = document.getElementById('filterHasilJadwal').value; const tb = document.getElementById('tableHasilUjianBody'); tb.innerHTML = ''; if (!kelasVal || !jadwalVal) return tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 bg-slate-50">Silakan pilih Kelas dan Jadwal terlebih dahulu untuk menampilkan data.</td></tr>'; let filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal); if (filteredResults.length === 0) return tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada data nilai yang masuk.</td></tr>'; filteredResults.forEach((r, i) => { tb.innerHTML += `<tr class="hover:bg-slate-50 transition border-b border-slate-100"><td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td><td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td><td class="p-3 border-r font-bold uppercase text-slate-800">${r.nama || '-'}</td><td class="p-3 border-r text-center font-bold text-slate-600">${r.kelas || '-'}</td><td class="p-3 border-r text-center text-green-600 font-bold">${r.benar || 0}</td><td class="p-3 border-r text-center text-red-600 font-bold">${r.salah || 0}</td><td class="p-3 border-r text-center font-black text-blue-700 text-lg">${r.skor || 0}</td><td class="p-3 text-center"><button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold transition w-full">🔍 Detail</button></td></tr>`; }); };
+
 window.loadStatusSiswa = async () => { try { if(state.masterJadwalUjian.length === 0) { const s1 = await getDocs(collection(db, 'master_jadwal_ujian')); state.masterJadwalUjian = []; s1.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); } if(state.masterRuangUjian.length === 0) { const s2 = await getDocs(collection(db, 'master_ruang_ujian')); state.masterRuangUjian = []; s2.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()})); } if(state.masterSesiUjian.length === 0) { const s3 = await getDocs(collection(db, 'master_sesi_ujian')); state.masterSesiUjian = []; s3.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()})); } if(state.masterSiswa.length === 0) { const s4 = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; s4.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()})); } const snapToken = await getDoc(doc(db, 'settings', 'token_ujian')); if(snapToken.exists()) { state.tokenConfig = snapToken.data(); } document.getElementById('displayTokenStatusSiswa').innerText = state.tokenConfig.currentToken || '------'; const selJadwal = document.getElementById('filterStatusJadwal'); selJadwal.innerHTML = '<option value="">Pilih Jadwal Aktif</option>'; state.masterJadwalUjian.filter(j => j.isActive).forEach(j => { selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} (${j.jenis})</option>`; }); const selRuang = document.getElementById('filterStatusRuang'); selRuang.innerHTML = '<option value="">Semua Ruang</option>'; state.masterRuangUjian.forEach(r => { selRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`; }); const selSesi = document.getElementById('filterStatusSesi'); selSesi.innerHTML = '<option value="">Semua Sesi</option>'; state.masterSesiUjian.forEach(s => { selSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`; }); window.renderTableStatusSiswa(); } catch(e) { console.error(e); } };
 window.renderTableStatusSiswa = () => { const ruangVal = document.getElementById('filterStatusRuang').value; const sesiVal = document.getElementById('filterStatusSesi').value; const tb = document.getElementById('tableStatusSiswaBody'); tb.innerHTML = ''; let filteredSiswa = [...state.masterSiswa]; if(ruangVal) filteredSiswa = filteredSiswa.filter(s => s.ruang === ruangVal); if(sesiVal) filteredSiswa = filteredSiswa.filter(s => s.sesi === sesiVal); filteredSiswa.sort((a,b) => (a.nama||'').localeCompare(b.nama||'')); if(filteredSiswa.length === 0) return tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa yang terdaftar di ruang/sesi tersebut.</td></tr>'; filteredSiswa.forEach((s, i) => { const isOnline = false; const statusBadge = isOnline ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Mengerjakan</span>` : `<span class="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Offline</span>`; tb.innerHTML += `<tr class="hover:bg-slate-50 transition border-b border-slate-100"><td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td><td class="p-3 border-r text-center font-mono font-bold text-blue-700">${s.nis || s.nisn}</td><td class="p-3 border-r font-bold text-slate-800 uppercase">${s.nama}</td><td class="p-3 border-r text-center font-bold text-slate-600">${s.kelas || '-'}</td><td class="p-3 border-r text-center">${statusBadge}</td><td class="p-3 text-center"><button onclick="resetLoginSiswa('${s.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-xs font-bold transition w-full">Reset Login</button></td></tr>`; }); };
 window.resetLoginSiswa = (id) => { alert("Instruksi Reset Login telah dikirim. Siswa kini bisa melakukan login kembali dari perangkat lain."); };
