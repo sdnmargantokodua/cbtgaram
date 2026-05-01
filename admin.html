@@ -25,10 +25,23 @@
             <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
             <h2 class="text-2xl font-bold text-slate-800">Login Admin GARAM</h2>
             <p class="text-slate-500 text-sm mt-2 mb-6">UPTD SDN MARGANTOKO 2</p>
-            <form onsubmit="handleLogin(event)">
-                <div class="mb-4 text-left"><label class="block text-sm font-bold text-slate-700 mb-1">PIN Admin</label><input type="password" id="inputPinAdmin" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-center text-xl tracking-widest" placeholder="••••••••"><p id="loginError" class="text-red-500 text-xs font-bold mt-2 hidden">PIN Salah!</p></div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200">Masuk</button>
-            </form>
+            <!-- PASTE KODE BARU INI -->
+<form onsubmit="handleLogin(event)">
+    <div class="mb-4 text-left">
+        <label class="block text-sm font-bold text-slate-700 mb-1">Username</label>
+        <input type="text" id="adminUsername" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-center text-lg tracking-wide" placeholder="Ketik username">
+    </div>
+    
+    <div class="mb-6 text-left">
+        <label class="block text-sm font-bold text-slate-700 mb-1">Sandi</label>
+        <input type="password" id="adminPassword" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-center text-xl tracking-widest" placeholder="••••••••">
+        <p id="loginError" class="text-red-500 text-xs font-bold mt-2 hidden">Username atau Sandi Salah!</p>
+    </div>
+
+    <button type="submit" id="btnMasukAdmin" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-200">
+        Masuk
+    </button>
+</form>
         </div>
     </div>
 
