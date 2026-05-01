@@ -932,3 +932,128 @@ window.hapusSiswa = async (id) => {
         }
     }
 };
+
+// ==========================================
+// DATA JENIS UJIAN
+// ==========================================
+window.loadJenisUjian = async () => {
+    try {
+        const snap = await getDocs(collection(db, 'master_jenis_ujian'));
+        state.masterJenisUjian = [];
+        snap.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()}));
+
+        // Generate data default jika database benar-benar kosong
+        if(state.masterJenisUjian.length === 0) {
+            const defaultJenis = [
+                { nama: 'Penilaian Harian', kode: 'PH', noUrut: 1 },
+                { nama: 'Penilaian Tengah Semester', kode: 'PTS', noUrut: 2 },
+                { nama: 'Penilaian Akhir Semester', kode: 'PAS', noUrut: 3 },
+                { nama: 'Penilaian Akhir Tahun', kode: 'PAT', noUrut: 4 },
+                { nama: 'Ujian Sekolah Berbasis Komputer', kode: 'USBK', noUrut: 5 },
+                { nama: 'Try Out', kode: 'TO', noUrut: 6 },
+                { nama: 'Simulasi', kode: 'SIML', noUrut: 7 }
+            ];
+            
+            for (const j of defaultJenis) {
+                const docRef = await addDoc(collection(db, 'master_jenis_ujian'), j);
+                state.masterJenisUjian.push({ id: docRef.id, ...j });
+            }
+        }
+
+        // Urutkan berdasarkan noUrut
+        state.masterJenisUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        window.renderTableJenisUjian();
+    } catch(e) {
+        console.error("Error load jenis ujian:", e);
+    }
+};
+
+window.renderTableJenisUjian = () => {
+    const tb = document.getElementById('tableJenisUjianBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+
+    if (state.masterJenisUjian.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data Jenis Ujian.</td></tr>';
+        return;
+    }
+
+    state.masterJenisUjian.forEach((ju, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r font-bold text-slate-800 uppercase">${ju.nama || '-'}</td>
+                <td class="p-3 border-r text-center font-mono font-bold text-blue-700">${ju.kode || '-'}</td>
+                <td class="p-3 text-center space-x-2">
+                    <button onclick="editJenisUjian('${ju.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusJenisUjian('${ju.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded shadow-sm text-xs transition">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalJenisUjian = () => {
+    document.getElementById('jenisUjianId').value = '';
+    document.getElementById('inputNamaJenisUjian').value = '';
+    document.getElementById('inputKodeJenisUjian').value = '';
+    document.getElementById('modalJenisUjian').classList.remove('hidden');
+};
+
+window.simpanJenisUjian = async () => {
+    const id = document.getElementById('jenisUjianId').value;
+    const nama = document.getElementById('inputNamaJenisUjian').value.trim();
+    const kode = document.getElementById('inputKodeJenisUjian').value.trim().toUpperCase();
+
+    if(!nama || !kode) {
+        return alert("Nama dan Kode Jenis Ujian wajib diisi!");
+    }
+
+    const btn = document.querySelector("#modalJenisUjian button.bg-blue-600");
+    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
+
+    const data = { 
+        nama, 
+        kode, 
+        noUrut: id ? (state.masterJenisUjian.find(x => x.id === id)?.noUrut || state.masterJenisUjian.length + 1) : state.masterJenisUjian.length + 1 
+    };
+
+    try {
+        if(id) {
+            await updateDoc(doc(db, 'master_jenis_ujian', id), data);
+        } else {
+            await addDoc(collection(db, 'master_jenis_ujian'), data);
+        }
+        closeModal('modalJenisUjian');
+        alert("Data Jenis Ujian berhasil disimpan!");
+        loadJenisUjian(); // Muat ulang tabel
+    } catch(e) {
+        console.error(e);
+        alert("Gagal menyimpan data.");
+    } finally {
+        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+    }
+};
+
+window.editJenisUjian = (id) => {
+    const ju = state.masterJenisUjian.find(x => x.id === id);
+    if(!ju) return;
+
+    document.getElementById('jenisUjianId').value = ju.id;
+    document.getElementById('inputNamaJenisUjian').value = ju.nama || '';
+    document.getElementById('inputKodeJenisUjian').value = ju.kode || '';
+    document.getElementById('modalJenisUjian').classList.remove('hidden');
+};
+
+window.hapusJenisUjian = async (id) => {
+    if(confirm("Yakin ingin menghapus Jenis Ujian ini?")) {
+        try {
+            await deleteDoc(doc(db, 'master_jenis_ujian', id));
+            loadJenisUjian();
+        } catch(e) {
+            console.error(e);
+            alert("Gagal menghapus data.");
+        }
+    }
+};
