@@ -139,6 +139,131 @@ window.simpanPengumuman = async () => {
     }
 };
 
+// ==========================================
+// EDITOR BUTIR SOAL
+// ==========================================
+state.currentButirSoal = [];
+state.activeSoalId = null;
+
+// Ubah fungsi bukaSoalDetail yang tadinya alert menjadi ini:
+window.bukaSoalDetail = async (bankSoalId) => {
+    const bs = state.masterBankSoal.find(x => x.id === bankSoalId);
+    if(!bs) return;
+    
+    state.currentBankSoalId = bankSoalId;
+    document.getElementById('headerEditorSoal').innerText = `Editor Soal: ${bs.kode} - ${bs.mapel}`;
+    switchTab('viewEditorSoal', 'Editor Butir Soal');
+    
+    document.getElementById('panelFormSoal').classList.add('hidden'); // Sembunyikan form dulu
+    await loadDaftarButirSoal();
+};
+
+window.loadDaftarButirSoal = async () => {
+    try {
+        const snap = await getDocs(collection(db, `master_bank_soal/${state.currentBankSoalId}/butir_soal`));
+        state.currentButirSoal = [];
+        snap.forEach(d => state.currentButirSoal.push({ id: d.id, ...d.data() }));
+        
+        // Urutkan berdasarkan nomor urut pembuatannya
+        state.currentButirSoal.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        
+        const container = document.getElementById('listButirSoal');
+        container.innerHTML = '';
+        
+        if(state.currentButirSoal.length === 0) {
+            container.innerHTML = '<p class="text-xs text-slate-400 italic w-full text-center">Belum ada soal dibuat.</p>';
+            return;
+        }
+
+        state.currentButirSoal.forEach((soal, i) => {
+            container.innerHTML += `
+                <button onclick="editButirSoal('${soal.id}', ${i+1})" class="w-10 h-10 flex items-center justify-center rounded border border-slate-300 font-bold text-slate-600 hover:bg-blue-100 hover:border-blue-400 hover:text-blue-700 transition ${state.activeSoalId === soal.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50'}">
+                    ${i+1}
+                </button>
+            `;
+        });
+    } catch(e) { console.error(e); }
+};
+
+window.tambahButirSoalBaru = () => {
+    state.activeSoalId = null;
+    document.getElementById('panelFormSoal').classList.remove('hidden');
+    document.getElementById('labelNomorSoal').innerText = `Soal Baru (No. ${state.currentButirSoal.length + 1})`;
+    
+    // Reset Form
+    document.getElementById('editorTipeSoal').value = 'PG';
+    document.getElementById('editorPertanyaan').value = '';
+    ['A','B','C','D','E'].forEach(o => document.getElementById('opsi'+o).value = '');
+    document.getElementById('editorKunci').value = '';
+    
+    loadDaftarButirSoal(); // Untuk mereset highlight tombol
+};
+
+window.editButirSoal = (id, noIndex) => {
+    state.activeSoalId = id;
+    const soal = state.currentButirSoal.find(x => x.id === id);
+    if(!soal) return;
+
+    document.getElementById('panelFormSoal').classList.remove('hidden');
+    document.getElementById('labelNomorSoal').innerText = `Edit Soal No. ${noIndex}`;
+    
+    document.getElementById('editorTipeSoal').value = soal.tipe || 'PG';
+    document.getElementById('editorPertanyaan').value = soal.pertanyaan || '';
+    
+    ['A','B','C','D','E'].forEach(o => {
+        document.getElementById('opsi'+o).value = soal.opsi ? (soal.opsi[o] || '') : '';
+    });
+    document.getElementById('editorKunci').value = soal.kunci || '';
+    
+    loadDaftarButirSoal(); // Highlight active button
+};
+
+window.simpanButirSoal = async () => {
+    const btn = document.getElementById('btnSimpanButir');
+    btn.disabled = true; btn.innerText = "Menyimpan...";
+
+    const data = {
+        tipe: document.getElementById('editorTipeSoal').value,
+        pertanyaan: document.getElementById('editorPertanyaan').value,
+        opsi: {
+            A: document.getElementById('opsiA').value,
+            B: document.getElementById('opsiB').value,
+            C: document.getElementById('opsiC').value,
+            D: document.getElementById('opsiD').value,
+            E: document.getElementById('opsiE').value
+        },
+        kunci: document.getElementById('editorKunci').value.toUpperCase(),
+        noUrut: state.activeSoalId ? state.currentButirSoal.find(x => x.id === state.activeSoalId).noUrut : state.currentButirSoal.length + 1
+    };
+
+    try {
+        const subColRef = collection(db, `master_bank_soal/${state.currentBankSoalId}/butir_soal`);
+        if(state.activeSoalId) {
+            await updateDoc(doc(subColRef, state.activeSoalId), data);
+        } else {
+            const newDoc = await addDoc(subColRef, data);
+            state.activeSoalId = newDoc.id;
+        }
+        await loadDaftarButirSoal();
+        alert("Soal berhasil disimpan!");
+    } catch(e) {
+        console.error(e); alert("Gagal menyimpan soal.");
+    } finally {
+        btn.disabled = false; btn.innerText = "💾 Simpan Soal";
+    }
+};
+
+window.hapusButirSoal = async () => {
+    if(!state.activeSoalId) return;
+    if(confirm("Yakin ingin menghapus soal ini?")) {
+        try {
+            await deleteDoc(doc(db, `master_bank_soal/${state.currentBankSoalId}/butir_soal`, state.activeSoalId));
+            state.activeSoalId = null;
+            document.getElementById('panelFormSoal').classList.add('hidden');
+            await loadDaftarButirSoal();
+        } catch(e) { console.error(e); }
+    }
+};
 
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
