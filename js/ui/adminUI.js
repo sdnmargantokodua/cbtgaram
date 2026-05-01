@@ -9,7 +9,6 @@ window.checkAdminSession = () => { if (sessionStorage.getItem('admin_logged_in')
 window.handleLogin = (e) => { e.preventDefault(); if (document.getElementById('inputPinAdmin').value === state.ADMIN_PIN) { sessionStorage.setItem('admin_logged_in', 'true'); checkAdminSession(); } else { document.getElementById('loginError').classList.remove('hidden'); } };
 window.logoutAdmin = () => { sessionStorage.removeItem('admin_logged_in'); location.reload(); };
 window.switchTab = (id, title) => { document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.menu-btn').forEach(btn => btn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"); document.getElementById(id).classList.remove('hidden'); document.getElementById('btn-' + id).className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/50"; document.getElementById('pageTitle').innerText = title; if (window.innerWidth < 768) toggleSidebar(); 
-    // Trigger spesifik jika tab tertentu diklik
     if(id === 'viewBersihkan') window.loadBersihkan();
 };
 window.toggleSidebar = () => { const s = document.getElementById('sidebar'); s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); };
@@ -17,42 +16,98 @@ window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
 
 // ==========================================
-// PENGATURAN: BERSIHKAN DATA & BACKUP (BARU)
+// PENGATURAN: USER MANAGEMENT (BARU)
 // ==========================================
-window.loadBersihkan = async () => {
+window.loadUserManagement = async () => {
     try {
-        // Menghitung data dari Firestore untuk ditampilkan di tabel "Hapus Data"
-        const cols = [
-            { id: 'count_bs', name: 'master_bank_soal' },
-            { id: 'count_jdw', name: 'master_jadwal_ujian' },
-            { id: 'count_nl', name: 'exam_results' },
-            { id: 'count_ss', name: 'master_sesi_ujian' },
-            { id: 'count_guru', name: 'master_guru' },
-            { id: 'count_jrs', name: 'master_jurusan' },
-            { id: 'count_kls', name: 'master_kelas' },
-            { id: 'count_mapel', name: 'master_subjects' },
-            { id: 'count_siswa', name: 'master_siswa' }
-        ];
+        // Load data Guru
+        const snapGuru = await getDocs(collection(db, 'master_guru'));
+        state.masterGuru = [];
+        snapGuru.forEach(d => state.masterGuru.push({id: d.id, ...d.data()}));
+        state.masterGuru.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
 
-        for (const c of cols) {
-            const el = document.getElementById(c.id);
-            if (el) {
-                el.innerText = '...';
-                // Jika data sudah ada di memory (state), gunakan itu untuk efisiensi
-                let count = 0;
-                if(c.name === 'master_siswa' && state.masterSiswa.length > 0) count = state.masterSiswa.length;
-                else if(c.name === 'master_guru' && state.masterGuru.length > 0) count = state.masterGuru.length;
-                else if(c.name === 'master_kelas' && state.masterKelas.length > 0) count = state.masterKelas.length;
-                else {
-                    // Fetch langsung ke DB untuk kolom lain
-                    const snap = await getDocs(collection(db, c.name));
-                    count = snap.size;
-                }
-                el.innerText = count;
-            }
-        }
-    } catch (e) {
-        console.error("Error menghitung data:", e);
+        // Load data Siswa
+        const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+        state.masterSiswa = [];
+        snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        state.masterSiswa.sort((a,b) => {
+            if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
+            return (a.kelas || '').localeCompare(b.kelas || '');
+        });
+
+        window.renderTableUserGuru();
+        window.renderTableUserSiswa();
+    } catch(e) {
+        console.error("Error load user management:", e);
+    }
+};
+
+window.renderTableUserGuru = () => {
+    const tb = document.getElementById('tableUserGuruBody');
+    tb.innerHTML = '';
+    
+    if(state.masterGuru.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Data Guru Kosong.</td></tr>';
+        return;
+    }
+
+    state.masterGuru.forEach((g, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r text-slate-800 uppercase font-medium">${g.nama || '-'}</td>
+                <td class="p-3 border-r text-center text-slate-800 font-mono">${g.username || '-'}</td>
+                <td class="p-3 border-r text-center text-slate-600 font-mono text-sm">${g.password || '-'}</td>
+                <td class="p-3 border-r text-center"><button onclick="alert('Reset login untuk ${g.nama} berhasil.')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded transition shadow-sm" title="Reset Login Session">🔄</button></td>
+                <td class="p-3 text-center"><button onclick="toggleStatusUser('master_guru', '${g.id}', ${g.isActive})" class="${g.isActive !== false ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'} text-white px-3 py-1 rounded transition shadow-sm" title="${g.isActive !== false ? 'Nonaktifkan' : 'Aktifkan'}">${g.isActive !== false ? '🚫' : '✔️'}</button></td>
+            </tr>
+        `;
+    });
+};
+
+window.renderTableUserSiswa = () => {
+    const tb = document.getElementById('tableUserSiswaBody');
+    tb.innerHTML = '';
+    
+    if(state.masterSiswa.length === 0) {
+        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 italic">Data Siswa Kosong.</td></tr>';
+        return;
+    }
+
+    state.masterSiswa.forEach((s, i) => {
+        const avatar = s.jk === 'P' ? '👩' : '👦';
+        const badgeStatus = s.isActive !== false 
+            ? `<div class="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded cursor-pointer transition shadow-sm text-center" title="Nonaktifkan" onclick="toggleStatusUser('master_siswa', '${s.id}', true)"><span class="block text-[8px] uppercase mb-0.5 leading-none">Aktif</span>🚫</div>`
+            : `<div class="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded cursor-pointer transition shadow-sm text-center" title="Aktifkan" onclick="toggleStatusUser('master_siswa', '${s.id}', false)"><span class="block text-[8px] uppercase mb-0.5 leading-none">Nonaktif</span>👤+</div>`;
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r text-center font-mono text-slate-600 tracking-wider">${s.nis || s.nisn || '-'}</td>
+                <td class="p-3 border-r">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-slate-200 rounded-full flex justify-center items-center text-lg">${avatar}</div>
+                        <span class="text-slate-800 font-medium">${s.nama || '-'}</span>
+                    </div>
+                </td>
+                <td class="p-3 border-r text-center font-bold text-slate-700">${s.kelas || '-'}</td>
+                <td class="p-3 border-r text-center font-mono text-slate-800">${s.username || '-'}</td>
+                <td class="p-3 border-r text-center font-mono text-sm text-slate-600">${s.password || '-'}</td>
+                <td class="p-3 border-r text-center"><button onclick="alert('Reset login untuk ${s.nama} berhasil.')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded transition shadow-sm" title="Reset Login Session">🔄</button></td>
+                <td class="p-2 text-center w-16">${badgeStatus}</td>
+            </tr>
+        `;
+    });
+};
+
+window.toggleStatusUser = async (collectionName, id, currentStatus) => {
+    try {
+        const newStatus = !currentStatus;
+        await updateDoc(doc(db, collectionName, id), { isActive: newStatus });
+        window.loadUserManagement(); // Reload to reflect changes
+    } catch(e) {
+        console.error("Gagal mengubah status user:", e);
+        alert("Gagal mengubah status user.");
     }
 };
 
@@ -60,6 +115,8 @@ window.loadBersihkan = async () => {
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
+window.loadBersihkan = async () => { try { const cols = [ { id: 'count_bs', name: 'master_bank_soal' }, { id: 'count_jdw', name: 'master_jadwal_ujian' }, { id: 'count_nl', name: 'exam_results' }, { id: 'count_ss', name: 'master_sesi_ujian' }, { id: 'count_guru', name: 'master_guru' }, { id: 'count_jrs', name: 'master_jurusan' }, { id: 'count_kls', name: 'master_kelas' }, { id: 'count_mapel', name: 'master_subjects' }, { id: 'count_siswa', name: 'master_siswa' } ]; for (const c of cols) { const el = document.getElementById(c.id); if (el) { el.innerText = '...'; let count = 0; if(c.name === 'master_siswa' && state.masterSiswa.length > 0) count = state.masterSiswa.length; else if(c.name === 'master_guru' && state.masterGuru.length > 0) count = state.masterGuru.length; else if(c.name === 'master_kelas' && state.masterKelas.length > 0) count = state.masterKelas.length; else { const snap = await getDocs(collection(db, c.name)); count = snap.size; } el.innerText = count; } } } catch (e) { console.error(e); } };
+
 window.loadRekapNilai = async () => { try { if(!state.academicConfig || !state.academicConfig.years) { const snapConfig = await getDoc(doc(db, 'settings', 'academic_config')); if(snapConfig.exists()) { state.academicConfig = snapConfig.data(); } else { state.academicConfig = { years: [], activeSemester: 'Ganjil' }; } } if(state.masterJadwalUjian.length === 0) { const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian')); state.masterJadwalUjian = []; snapJadwal.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); } window.renderRekapNilai(); } catch(e) { console.error(e); } };
 window.renderRekapNilai = () => { const container = document.getElementById('containerRekapNilai'); let activeYear = "2025/2026"; let activeSmt = "Ganjil"; if(state.academicConfig && state.academicConfig.years) { const y = state.academicConfig.years.find(x => x.isActive); if(y) activeYear = y.name; } if(state.academicConfig && state.academicConfig.activeSemester) { activeSmt = state.academicConfig.activeSemester; } const hasJadwal = state.masterJadwalUjian && state.masterJadwalUjian.length > 0; if(!hasJadwal) { container.innerHTML = `<div class="bg-amber-100/80 border border-amber-200 text-amber-800 p-4 rounded shadow-sm text-sm">Belum ada jadwal penilaian untuk Tahun Pelajaran <b>${activeYear}</b> Semester: <b>${activeSmt}</b></div>`; } else { container.innerHTML = `<div class="bg-amber-100/80 border border-amber-200 text-amber-800 p-4 rounded shadow-sm text-sm mb-4">Menampilkan rekapitulasi penilaian untuk Tahun Pelajaran <b>${activeYear}</b> Semester: <b>${activeSmt}</b></div><div class="overflow-x-auto"><table class="w-full text-left border-collapse border border-slate-200"><thead class="bg-blue-600 text-white text-sm"><tr><th class="p-3 text-center w-16 border border-blue-500 font-medium">No.</th><th class="p-3 border border-blue-500 font-medium">Jadwal Penilaian</th><th class="p-3 border border-blue-500 text-center font-medium">Jumlah Peserta</th><th class="p-3 border border-blue-500 text-center font-medium">Sudah Mengerjakan</th><th class="p-3 border border-blue-500 text-center font-medium">Aksi</th></tr></thead><tbody class="divide-y divide-slate-200 text-sm bg-white"><tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Data rekapitulasi per ujian sedang dihitung...</td></tr></tbody></table></div>`; } };
 
