@@ -1718,3 +1718,66 @@ window.generateNomorPeserta = async () => {
         }
     }
 };
+
+// ==========================================
+// PENGATURAN TOKEN UJIAN
+// ==========================================
+window.loadToken = async () => {
+    try {
+        const snap = await getDoc(doc(db, 'settings', 'token_ujian'));
+        if(snap.exists()) {
+            state.tokenConfig = snap.data();
+        } else {
+            // Inisialisasi default jika belum ada di database
+            state.tokenConfig = { currentToken: '------', isAuto: false, interval: 60 };
+            await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig);
+        }
+        window.renderTokenUI();
+    } catch(e) {
+        console.error("Error load token:", e);
+    }
+};
+
+window.renderTokenUI = () => {
+    if (!document.getElementById('tokenOtomatis')) return;
+    
+    document.getElementById('tokenOtomatis').value = state.tokenConfig.isAuto ? 'YA' : 'TIDAK';
+    document.getElementById('tokenInterval').value = state.tokenConfig.interval || 60;
+    document.getElementById('displayTokenSaatIni').innerText = state.tokenConfig.currentToken || '------';
+};
+
+window.generateNewToken = async () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let newToken = '';
+    for (let i = 0; i < 6; i++) {
+        newToken += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    try {
+        state.tokenConfig.currentToken = newToken;
+        await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig);
+        window.renderTokenUI();
+        alert(`Token baru berhasil dibuat: ${newToken}`);
+        
+        // Update tampilan dashboard jika diperlukan
+        if(typeof loadDashboard === 'function') loadDashboard();
+    } catch(e) {
+        console.error("Gagal generate token:", e);
+        alert("Terjadi kesalahan saat memperbarui token.");
+    }
+};
+
+window.simpanTokenSettings = async () => {
+    const isAuto = document.getElementById('tokenOtomatis').value === 'YA';
+    const interval = parseInt(document.getElementById('tokenInterval').value) || 60;
+
+    try {
+        state.tokenConfig.isAuto = isAuto;
+        state.tokenConfig.interval = interval;
+        await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig);
+        alert("Pengaturan token berhasil disimpan!");
+    } catch(e) {
+        console.error("Gagal simpan setting token:", e);
+        alert("Gagal menyimpan pengaturan.");
+    }
+};
