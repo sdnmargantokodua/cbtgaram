@@ -3307,3 +3307,112 @@ setTimeout(() => {
         btnProsesBackup.onclick = window.backupSemuaData;
     }
 }, 1000);
+
+// ==========================================
+// PROFIL SEKOLAH & KOP SURAT
+// ==========================================
+window.loadProfil = async () => {
+    try {
+        const snap = await getDoc(doc(db, 'settings', 'profil_sekolah'));
+        if(snap.exists()) {
+            const d = snap.data();
+            
+            // Fungsi helper untuk mengisi nilai input dengan aman
+            const setVal = (id, val) => { 
+                const el = document.getElementById(id);
+                if(el) el.value = val || ''; 
+            };
+            
+            setVal('profAplikasi', d.aplikasi);
+            setVal('profNpsn', d.npsn);
+            setVal('profSekolah', d.sekolah);
+            setVal('profNss', d.nss);
+            setVal('profWebsite', d.website);
+            setVal('profJenjang', d.jenjang);
+            setVal('profAlamat', d.alamat);
+            setVal('profDesa', d.desa);
+            setVal('profEmail', d.email);
+            setVal('profFaksimili', d.faksimili);
+            setVal('profKabupaten', d.kabupaten);
+            setVal('profKodePos', d.kodePos);
+            setVal('profKepsek', d.kepsek);
+            setVal('profKecamatan', d.kecamatan);
+            setVal('profNipKepsek', d.nipKepsek);
+            setVal('profSatPend', d.satPend);
+            setVal('profProvinsi', d.provinsi);
+            setVal('profTelepon', d.telepon);
+
+            // Set data gambar base64 ke input hidden
+            if(d.logoKiri) document.getElementById('logoKiriBase64').value = d.logoKiri;
+            if(d.logoKanan) document.getElementById('logoKananBase64').value = d.logoKanan;
+            
+            // Trigger pembaruan pratinjau (preview) di HTML
+            if(window.updatePreviewKop) window.updatePreviewKop();
+        }
+    } catch(e) { 
+        console.error("Error memuat profil:", e); 
+    }
+};
+
+window.simpanProfil = async () => {
+    const btn = document.getElementById('btnSimpanProfil');
+    if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
+
+    const data = {
+        aplikasi: document.getElementById('profAplikasi').value,
+        npsn: document.getElementById('profNpsn').value,
+        sekolah: document.getElementById('profSekolah').value,
+        nss: document.getElementById('profNss').value,
+        website: document.getElementById('profWebsite').value,
+        jenjang: document.getElementById('profJenjang').value,
+        alamat: document.getElementById('profAlamat').value,
+        desa: document.getElementById('profDesa').value,
+        email: document.getElementById('profEmail').value,
+        faksimili: document.getElementById('profFaksimili').value,
+        kabupaten: document.getElementById('profKabupaten').value,
+        kodePos: document.getElementById('profKodePos').value,
+        kepsek: document.getElementById('profKepsek').value,
+        kecamatan: document.getElementById('profKecamatan').value,
+        nipKepsek: document.getElementById('profNipKepsek').value,
+        satPend: document.getElementById('profSatPend').value,
+        provinsi: document.getElementById('profProvinsi').value,
+        telepon: document.getElementById('profTelepon').value,
+        logoKiri: document.getElementById('logoKiriBase64').value,
+        logoKanan: document.getElementById('logoKananBase64').value
+    };
+
+    try {
+        await setDoc(doc(db, 'settings', 'profil_sekolah'), data);
+        
+        // Perbarui data di state lokal agar modul Cetak Berkas ikut ter-update
+        state.schoolProfile = data; 
+        
+        alert("Profil Sekolah berhasil disimpan!");
+        if(window.updatePreviewKop) window.updatePreviewKop();
+    } catch(e) {
+        console.error(e);
+        alert("Gagal menyimpan Profil Sekolah.");
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan Profile"; }
+    }
+};
+
+// Fungsi untuk membaca file gambar yang di-upload dan mengubahnya jadi text Base64
+window.previewImage = (input, previewId, base64Id) => {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById(base64Id).value = e.target.result;
+            if(window.updatePreviewKop) window.updatePreviewKop();
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+};
+
+// Injection otomatis: Memastikan form Profil dimuat dari Firebase saat menu diklik
+setTimeout(() => {
+    const btnMenuProfil = document.getElementById('btn-viewProfil');
+    if (btnMenuProfil) {
+        btnMenuProfil.addEventListener('click', () => { window.loadProfil(); });
+    }
+}, 1000);
