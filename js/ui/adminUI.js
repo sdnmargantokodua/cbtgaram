@@ -468,7 +468,130 @@ window.hapusSiswa = async (id) => { if(confirm("Yakin hapus?")) { await deleteDo
 window.downloadFormatSiswa = () => { const headers = ['NO', 'NISN*', 'NIS*', 'NAMA SISWA*', 'JENIS KELAMIN\n(L/P) *', 'USERNAME*', 'PASSWORD*', 'KELAS AWAL *\n(gunakan nomor\n1-12)', 'TANGGAL DI TERIMA\nFORMAT (YYYY-MM-DD) CONTOH (2018-07-20)', 'SEKOLAH ASAL', 'TEMPAT LAHIR', 'TANGGAL LAHIR FORMAT\n(DD-MM-YYY) CONTOH (05-06-1990)', 'AGAMA ', 'NOMOR TELEPON', 'EMAIL', 'ANAK KE', 'STATUS DALAM KELUARGA\n1 = Anak Kandung\n2 = Anak Tiri\n 3 = Anak Angkat', 'ALAMAT', 'RT', 'RW', 'DESA/KELURAHAN', 'KECAMATAN', 'KABUPATEN/KOTA', 'PROVINSI', 'KODE POS', 'NAMA AYAH', 'TANGGAL LAHIR AYAH', 'PENDIDIKAN AYAH', 'PEKERJAAN AYAH', 'NOMOR TELEPON AYAH', 'ALAMAT AYAH', 'NAMA IBU', 'TANGGAL LAHIR IBU', 'PENDIDIKAN\nIBU', 'PEKERJAAN IBU', 'NOMOR TELEPON IBU', 'ALAMAT IBU', 'NAMA WALI', 'TANGGAL LAHIR WALI', 'PENDIDIKAN\nWALI', 'PEKERJAAN WALI', 'NOMOR TELEPON WALI', 'ALAMAT WALI']; let dataExport = []; if(state.masterSiswa.length === 0) { let dummy = {}; headers.forEach(h => dummy[h] = ''); dummy['NO'] = 1; dummy['NISN*'] = '001021022'; dummy['NIS*'] = '1022'; dummy['NAMA SISWA*'] = 'ADAM APSAR'; dummy['JENIS KELAMIN\n(L/P) *'] = 'L'; dummy['USERNAME*'] = 'adam'; dummy['PASSWORD*'] = '123456'; dummy['KELAS AWAL *\n(gunakan nomor\n1-12)'] = '5A'; dataExport.push(dummy); } else { state.masterSiswa.forEach((s, i) => { let row = {}; headers.forEach(h => row[h] = ''); row['NO'] = i+1; row['NISN*'] = s.nisn; row['NIS*'] = s.nis || ''; row['NAMA SISWA*'] = s.nama; row['JENIS KELAMIN\n(L/P) *'] = s.jk || 'L'; row['USERNAME*'] = s.username || s.nisn; row['PASSWORD*'] = s.password || s.nisn; row['KELAS AWAL *\n(gunakan nomor\n1-12)'] = s.kelas || ''; dataExport.push(row); }); } const ws = XLSX.utils.json_to_sheet(dataExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data_Siswa"); XLSX.writeFile(wb, "format_siswa.xlsx"); };
 window.prosesImportSiswa = async (e) => { const f = e.target.files[0]; if(!f) return; document.getElementById('loadingIndicator').classList.remove('hidden'); const r = new FileReader(); r.onload = async (evt) => { try { const d = new Uint8Array(evt.target.result); const wb = XLSX.read(d, {type:'array'}); const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); let success = 0; for (const row of json) { const nisn = row['NISN*'] || row['NISN']; const nama = row['NAMA SISWA*'] || row['NAMA SISWA'] || row['NAMA']; if (!nisn || !nama) continue; let nisnStr = String(nisn).trim(); let pwd = row['PASSWORD*'] || row['PASSWORD'] || nisnStr; const dataSimpan = { nisn: nisnStr, nis: String(row['NIS*'] || row['NIS'] || '').trim(), nama: String(nama).trim().toUpperCase(), jk: String(row['JENIS KELAMIN\n(L/P) *'] || row['JENIS KELAMIN'] || 'L').trim().toUpperCase().charAt(0), username: String(row['USERNAME*'] || row['USERNAME'] || nisnStr).trim(), password: String(pwd).trim(), kelas: String(row['KELAS AWAL *\n(gunakan nomor\n1-12)'] || row['KELAS AWAL'] || row['KELAS'] || '').trim().toUpperCase(), isActive: true }; const ex = state.masterSiswa.find(x => x.nisn === dataSimpan.nisn); if (ex && ex.id) { await updateDoc(doc(db, 'master_siswa', ex.id), dataSimpan); } else { await addDoc(collection(db, 'master_siswa'), dataSimpan); } success++; } alert(`Berhasil memproses ${success} data siswa dari Excel!`); } catch(err) { console.error("Error import excel guru:", err); alert("Terjadi kesalahan sistem. Pastikan format kolom sesuai dengan template."); } finally { document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('fileImportSiswa').value = ''; loadSiswa(); } }; r.readAsArrayBuffer(f); };
 
-window.loadTahunPelajaran = async () => { /* Logika dipertahankan */ };
+// ==========================================
+// TAHUN PELAJARAN & SEMESTER
+// ==========================================
+window.loadTahunPelajaran = async () => {
+    try {
+        const snap = await getDoc(doc(db, 'settings', 'academic_config'));
+        if(snap.exists()) {
+            state.academicConfig = snap.data();
+        } else {
+            // Default jika database masih kosong
+            state.academicConfig = { years: [{name: '2025/2026', isActive: true}], activeSemester: 'Ganjil' };
+            await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+        }
+        window.renderTahunPelajaran();
+    } catch(e) { console.error("Error load tahun pelajaran:", e); }
+};
+
+window.renderTahunPelajaran = () => {
+    const tbTahun = document.getElementById('tableTahunBody');
+    const tbSmt = document.getElementById('tableSemesterBody');
+    tbTahun.innerHTML = ''; 
+    tbSmt.innerHTML = '';
+    
+    // Render Tabel Tahun Pelajaran
+    if(state.academicConfig && state.academicConfig.years) {
+        // Urutkan tahun berdasarkan nama (opsional)
+        state.academicConfig.years.sort((a,b) => a.name.localeCompare(b.name));
+        
+        state.academicConfig.years.forEach((y, i) => {
+            const badge = y.isActive 
+                ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Aktif</span>` 
+                : `<button onclick="setTahunAktif('${y.name}')" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-slate-300 transition shadow-sm">Set Aktif</button>`;
+            
+            // Tahun yang aktif tidak boleh dihapus
+            const btnHapus = y.isActive 
+                ? `<span class="text-slate-300 text-xs italic">Digunakan</span>` 
+                : `<button onclick="hapusTahun('${y.name}')" class="text-red-500 hover:text-red-700 transition" title="Hapus">🗑️</button>`;
+            
+            tbTahun.innerHTML += `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                    <td class="p-3 text-center border-r text-slate-500 font-bold">${i+1}</td>
+                    <td class="p-3 border-r font-bold text-slate-800 text-center">${y.name}</td>
+                    <td class="p-3 border-r text-center">${badge}</td>
+                    <td class="p-3 text-center">${btnHapus}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // Render Tabel Semester
+    const smt = ['Ganjil', 'Genap'];
+    const activeSmt = state.academicConfig ? state.academicConfig.activeSemester : 'Ganjil';
+    smt.forEach((s, i) => {
+        const badge = s === activeSmt 
+            ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Aktif</span>` 
+            : `<button onclick="setSemesterAktif('${s}')" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-slate-300 transition shadow-sm">Set Aktif</button>`;
+        
+        tbSmt.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r text-slate-500 font-bold">${i+1}</td>
+                <td class="p-3 border-r font-bold text-slate-800 text-center">${s}</td>
+                <td class="p-3 text-center">${badge}</td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalTahun = () => {
+    document.getElementById('inputNamaTahun').value = '';
+    document.getElementById('inputNamaTahun').placeholder = 'Contoh: 2026/2027';
+    document.getElementById('modalTahunPelajaran').classList.remove('hidden');
+};
+
+window.simpanTahunPelajaran = async () => {
+    const nama = document.getElementById('inputNamaTahun').value.trim();
+    if(!nama) return alert('Nama tahun pelajaran wajib diisi! (Contoh: 2026/2027)');
+    
+    if(!state.academicConfig) state.academicConfig = { years: [], activeSemester: 'Ganjil' };
+    if(!state.academicConfig.years) state.academicConfig.years = [];
+    
+    if(state.academicConfig.years.find(x => x.name === nama)) return alert('Tahun pelajaran ini sudah ada di sistem!');
+    
+    state.academicConfig.years.push({ name: nama, isActive: false });
+    
+    try {
+        await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+        closeModal('modalTahunPelajaran');
+        window.renderTahunPelajaran(); // Refresh tabel secara langsung
+    } catch(e) { 
+        console.error(e); 
+        alert("Gagal menyimpan ke database Firebase."); 
+    }
+};
+
+window.setTahunAktif = async (nama) => {
+    state.academicConfig.years.forEach(y => {
+        y.isActive = (y.name === nama);
+    });
+    try {
+        await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+        window.renderTahunPelajaran();
+        alert(`Tahun Pelajaran ${nama} berhasil diset sebagai Aktif.`);
+    } catch(e) { console.error(e); }
+};
+
+window.setSemesterAktif = async (nama) => {
+    state.academicConfig.activeSemester = nama;
+    try {
+        await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+        window.renderTahunPelajaran();
+        alert(`Semester ${nama} berhasil diset sebagai Aktif.`);
+    } catch(e) { console.error(e); }
+};
+
+window.hapusTahun = async (nama) => {
+    if(!confirm(`Yakin ingin menghapus Tahun Pelajaran ${nama}? Data tidak bisa dikembalikan.`)) return;
+    
+    state.academicConfig.years = state.academicConfig.years.filter(x => x.name !== nama);
+    try {
+        await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+        window.renderTahunPelajaran();
+    } catch(e) { console.error(e); }
+};
+
 window.loadMataPelajaran = async () => { /* Logika dipertahankan */ };
 window.loadJurusan = async () => { /* Logika dipertahankan */ };
 window.changeSubject = () => { /* Logika dipertahankan */ };
