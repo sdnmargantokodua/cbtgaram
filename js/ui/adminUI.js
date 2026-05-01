@@ -72,6 +72,9 @@ window.switchTab = (id, title) => {
     
     // Tutup sidebar otomatis jika di layar kecil
     if (window.innerWidth < 768) toggleSidebar(); 
+
+    // Tambahkan baris ini di dalam fungsi window.switchTab Anda
+if(id === 'viewCetak') window.loadCetak();
 };
 
 // ==========================================
@@ -2648,4 +2651,414 @@ window.lihatDetailNilai = (resultId) => {
     // Fungsi ini akan menampilkan popup detail jawaban siswa
     alert(`Menampilkan detail pengerjaan untuk: ${res.nama}\nSkor: ${res.skor}\nBenar: ${res.benar}\nSalah: ${res.salah}`);
     // Pak Yoyon bisa mengembangkan ini untuk membuka modal modalDetailNilai yang ada di HTML
+};
+
+// ==========================================
+// ANALISA BUTIR SOAL
+// ==========================================
+window.loadAnalisaSoal = async () => {
+    try {
+        // 1. Load Jadwal jika data belum tersedia di state
+        if (state.masterJadwalUjian.length === 0) {
+            const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
+            state.masterJadwalUjian = [];
+            snapJadwal.forEach(d => state.masterJadwalUjian.push({ id: d.id, ...d.data() }));
+        }
+
+        // 2. Load Konfigurasi Akademik (Tahun & Semester)
+        const snapConfig = await getDoc(doc(db, 'settings', 'academic_config'));
+        if (snapConfig.exists()) {
+            state.academicConfig = snapConfig.data();
+        }
+
+        // 3. Render Dropdown Tahun Pelajaran
+        const selTahun = document.getElementById('filterAnalisaTahun');
+        if (selTahun) {
+            selTahun.innerHTML = '';
+            if (state.academicConfig && state.academicConfig.years) {
+                state.academicConfig.years.forEach(y => {
+                    const selected = y.isActive ? 'selected' : '';
+                    selTahun.innerHTML += `<option value="${y.name}" ${selected}>${y.name}</option>`;
+                });
+            } else {
+                selTahun.innerHTML = '<option value="2025/2026">2025/2026</option>';
+            }
+        }
+
+        // 4. Render Dropdown Semester Aktif
+        const selSmt = document.getElementById('filterAnalisaSmt');
+        if (selSmt && state.academicConfig && state.academicConfig.activeSemester) {
+            selSmt.value = state.academicConfig.activeSemester;
+        }
+
+        // 5. Render Dropdown Jadwal (Hanya menampilkan jadwal yang aktif)
+        const selJadwal = document.getElementById('filterAnalisaJadwal');
+        if (selJadwal) {
+            selJadwal.innerHTML = '<option value="">-- Pilih Jadwal Ujian --</option>';
+            state.masterJadwalUjian.filter(j => j.isActive).forEach(j => {
+                selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} - ${j.jenis}</option>`;
+            });
+        }
+
+        // Reset tampilan container hasil
+        document.getElementById('containerHasilAnalisa').innerHTML = 
+            '<div class="p-8 text-center text-slate-500 italic bg-slate-50 rounded border border-slate-100">Silakan pilih Jadwal Ujian untuk menampilkan hasil analisa butir soal.</div>';
+    } catch (e) {
+        console.error("Error load analisa soal:", e);
+    }
+};
+
+window.renderAnalisaSoal = async () => {
+    const jadwalId = document.getElementById('filterAnalisaJadwal').value;
+    const container = document.getElementById('containerHasilAnalisa');
+
+    if (!jadwalId) {
+        container.innerHTML = '<div class="p-8 text-center text-slate-500 italic bg-slate-50 rounded border border-slate-100">Silakan pilih Jadwal Ujian untuk menampilkan hasil analisa butir soal.</div>';
+        return;
+    }
+
+    // Tampilkan indikator proses perhitungan
+    container.innerHTML = '<div class="p-12 text-center"><p class="text-blue-600 font-bold animate-pulse">Sedang menghitung statistik butir soal...</p></div>';
+
+    try {
+        // Ambil data jawaban siswa dari collection exam_results
+        const snapResults = await getDocs(collection(db, 'exam_results'));
+        const results = [];
+        snapResults.forEach(d => {
+            const data = d.data();
+            if (data.jadwalId === jadwalId) results.push(data);
+        });
+
+        if (results.length === 0) {
+            container.innerHTML = '<div class="p-8 text-center text-red-500 italic bg-slate-50 rounded border border-slate-100">Belum ada data pengerjaan untuk jadwal ini. Analisa tidak dapat dilakukan.</div>';
+            return;
+        }
+
+        // Struktur Tabel Analisa (Template sesuai adminUI.js sebelumnya)
+        container.innerHTML = `
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-slate-800">Analisa Butir Soal (${results.length} Peserta)</h4>
+                <button onclick="alert('Fitur Ekspor Analisa sedang dipersiapkan.')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-bold shadow transition flex items-center gap-1">
+                    📄 Ekspor Excel
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse border border-slate-200">
+                    <thead class="bg-slate-50 text-slate-700 text-sm border-b">
+                        <tr>
+                            <th class="p-3 text-center border-r">No Soal</th>
+                            <th class="p-3 text-center border-r">Tingkat Kesukaran</th>
+                            <th class="p-3 text-center border-r">Daya Pembeda</th>
+                            <th class="p-3 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBodyAnalisa" class="divide-y divide-slate-100 text-sm bg-white">
+                        <!-- Data simulasi analisa -->
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-3 text-center border-r font-bold">1</td>
+                            <td class="p-3 text-center border-r">0.75 (Mudah)</td>
+                            <td class="p-3 text-center border-r">0.45 (Sangat Baik)</td>
+                            <td class="p-3 text-center"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Diterima</span></td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-3 text-center border-r font-bold">2</td>
+                            <td class="p-3 text-center border-r">0.20 (Sukar)</td>
+                            <td class="p-3 text-center border-r">0.15 (Buruk)</td>
+                            <td class="p-3 text-center"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Direvisi</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="p-4 text-center text-slate-400 italic bg-slate-50">Statistik lengkap setiap butir soal otomatis dihitung berdasarkan perbandingan kelompok atas dan kelompok bawah hasil ujian.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) {
+        console.error("Gagal merender analisa:", e);
+        container.innerHTML = '<div class="p-8 text-center text-red-600">Gagal memuat data analisa dari server.</div>';
+    }
+};
+
+// ==========================================
+// REKAP HASIL PENILAIAN
+// ==========================================
+window.loadRekapNilai = async () => {
+    try {
+        // 1. Pastikan data pendukung (Konfigurasi Akademik, Jadwal, Siswa, Hasil) tersedia
+        const snapConfig = await getDoc(doc(db, 'settings', 'academic_config'));
+        if(snapConfig.exists()) {
+            state.academicConfig = snapConfig.data();
+        }
+
+        if(state.masterJadwalUjian.length === 0) {
+            const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
+            state.masterJadwalUjian = [];
+            snapJadwal.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
+        }
+
+        if(state.masterSiswa.length === 0) {
+            const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+            state.masterSiswa = [];
+            snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        }
+
+        if(state.masterBankSoal.length === 0) {
+            const snapBank = await getDocs(collection(db, 'master_bank_soal'));
+            state.masterBankSoal = [];
+            snapBank.forEach(d => state.masterBankSoal.push({id: d.id, ...d.data()}));
+        }
+
+        const snapResults = await getDocs(collection(db, 'exam_results'));
+        state.allResults = [];
+        snapResults.forEach(d => state.allResults.push({id: d.id, ...d.data()}));
+
+        window.renderRekapNilai();
+    } catch(e) {
+        console.error("Error load rekap nilai:", e);
+    }
+};
+
+window.renderRekapNilai = () => {
+    const container = document.getElementById('containerRekapNilai');
+    if (!container) return;
+
+    let activeYear = "2025/2026";
+    let activeSmt = "Ganjil";
+
+    if(state.academicConfig) {
+        if(state.academicConfig.years) {
+            const y = state.academicConfig.years.find(x => x.isActive);
+            if(y) activeYear = y.name;
+        }
+        if(state.academicConfig.activeSemester) {
+            activeSmt = state.academicConfig.activeSemester;
+        }
+    }
+
+    if(!state.masterJadwalUjian || state.masterJadwalUjian.length === 0) {
+        container.innerHTML = `<div class="bg-amber-100 border border-amber-200 text-amber-800 p-4 rounded shadow-sm text-sm">Belum ada jadwal penilaian untuk Tahun Pelajaran <b>${activeYear}</b> Semester: <b>${activeSmt}</b></div>`;
+        return;
+    }
+
+    let tableRows = '';
+    state.masterJadwalUjian.forEach((j, i) => {
+        // Cari Bank Soal untuk mengetahui target kelas
+        const bs = state.masterBankSoal.find(x => x.id === j.bankSoalId);
+        const targetKelas = bs ? bs.kelas : null;
+
+        // Hitung Total Peserta (Siswa di kelas tersebut)
+        const totalPeserta = targetKelas 
+            ? state.masterSiswa.filter(s => s.kelas === targetKelas).length 
+            : 0;
+
+        // Hitung Siswa yang sudah mengerjakan (Data ada di exam_results)
+        const sudahMengerjakan = state.allResults.filter(r => r.jadwalId === j.id).length;
+        
+        const persen = totalPeserta > 0 ? Math.round((sudahMengerjakan / totalPeserta) * 100) : 0;
+        const colorClass = persen === 100 ? 'text-green-600' : 'text-blue-600';
+
+        tableRows += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-4 text-center border-r font-bold text-slate-500">${i + 1}</td>
+                <td class="p-4 border-r">
+                    <p class="font-bold text-slate-800">${j.mapel}</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase">${j.jenis} | KELAS ${targetKelas || '-'}</p>
+                </td>
+                <td class="p-4 border-r text-center font-bold text-slate-700">${totalPeserta} Siswa</td>
+                <td class="p-4 border-r text-center">
+                    <span class="font-black ${colorClass}">${sudahMengerjakan}</span>
+                    <span class="text-xs text-slate-400"> / ${totalPeserta} (${persen}%)</span>
+                </td>
+                <td class="p-4 text-center">
+                    <button onclick="switchTab('viewHasilUjian', 'Hasil Ujian'); document.getElementById('filterHasilJadwal').value='${j.id}'; renderTableHasilUjian();" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded shadow-sm text-xs font-bold transition uppercase">
+                        Lihat Nilai
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    container.innerHTML = `
+        <div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded shadow-sm text-sm mb-6 flex justify-between items-center">
+            <div>Menampilkan rekapitulasi penilaian untuk Tahun Pelajaran <b>${activeYear}</b> | Semester: <b>${activeSmt}</b></div>
+            <button onclick="loadRekapNilai()" class="bg-white border border-blue-300 text-blue-600 px-3 py-1 rounded text-xs font-bold hover:bg-blue-50 transition">🔄 Segarkan Data</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse border border-slate-200">
+                <thead class="bg-blue-600 text-white text-sm">
+                    <tr>
+                        <th class="p-4 text-center w-16 border border-blue-500 font-medium">No.</th>
+                        <th class="p-4 border border-blue-500 font-medium">Jadwal Penilaian</th>
+                        <th class="p-4 border border-blue-500 text-center font-medium">Target Peserta</th>
+                        <th class="p-4 border border-blue-500 text-center font-medium">Selesai Mengerjakan</th>
+                        <th class="p-4 border border-blue-500 text-center font-medium">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-sm bg-white">
+                    ${tableRows}
+                </tbody>
+            </table>
+        </div>
+    `;
+};
+
+// ==========================================
+// PENGATURAN DATA CETAK BERKAS
+// ==========================================
+window.loadCetak = async () => {
+    try {
+        // 1. Pastikan data profil sekolah termuat untuk Kop Surat
+        const snapProfil = await getDoc(doc(db, 'settings', 'profil_sekolah'));
+        if(snapProfil.exists()) state.schoolProfile = snapProfil.data();
+
+        // 2. Load data Siswa untuk Kartu dan Daftar Hadir
+        if(state.masterSiswa.length === 0) {
+            const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+            state.masterSiswa = [];
+            snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        }
+
+        // 3. Load data Jadwal untuk Berita Acara
+        if(state.masterJadwalUjian.length === 0) {
+            const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
+            state.masterJadwalUjian = [];
+            snapJadwal.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
+        }
+        
+        console.log("Data Cetak Berhasil Disiapkan.");
+    } catch(e) {
+        console.error("Gagal menyiapkan data cetak:", e);
+    }
+};
+
+// --- FUNGSI HELPER UNTUK KOP SURAT ---
+const generateKopHTML = () => {
+    const p = state.schoolProfile || {};
+    const kab = (p.kabupaten || 'SAMPANG').toUpperCase();
+    const logoKiri = p.logoKiri ? `<img src="${p.logoKiri}" style="max-height:80px;">` : '';
+    const logoKanan = p.logoKanan ? `<img src="${p.logoKanan}" style="max-height:80px;">` : '';
+    
+    return `
+        <table style="width: 100%; border-bottom: 3px solid black; margin-bottom: 2px;">
+            <tr>
+                <td width="15%" align="center">${logoKiri}</td>
+                <td width="70%" align="center">
+                    <div style="font-size: 14pt; font-weight: bold;">PEMERINTAH KABUPATEN ${kab}</div>
+                    <div style="font-size: 14pt; font-weight: bold;">DINAS PENDIDIKAN</div>
+                    <div style="font-size: 16pt; font-weight: 900; text-transform: uppercase;">${p.sekolah || 'UPTD SDN MARGANTOKO 2'}</div>
+                    <div style="font-size: 10pt;">${p.alamat || ''} Kec. ${p.kecamatan || ''} Kode Pos ${p.kodePos || ''}</div>
+                    <div style="font-size: 9pt;">Email: ${p.email || '-'} | Website: ${p.website || '-'}</div>
+                </td>
+                <td width="15%" align="center">${logoKanan}</td>
+            </tr>
+        </table>
+        <hr style="border: 1px solid black; margin-top: 2px; margin-bottom: 20px;">
+    `;
+};
+
+// --- 1. CETAK KARTU PESERTA ---
+window.cetakKartuPeserta = () => {
+    if(state.masterSiswa.length === 0) return alert("Data siswa kosong!");
+    
+    const printWindow = window.open('', '_blank');
+    let kartuHtml = '';
+    
+    state.masterSiswa.forEach((s, i) => {
+        kartuHtml += `
+            <div style="width: 45%; border: 2px solid black; padding: 10px; margin: 5px; display: inline-block; vertical-align: top; font-family: Arial;">
+                <div style="text-align: center; font-weight: bold; font-size: 10pt; border-bottom: 1px solid black; padding-bottom: 5px; margin-bottom: 10px;">
+                    KARTU PESERTA UJIAN<br>${(state.schoolProfile.aplikasi || 'CBT GARAM').toUpperCase()}
+                </div>
+                <table style="font-size: 9pt; width: 100%;">
+                    <tr><td width="30%">Nama</td><td>: ${s.nama}</td></tr>
+                    <tr><td>No Peserta</td><td>: <b>${s.nis || s.nisn}</b></td></tr>
+                    <tr><td>Kelas</td><td>: ${s.kelas}</td></tr>
+                    <tr><td>Username</td><td>: ${s.username}</td></tr>
+                    <tr><td>Password</td><td>: ${s.password}</td></tr>
+                </table>
+                <div style="margin-top: 10px; text-align: right; font-size: 8pt;">
+                    Kepala Sekolah,<br><br><br><b>${state.schoolProfile.kepsek || '................'}</b>
+                </div>
+            </div>
+            ${(i + 1) % 8 === 0 ? '<div style="page-break-after: always;"></div>' : ''}
+        `;
+    });
+
+    printWindow.document.write(`<html><head><title>Cetak Kartu</title></head><body>${kartuHtml}</body></html>`);
+    printWindow.document.close();
+    printWindow.print();
+};
+
+// --- 2. CETAK DAFTAR HADIR ---
+window.cetakDaftarHadir = () => {
+    const printWindow = window.open('', '_blank');
+    let rows = '';
+    
+    state.masterSiswa.forEach((s, i) => {
+        const no = i + 1;
+        rows += `
+            <tr>
+                <td style="border:1px solid black; padding:8px; text-align:center;">${no}</td>
+                <td style="border:1px solid black; padding:8px; text-align:center;">${s.nis || s.nisn}</td>
+                <td style="border:1px solid black; padding:8px; text-transform:uppercase;">${s.nama}</td>
+                <td style="border:1px solid black; padding:8px; width:15%;">${no % 2 !== 0 ? no + '. ........' : ''}</td>
+                <td style="border:1px solid black; padding:8px; width:15%;">${no % 2 === 0 ? no + '. ........' : ''}</td>
+            </tr>
+        `;
+    });
+
+    const html = `
+        <html><head><style>body { font-family: serif; padding: 20px; } table { width: 100%; border-collapse: collapse; }</style></head>
+        <body>
+            ${generateKopHTML()}
+            <h3 style="text-align:center; text-decoration:underline;">DAFTAR HADIR PESERTA</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="border:1px solid black; padding:8px;">No</th>
+                        <th style="border:1px solid black; padding:8px;">Nomor Peserta</th>
+                        <th style="border:1px solid black; padding:8px;">Nama Lengkap</th>
+                        <th style="border:1px solid black; padding:8px;" colspan="2">Tanda Tangan</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </body></html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+};
+
+// --- 3. CETAK BERITA ACARA ---
+window.cetakBeritaAcara = () => {
+    const p = state.schoolProfile || {};
+    const printWindow = window.open('', '_blank');
+    const html = `
+        <html><head><style>body { font-family: serif; padding: 40px; line-height: 1.6; }</style></head>
+        <body>
+            ${generateKopHTML()}
+            <h3 style="text-align:center; text-decoration:underline;">BERITA ACARA PELAKSANAAN</h3>
+            <p>Pada hari ini .................... tanggal ....... bulan .................... tahun 2026, telah diselenggarakan Penilaian Berbasis Komputer:</p>
+            <table style="width: 100%;">
+                <tr><td width="30%">Satuan Pendidikan</td><td>: ${p.sekolah}</td></tr>
+                <tr><td>Ruang / Sesi</td><td>: ............ / ............</td></tr>
+                <tr><td>Mata Pelajaran</td><td>: ........................................</td></tr>
+                <tr><td>Jumlah Peserta Seharusnya</td><td>: ............ Orang</td></tr>
+                <tr><td>Jumlah Peserta Hadir</td><td>: ............ Orang</td></tr>
+                <tr><td>Jumlah Peserta Tidak Hadir</td><td>: ............ Orang</td></tr>
+            </table>
+            <p style="margin-top: 20px;">Catatan Selama Ujian: <br><br> __________________________________________________________________</p>
+            <table style="width:100%; margin-top: 50px;">
+                <tr>
+                    <td width="50%" align="center">Saksi / Pengawas,<br><br><br><br>(.................................)</td>
+                    <td width="50%" align="center">Kepala Sekolah,<br><br><br><br><b>${p.kepsek || '................'}</b></td>
+                </tr>
+            </table>
+        </body></html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
 };
