@@ -784,3 +784,151 @@ window.editJabatanGuru = async (id) => {
         }
     }
 };
+
+// ==========================================
+// DATA MASTER SISWA
+// ==========================================
+window.loadSiswa = async () => {
+    try {
+        const snap = await getDocs(collection(db, 'master_siswa'));
+        state.masterSiswa = [];
+        snap.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+
+        // Urutkan berdasarkan Kelas terlebih dahulu, lalu Nama
+        state.masterSiswa.sort((a,b) => {
+            if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
+            return (a.kelas || '').localeCompare(b.kelas || '');
+        });
+
+        window.renderTableSiswa();
+    } catch(e) {
+        console.error("Error load siswa:", e);
+    }
+};
+
+window.renderTableSiswa = () => {
+    const tb = document.getElementById('tableSiswaBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+
+    if (!state.masterSiswa || state.masterSiswa.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data siswa. Klik tombol + Tambah Siswa.</td></tr>';
+        return;
+    }
+
+    state.masterSiswa.forEach((s, i) => {
+        const avatar = s.jk === 'P' ? '👩' : '👦';
+        const colorJk = s.jk === 'P' ? 'bg-pink-500' : 'bg-blue-500';
+        const badgeAktif = s.isActive !== false 
+            ? `<span class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Aktif</span>` 
+            : `<span class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Nonaktif</span>`;
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r"><input type="checkbox" class="w-4 h-4 rounded text-blue-600"></td>
+                <td class="p-3 text-center font-bold text-slate-500 border-r">${i+1}</td>
+                <td class="p-3 border-r">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-slate-200 rounded-full flex justify-center items-center text-2xl border border-slate-300 shadow-inner">${avatar}</div>
+                        <div>
+                            <p class="font-bold text-[15px] uppercase text-slate-800">${s.nama || '-'}</p>
+                            <div class="flex gap-1 mt-1">
+                                <span class="bg-teal-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">KELAS ${s.kelas || '-'}</span>
+                                <span class="${colorJk} text-white px-2 py-0.5 rounded text-[10px] font-bold">${s.jk || 'L'}</span>
+                                ${badgeAktif}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td class="p-3 border-r">
+                    <p class="text-[11px] text-slate-500 font-bold mb-0.5">No Ujian / NIS: <span class="text-blue-600 text-sm font-black tracking-widest">${s.nis || '-'}</span></p>
+                    <p class="text-[11px] text-slate-500 font-bold">NISN: <span class="text-slate-800 text-sm font-black tracking-widest">${s.nisn || '-'}</span></p>
+                </td>
+                <td class="p-3 text-center space-y-2">
+                    <button onclick="editSiswa('${s.id}')" class="bg-amber-400 hover:bg-amber-500 w-full px-3 py-1.5 rounded text-xs font-bold transition text-slate-900 shadow-sm flex justify-center gap-1">✏️ Edit</button>
+                    <button onclick="hapusSiswa('${s.id}')" class="bg-red-500 hover:bg-red-600 text-white w-full px-3 py-1.5 rounded text-xs font-bold transition shadow-sm flex justify-center gap-1">🗑️ Hapus</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalSiswa = () => {
+    document.getElementById('siswaId').value = '';
+    document.getElementById('siswaNisn').value = '';
+    document.getElementById('siswaNis').value = '';
+    document.getElementById('siswaNama').value = '';
+    document.getElementById('siswaJk').value = 'L';
+    document.getElementById('siswaKelas').value = '';
+    document.getElementById('siswaUsername').value = '';
+    document.getElementById('siswaPassword').value = '';
+    document.getElementById('siswaStatus').checked = true;
+    document.getElementById('modalSiswa').classList.remove('hidden');
+};
+
+window.simpanSiswa = async () => {
+    const id = document.getElementById('siswaId').value;
+    const nisn = document.getElementById('siswaNisn').value.trim();
+    const nama = document.getElementById('siswaNama').value.trim().toUpperCase();
+    
+    if(!nisn || !nama) return alert("NISN dan Nama Lengkap wajib diisi!");
+    
+    const btn = document.querySelector("#modalSiswa button.bg-blue-600");
+    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
+
+    const data = { 
+        nisn, 
+        nis: document.getElementById('siswaNis').value.trim(), 
+        nama, 
+        jk: document.getElementById('siswaJk').value, 
+        kelas: document.getElementById('siswaKelas').value.trim().toUpperCase(), 
+        // Jika username/password kosong, gunakan NISN sebagai default
+        username: document.getElementById('siswaUsername').value.trim() || nisn, 
+        password: document.getElementById('siswaPassword').value.trim() || nisn, 
+        isActive: document.getElementById('siswaStatus').checked 
+    };
+
+    try {
+        if(id) {
+            await updateDoc(doc(db, 'master_siswa', id), data);
+        } else {
+            await addDoc(collection(db, 'master_siswa'), data);
+        }
+        closeModal('modalSiswa');
+        alert("Data Siswa berhasil disimpan!");
+        loadSiswa(); // Muat ulang tabel
+    } catch(e) {
+        alert("Gagal menyimpan data siswa.");
+        console.error(e);
+    } finally {
+        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+    }
+};
+
+window.editSiswa = (id) => {
+    const s = state.masterSiswa.find(x => x.id === id);
+    if(!s) return;
+    
+    document.getElementById('siswaId').value = s.id;
+    document.getElementById('siswaNisn').value = s.nisn || '';
+    document.getElementById('siswaNis').value = s.nis || '';
+    document.getElementById('siswaNama').value = s.nama || '';
+    document.getElementById('siswaJk').value = s.jk || 'L';
+    document.getElementById('siswaKelas').value = s.kelas || '';
+    document.getElementById('siswaUsername').value = s.username || '';
+    document.getElementById('siswaPassword').value = s.password || '';
+    document.getElementById('siswaStatus').checked = s.isActive !== false;
+    document.getElementById('modalSiswa').classList.remove('hidden');
+};
+
+window.hapusSiswa = async (id) => {
+    if(confirm("Yakin ingin menghapus data siswa ini?")) {
+        try {
+            await deleteDoc(doc(db, 'master_siswa', id));
+            loadSiswa(); // Muat ulang tabel setelah dihapus
+        } catch(e) {
+            console.error(e);
+            alert("Gagal menghapus data siswa.");
+        }
+    }
+};
