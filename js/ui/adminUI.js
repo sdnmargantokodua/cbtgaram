@@ -455,11 +455,14 @@ window.simpanPenempatanEkskul = async () => { /* Logika dipertahankan */ };
 // ==========================================
 window.loadKelas = async () => {
     try {
-        // Pastikan data siswa diload untuk menghitung jumlah siswa per kelas
-        if (!state.masterSiswa || state.masterSiswa.length === 0) {
+        // Blok try-catch terpisah untuk load siswa agar tidak mengganggu jika data siswa kosong
+        try {
             const snapSiswa = await getDocs(collection(db, 'master_siswa'));
             state.masterSiswa = [];
             snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        } catch(errSiswa) {
+            console.warn("Info: Data siswa belum tersedia atau gagal dimuat.", errSiswa);
+            if(!state.masterSiswa) state.masterSiswa = [];
         }
 
         const snap = await getDocs(collection(db, 'master_kelas'));
@@ -472,6 +475,7 @@ window.loadKelas = async () => {
         window.renderTableKelas();
     } catch(e) { 
         console.error("Error load kelas:", e); 
+        alert("Terjadi kesalahan saat memuat data kelas.");
     }
 };
 
@@ -485,7 +489,7 @@ window.renderTableKelas = () => {
     }
     
     state.masterKelas.forEach((k, i) => {
-        // Hitung jumlah siswa untuk kelas ini
+        // Hitung jumlah siswa untuk kelas ini (aman karena sudah ditangani di loadKelas)
         const jumlahSiswa = state.masterSiswa ? state.masterSiswa.filter(s => s.kelas === k.nama).length : 0;
 
         tb.innerHTML += `
@@ -513,6 +517,10 @@ window.openModalKelas = () => {
 };
 
 window.simpanKelas = async () => {
+    // Ambil tombol simpan berdasarkan selektor HTML di dalam modalKelas
+    const btnSimpan = document.querySelector("#modalKelas button.bg-blue-600");
+    const originalText = btnSimpan ? btnSimpan.innerText : 'Simpan';
+    
     const id = document.getElementById('kelasId').value;
     const nama = document.getElementById('inputNamaKelas').value.trim().toUpperCase();
     const kode = document.getElementById('inputKodeKelas').value.trim().toUpperCase();
@@ -520,6 +528,11 @@ window.simpanKelas = async () => {
 
     if(!nama || !kode) {
         return alert("Nama dan Kode Kelas wajib diisi!");
+    }
+
+    if (btnSimpan) {
+        btnSimpan.innerText = "Menyimpan...";
+        btnSimpan.disabled = true;
     }
 
     const data = { nama, kode, waliKelas };
@@ -530,11 +543,23 @@ window.simpanKelas = async () => {
         } else {
             await addDoc(collection(db, 'master_kelas'), data);
         }
+        
         closeModal('modalKelas');
-        loadKelas(); // Memuat ulang tabel
+        alert("Data Kelas / Rombel berhasil disimpan!");
+        await loadKelas(); // Memuat ulang tabel setelah berhasil simpan
+        
+        // Memperbarui dashboard jika sedang terbuka
+        if (typeof loadDashboard === 'function') {
+            loadDashboard();
+        }
     } catch(e) {
-        console.error(e);
-        alert("Gagal menyimpan data Kelas.");
+        console.error("Gagal simpan kelas:", e);
+        alert("Gagal menyimpan data Kelas: " + e.message);
+    } finally {
+        if (btnSimpan) {
+            btnSimpan.innerText = originalText;
+            btnSimpan.disabled = false;
+        }
     }
 };
 
@@ -553,9 +578,10 @@ window.hapusKelas = async (id) => {
     if(confirm("Yakin ingin menghapus Kelas ini? Pastikan tidak ada siswa yang masih terdaftar di kelas ini.")) {
         try {
             await deleteDoc(doc(db, 'master_kelas', id));
-            loadKelas(); // Memuat ulang tabel
+            await loadKelas(); // Memuat ulang tabel
         } catch(e) {
             console.error(e);
+            alert("Gagal menghapus data kelas.");
         }
     }
 };
