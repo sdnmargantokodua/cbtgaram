@@ -3170,3 +3170,140 @@ window.toggleStatusUser = async (collectionName, id, currentStatus) => {
         alert("Gagal mengubah status pengguna.");
     }
 };
+
+// ==========================================
+// BACKUP & RESTORE DATA
+// ==========================================
+window.loadBackup = async () => {
+    try {
+        const snap = await getDocs(collection(db, 'backup_history'));
+        state.backupHistory = [];
+        snap.forEach(d => state.backupHistory.push({id: d.id, ...d.data()}));
+
+        // Urutkan dari yang paling baru
+        state.backupHistory.sort((a,b) => b.timestamp - a.timestamp);
+
+        window.renderTableBackup();
+    } catch(e) {
+        console.error("Error load backup history:", e);
+    }
+};
+
+window.renderTableBackup = () => {
+    // Mencari tbody secara spesifik di dalam section viewBackup
+    const viewBackup = document.getElementById('viewBackup');
+    const tb = viewBackup.querySelector('tbody');
+    if (!tb) return;
+
+    tb.innerHTML = '';
+
+    if (!state.backupHistory || state.backupHistory.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada riwayat backup database.</td></tr>';
+        return;
+    }
+
+    state.backupHistory.forEach((b, i) => {
+        const dateStr = new Date(b.timestamp).toLocaleString('id-ID', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute:'2-digit'
+        });
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r text-center font-mono text-slate-600 text-sm">${b.filename}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-700">${b.size}</td>
+                <td class="p-3 border-r text-center text-slate-600 text-sm">${dateStr}</td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="hapusRiwayatBackup('${b.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded shadow-sm text-[10px] font-bold uppercase transition">🗑️ Hapus Riwayat</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.backupSemuaData = async () => {
+    const btn = document.querySelector('#viewBackup button.bg-blue-500');
+    if(btn) { btn.innerText = "SEDANG MEMPROSES..."; btn.disabled = true; }
+
+    try {
+        // Daftar semua koleksi yang ada di database CBT GARAM
+        const collectionsToBackup = [
+            'settings', 'master_guru', 'master_siswa', 'master_kelas',
+            'master_subjects', 'master_jurusan', 'master_ekskul',
+            'master_jenis_ujian', 'master_sesi_ujian', 'master_ruang_ujian',
+            'master_bank_soal', 'master_jadwal_ujian', 'exam_results'
+        ];
+
+        const backupData = {};
+
+        // Menarik semua data dari Firebase Firestore satu per satu
+        for (const colName of collectionsToBackup) {
+            const snap = await getDocs(collection(db, colName));
+            backupData[colName] = [];
+            snap.forEach(doc => {
+                backupData[colName].push({ id: doc.id, ...doc.data() });
+            });
+        }
+
+        // Convert object hasil tarikan ke format JSON String
+        const jsonString = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonString], { type: "application/json" });
+
+        // Hitung ukuran file untuk ditampilkan di riwayat
+        const bytes = blob.size;
+        const sizeStr = (bytes / 1024).toFixed(2) + " KB";
+
+        // Buat penamaan file dinamis berdasarkan tanggal dan waktu
+        const now = new Date();
+        const dateStr = now.toISOString().replace(/T/, '_').replace(/:/g, '-').split('.')[0];
+        const filename = `backup_cbt_garam_${dateStr}.json`;
+
+        // Proses trigger Download otomatis ke komputer user
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Simpan catatan riwayat backup ke database agar muncul di tabel
+        await addDoc(collection(db, 'backup_history'), {
+            filename: filename,
+            size: sizeStr,
+            timestamp: now.getTime()
+        });
+
+        alert("Backup berhasil! File JSON telah diunduh ke perangkat Anda.");
+        window.loadBackup(); // Muat ulang tabel riwayat
+    } catch (e) {
+        console.error("Gagal backup:", e);
+        alert("Terjadi kesalahan saat membackup data. Pastikan koneksi internet stabil.");
+    } finally {
+        if(btn) { btn.innerText = "BACKUP SEMUA DATA"; btn.disabled = false; }
+    }
+};
+
+window.hapusRiwayatBackup = async (id) => {
+    if(confirm("Hapus catatan riwayat backup ini? (Ini hanya menghapus catatan di tabel, bukan menghapus file JSON yang sudah Anda download)")) {
+        await deleteDoc(doc(db, 'backup_history', id));
+        window.loadBackup();
+    }
+};
+
+// Injection otomatis untuk menghubungkan tombol HTML dengan fungsi JavaScript
+setTimeout(() => {
+    // Menyambungkan tombol sidebar agar me-load data backup saat diklik
+    const btnMenuBackup = document.getElementById('btn-viewBackup');
+    if (btnMenuBackup) {
+        btnMenuBackup.addEventListener('click', () => { window.loadBackup(); });
+    }
+
+    // Mengganti alert bawaan tombol biru menjadi fungsi download sungguhan
+    const btnProsesBackup = document.querySelector('#viewBackup button.bg-blue-500');
+    if (btnProsesBackup) {
+        btnProsesBackup.onclick = window.backupSemuaData;
+    }
+}, 1000);
