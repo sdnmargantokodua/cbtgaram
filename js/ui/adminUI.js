@@ -721,7 +721,8 @@ window.renderGridGuru = () => {
                     <div class="w-[70px] h-[70px] rounded-full border-2 border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center text-4xl shadow-inner">👨‍🏫</div>
                     <div class="flex-1">
                         <p class="text-[11px] text-slate-500 tracking-wider font-mono">${g.nip || '-'}</p>
-                        <h4 class="font-bold text-[15px] text-slate-800 uppercase mt-0.5 leading-tight line-clamp-2">${g.nama || '-'}</h4>
+                        <!-- PERUBAHAN: Menghapus class uppercase di tag h4 bawah ini -->
+                        <h4 class="font-bold text-[15px] text-slate-800 mt-0.5 leading-tight line-clamp-2">${g.nama || '-'}</h4>
                         <p class="text-[10px] text-blue-600 font-bold uppercase mt-1 mb-2">${g.jabatan || 'Guru Kelas'}</p>
                         <div>${badgeAktif}</div>
                     </div>
@@ -752,7 +753,7 @@ window.openModalGuru = () => {
 window.simpanGuru = async () => {
     const id = document.getElementById('guruId').value;
     const nip = document.getElementById('guruNip').value.trim();
-    const nama = document.getElementById('guruNama').value.trim().toUpperCase();
+    const nama = document.getElementById('guruNama').value.trim();
     
     if(!nip || !nama) return alert("NIP/NUPTK dan Nama Lengkap wajib diisi!");
     
@@ -3156,10 +3157,11 @@ window.renderTableUserGuru = () => {
             ? `<button onclick="toggleStatusUser('master_guru', '${g.id}', true)" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">🚫 Nonaktifkan</button>`
             : `<button onclick="toggleStatusUser('master_guru', '${g.id}', false)" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">✔️ Aktifkan</button>`;
 
-        tb.innerHTML += `
+        container.innerHTML += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100 ${!isActive ? 'opacity-50' : ''}">
                 <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
-                <td class="p-3 border-r text-slate-800 uppercase font-bold text-sm">${g.nama || '-'}</td>
+                <!-- PERUBAHAN: Menghapus class uppercase pada kolom nama -->
+                <td class="p-3 border-r text-slate-800 font-bold text-sm">${g.nama || '-'}</td>
                 <td class="p-3 border-r text-center text-blue-700 font-mono font-bold">${g.username || '-'}</td>
                 <td class="p-3 border-r text-center text-slate-600 font-mono text-sm">${g.password || '-'}</td>
                 <td class="p-3 border-r text-center">
