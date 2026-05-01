@@ -450,7 +450,120 @@ window.hapusEkskul = async (id) => { /* Logika dipertahankan */ };
 window.renderPenempatanEkskul = () => { /* Logika dipertahankan */ };
 window.simpanPenempatanEkskul = async () => { /* Logika dipertahankan */ };
 
-window.loadKelas = async () => { /* Logika dipertahankan */ };
+// ==========================================
+// DATA KELAS / ROMBEL
+// ==========================================
+window.loadKelas = async () => {
+    try {
+        // Pastikan data siswa diload untuk menghitung jumlah siswa per kelas
+        if (!state.masterSiswa || state.masterSiswa.length === 0) {
+            const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+            state.masterSiswa = [];
+            snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        }
+
+        const snap = await getDocs(collection(db, 'master_kelas'));
+        state.masterKelas = [];
+        snap.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
+        
+        // Urutkan berdasarkan nama kelas
+        state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        
+        window.renderTableKelas();
+    } catch(e) { 
+        console.error("Error load kelas:", e); 
+    }
+};
+
+window.renderTableKelas = () => {
+    const tb = document.getElementById('tableKelasBody');
+    tb.innerHTML = '';
+    
+    if (!state.masterKelas || state.masterKelas.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada data Kelas / Rombel.</td></tr>';
+        return;
+    }
+    
+    state.masterKelas.forEach((k, i) => {
+        // Hitung jumlah siswa untuk kelas ini
+        const jumlahSiswa = state.masterSiswa ? state.masterSiswa.filter(s => s.kelas === k.nama).length : 0;
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r border-teal-100 text-slate-500 font-bold">${i+1}</td>
+                <td class="p-3 border-r border-teal-100 font-bold text-slate-800 uppercase">${k.nama || '-'}</td>
+                <td class="p-3 border-r border-teal-100 font-mono font-bold text-slate-600">${k.kode || '-'}</td>
+                <td class="p-3 border-r border-teal-100 text-slate-700 uppercase">${k.waliKelas || '-'}</td>
+                <td class="p-3 text-center border-r border-teal-100 font-black text-blue-600">${jumlahSiswa}</td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="editKelas('${k.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusKelas('${k.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalKelas = () => {
+    document.getElementById('kelasId').value = '';
+    document.getElementById('inputNamaKelas').value = '';
+    document.getElementById('inputKodeKelas').value = '';
+    document.getElementById('inputWaliKelas').value = '';
+    document.getElementById('modalKelas').classList.remove('hidden');
+};
+
+window.simpanKelas = async () => {
+    const id = document.getElementById('kelasId').value;
+    const nama = document.getElementById('inputNamaKelas').value.trim().toUpperCase();
+    const kode = document.getElementById('inputKodeKelas').value.trim().toUpperCase();
+    const waliKelas = document.getElementById('inputWaliKelas').value.trim().toUpperCase();
+
+    if(!nama || !kode) {
+        return alert("Nama dan Kode Kelas wajib diisi!");
+    }
+
+    const data = { nama, kode, waliKelas };
+
+    try {
+        if(id) {
+            await updateDoc(doc(db, 'master_kelas', id), data);
+        } else {
+            await addDoc(collection(db, 'master_kelas'), data);
+        }
+        closeModal('modalKelas');
+        loadKelas(); // Memuat ulang tabel
+    } catch(e) {
+        console.error(e);
+        alert("Gagal menyimpan data Kelas.");
+    }
+};
+
+window.editKelas = (id) => {
+    const k = state.masterKelas.find(x => x.id === id);
+    if(!k) return;
+    
+    document.getElementById('kelasId').value = k.id;
+    document.getElementById('inputNamaKelas').value = k.nama || '';
+    document.getElementById('inputKodeKelas').value = k.kode || '';
+    document.getElementById('inputWaliKelas').value = k.waliKelas || '';
+    document.getElementById('modalKelas').classList.remove('hidden');
+};
+
+window.hapusKelas = async (id) => {
+    if(confirm("Yakin ingin menghapus Kelas ini? Pastikan tidak ada siswa yang masih terdaftar di kelas ini.")) {
+        try {
+            await deleteDoc(doc(db, 'master_kelas', id));
+            loadKelas(); // Memuat ulang tabel
+        } catch(e) {
+            console.error(e);
+        }
+    }
+};
+
+window.kenaikanKelas = () => {
+    alert("Fitur Kenaikan Kelas otomatis sedang disiapkan.");
+};
+
 window.renderTableKelas = () => { /* Logika dipertahankan */ };
 window.openModalKelas = () => { /* Logika dipertahankan */ };
 window.simpanKelas = async () => { /* Logika dipertahankan */ };
