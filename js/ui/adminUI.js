@@ -19,14 +19,52 @@ window.checkAdminSession = () => {
     }
 };
 
-window.handleLogin = (e) => { 
+window.handleLogin = async (e) => { 
     e.preventDefault(); 
-    if (document.getElementById('inputPinAdmin').value === state.ADMIN_PIN) { 
-        localStorage.setItem('admin_logged_in', 'true');
-        checkAdminSession(); 
-    } else { 
-        document.getElementById('loginError').classList.remove('hidden'); 
-    } 
+    
+    // Sembunyikan pesan error jika sebelumnya muncul
+    document.getElementById('loginError').classList.add('hidden');
+    
+    // Ambil data yang diketik
+    const inputUser = document.getElementById('adminUsername').value.trim();
+    const inputPass = document.getElementById('adminPassword').value.trim();
+    const btnMasuk = document.getElementById('btnMasukAdmin');
+
+    if (!inputUser || !inputPass) {
+        return alert("Username dan Sandi tidak boleh kosong!");
+    }
+
+    // Beri efek loading pada tombol
+    const originalText = btnMasuk.innerText;
+    btnMasuk.innerText = "Memeriksa...";
+    btnMasuk.disabled = true;
+
+    try {
+        // Melakukan pencarian ke koleksi 'master_admin' di Firestore
+        const q = query(
+            collection(db, 'master_admin'), 
+            where('username', '==', inputUser),
+            where('password', '==', inputPass)
+        );
+        
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            // Sesi sukses! Masuk ke Dashboard
+            localStorage.setItem('admin_logged_in', 'true');
+            checkAdminSession(); 
+        } else {
+            // Tampilkan tulisan merah di bawah inputan password
+            document.getElementById('loginError').classList.remove('hidden'); 
+        }
+    } catch (error) {
+        console.error("Gagal melakukan login:", error);
+        alert("Terjadi kesalahan sistem saat menghubungi database Firebase. Pastikan koneksi internet stabil.");
+    } finally {
+        // Kembalikan tombol seperti semula
+        btnMasuk.innerText = originalText;
+        btnMasuk.disabled = false;
+    }
 };
 
 window.logoutAdmin = () => {
