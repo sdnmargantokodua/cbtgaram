@@ -14,97 +14,89 @@ window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
 
 // ==========================================
-// PELAKSANAAN: STATUS SISWA (BARU)
+// PELAKSANAAN: HASIL UJIAN SISWA (BARU)
 // ==========================================
-window.loadStatusSiswa = async () => {
+window.loadHasilUjian = async () => {
     try {
-        // Load data dependencies if empty
-        if(state.masterJadwalUjian.length === 0) { const s1 = await getDocs(collection(db, 'master_jadwal_ujian')); state.masterJadwalUjian = []; s1.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); }
-        if(state.masterRuangUjian.length === 0) { const s2 = await getDocs(collection(db, 'master_ruang_ujian')); state.masterRuangUjian = []; s2.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()})); }
-        if(state.masterSesiUjian.length === 0) { const s3 = await getDocs(collection(db, 'master_sesi_ujian')); state.masterSesiUjian = []; s3.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()})); }
-        if(state.masterSiswa.length === 0) { const s4 = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; s4.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()})); }
-
-        // Fetch current token
-        const snapToken = await getDoc(doc(db, 'settings', 'token_ujian'));
-        if(snapToken.exists()) {
-            state.tokenConfig = snapToken.data();
+        // Load data dependencies jika masih kosong
+        if(state.masterKelas.length === 0) { 
+            const s1 = await getDocs(collection(db, 'master_kelas')); 
+            state.masterKelas = []; s1.forEach(d => state.masterKelas.push({id: d.id, ...d.data()})); 
+            state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || '')); 
         }
-        document.getElementById('displayTokenStatusSiswa').innerText = state.tokenConfig.currentToken || '------';
+        if(state.masterJadwalUjian.length === 0) { 
+            const s2 = await getDocs(collection(db, 'master_jadwal_ujian')); 
+            state.masterJadwalUjian = []; s2.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); 
+        }
+        
+        // Sengaja load ulang allResults untuk memastikan data terbaru
+        const s3 = await getDocs(collection(db, 'exam_results')); 
+        state.allResults = []; 
+        s3.forEach(d => state.allResults.push({id: d.id, ...d.data()}));
 
-        // Populate Dropdowns
-        const selJadwal = document.getElementById('filterStatusJadwal');
-        selJadwal.innerHTML = '<option value="">Pilih Jadwal Aktif</option>';
-        state.masterJadwalUjian.filter(j => j.isActive).forEach(j => {
-            selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} (${j.jenis})</option>`;
+        // Populate Dropdown Filter Kelas
+        const selKelas = document.getElementById('filterHasilKelas');
+        selKelas.innerHTML = '<option value="">Pilih Kelas</option>';
+        state.masterKelas.forEach(k => { 
+            selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; 
         });
 
-        const selRuang = document.getElementById('filterStatusRuang');
-        selRuang.innerHTML = '<option value="">Semua Ruang</option>';
-        state.masterRuangUjian.forEach(r => {
-            selRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`;
+        // Populate Dropdown Filter Jadwal
+        const selJadwal = document.getElementById('filterHasilJadwal');
+        selJadwal.innerHTML = '<option value="">Pilih Jadwal</option>';
+        state.masterJadwalUjian.forEach(j => { 
+            selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} - ${j.jenis}</option>`; 
         });
 
-        const selSesi = document.getElementById('filterStatusSesi');
-        selSesi.innerHTML = '<option value="">Semua Sesi</option>';
-        state.masterSesiUjian.forEach(s => {
-            selSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
-        });
-
-        window.renderTableStatusSiswa();
-    } catch(e) { console.error("Error load status siswa:", e); }
+        window.renderTableHasilUjian();
+    } catch(e) { console.error("Error load hasil ujian:", e); }
 };
 
-window.renderTableStatusSiswa = () => {
-    const ruangVal = document.getElementById('filterStatusRuang').value;
-    const sesiVal = document.getElementById('filterStatusSesi').value;
-    const tb = document.getElementById('tableStatusSiswaBody');
+window.renderTableHasilUjian = () => {
+    const kelasVal = document.getElementById('filterHasilKelas').value;
+    const jadwalVal = document.getElementById('filterHasilJadwal').value;
+    const tb = document.getElementById('tableHasilUjianBody');
     tb.innerHTML = '';
 
-    // Filter siswa berdasarkan ruang dan sesi
-    let filteredSiswa = [...state.masterSiswa];
-    if(ruangVal) filteredSiswa = filteredSiswa.filter(s => s.ruang === ruangVal);
-    if(sesiVal) filteredSiswa = filteredSiswa.filter(s => s.sesi === sesiVal);
-
-    // Sort abjad
-    filteredSiswa.sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
-
-    if(filteredSiswa.length === 0) {
-        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa yang terdaftar di ruang/sesi tersebut.</td></tr>';
+    if (!kelasVal || !jadwalVal) {
+        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 bg-slate-50">Silakan pilih Kelas dan Jadwal terlebih dahulu untuk menampilkan data.</td></tr>';
         return;
     }
 
-    filteredSiswa.forEach((s, i) => {
-        // Karena sistem client (siswa) belum live, kita buat mock-up status "Offline"
-        const isOnline = false; 
-        const statusBadge = isOnline 
-            ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Mengerjakan</span>`
-            : `<span class="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Offline</span>`;
+    // Filter Hasil: Sesuaikan property (asumsikan r.kelas dan r.jadwalId tersimpan di exam_results saat siswa submit)
+    let filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal);
 
+    if (filteredResults.length === 0) {
+        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada data nilai yang masuk untuk kelas dan jadwal yang dipilih.</td></tr>';
+        return;
+    }
+
+    filteredResults.forEach((r, i) => {
         tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
                 <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
-                <td class="p-3 border-r text-center font-mono font-bold text-blue-700">${s.nis || s.nisn}</td>
-                <td class="p-3 border-r font-bold text-slate-800 uppercase">${s.nama}</td>
-                <td class="p-3 border-r text-center font-bold text-slate-600">${s.kelas || '-'}</td>
-                <td class="p-3 border-r text-center">${statusBadge}</td>
+                <td class="p-3 border-r font-bold uppercase text-slate-800">${r.nama || '-'}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-600">${r.kelas || '-'}</td>
+                <td class="p-3 border-r text-center text-green-600 font-bold">${r.benar || 0}</td>
+                <td class="p-3 border-r text-center text-red-600 font-bold">${r.salah || 0}</td>
+                <td class="p-3 border-r text-center font-black text-blue-700 text-lg">${r.skor || 0}</td>
                 <td class="p-3 text-center">
-                    <button onclick="resetLoginSiswa('${s.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-xs font-bold transition w-full">Reset Login</button>
+                    <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded shadow-sm text-xs font-bold transition w-full">🔍 Detail</button>
                 </td>
             </tr>
         `;
     });
 };
 
-window.resetLoginSiswa = (id) => {
-    // Fungsi ini nantinya akan mengubah flag "is_logged_in" di Firebase ke false
-    // agar siswa yang device-nya error bisa login ulang di device lain.
-    alert("Instruksi Reset Login telah dikirim. Siswa kini bisa melakukan login kembali dari perangkat lain.");
-};
-
 
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
+window.loadStatusSiswa = async () => { try { if(state.masterJadwalUjian.length === 0) { const s1 = await getDocs(collection(db, 'master_jadwal_ujian')); state.masterJadwalUjian = []; s1.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); } if(state.masterRuangUjian.length === 0) { const s2 = await getDocs(collection(db, 'master_ruang_ujian')); state.masterRuangUjian = []; s2.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()})); } if(state.masterSesiUjian.length === 0) { const s3 = await getDocs(collection(db, 'master_sesi_ujian')); state.masterSesiUjian = []; s3.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()})); } if(state.masterSiswa.length === 0) { const s4 = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; s4.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()})); } const snapToken = await getDoc(doc(db, 'settings', 'token_ujian')); if(snapToken.exists()) { state.tokenConfig = snapToken.data(); } document.getElementById('displayTokenStatusSiswa').innerText = state.tokenConfig.currentToken || '------'; const selJadwal = document.getElementById('filterStatusJadwal'); selJadwal.innerHTML = '<option value="">Pilih Jadwal Aktif</option>'; state.masterJadwalUjian.filter(j => j.isActive).forEach(j => { selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} (${j.jenis})</option>`; }); const selRuang = document.getElementById('filterStatusRuang'); selRuang.innerHTML = '<option value="">Semua Ruang</option>'; state.masterRuangUjian.forEach(r => { selRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`; }); const selSesi = document.getElementById('filterStatusSesi'); selSesi.innerHTML = '<option value="">Semua Sesi</option>'; state.masterSesiUjian.forEach(s => { selSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`; }); window.renderTableStatusSiswa(); } catch(e) { console.error(e); } };
+window.renderTableStatusSiswa = () => { const ruangVal = document.getElementById('filterStatusRuang').value; const sesiVal = document.getElementById('filterStatusSesi').value; const tb = document.getElementById('tableStatusSiswaBody'); tb.innerHTML = ''; let filteredSiswa = [...state.masterSiswa]; if(ruangVal) filteredSiswa = filteredSiswa.filter(s => s.ruang === ruangVal); if(sesiVal) filteredSiswa = filteredSiswa.filter(s => s.sesi === sesiVal); filteredSiswa.sort((a,b) => (a.nama||'').localeCompare(b.nama||'')); if(filteredSiswa.length === 0) return tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa yang terdaftar di ruang/sesi tersebut.</td></tr>'; filteredSiswa.forEach((s, i) => { const isOnline = false; const statusBadge = isOnline ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Mengerjakan</span>` : `<span class="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Offline</span>`; tb.innerHTML += `<tr class="hover:bg-slate-50 transition border-b border-slate-100"><td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td><td class="p-3 border-r text-center font-mono font-bold text-blue-700">${s.nis || s.nisn}</td><td class="p-3 border-r font-bold text-slate-800 uppercase">${s.nama}</td><td class="p-3 border-r text-center font-bold text-slate-600">${s.kelas || '-'}</td><td class="p-3 border-r text-center">${statusBadge}</td><td class="p-3 text-center"><button onclick="resetLoginSiswa('${s.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-xs font-bold transition w-full">Reset Login</button></td></tr>`; }); };
+window.resetLoginSiswa = (id) => { alert("Instruksi Reset Login telah dikirim. Siswa kini bisa melakukan login kembali dari perangkat lain."); };
+
 window.cetakKartuPeserta = () => { alert("Format Cetak Kartu Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia."); };
 window.cetakDaftarHadir = () => { alert("Format Cetak Daftar Hadir Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia."); };
 window.cetakJadwalPengawas = () => { alert("Format Cetak Jadwal Pengawas Ujian sedang dipersiapkan. Modul ini akan segera tersedia."); };
