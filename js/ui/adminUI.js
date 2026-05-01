@@ -130,7 +130,15 @@ window.loadDashboard = async () => {
         if(document.getElementById('dashRombel')) document.getElementById('dashRombel').innerText = snapKelas.size;
         if(document.getElementById('dashGuru')) document.getElementById('dashGuru').innerText = snapGuru.size;
         if(document.getElementById('dashMapel')) document.getElementById('dashMapel').innerText = snapMapel.size;
-    } catch (e) { console.error("Error load dashboard:", e); }
+
+        // TAMBAHKAN BARIS INI: Panggil pengumuman khusus untuk mode Dashboard (true)
+        if (typeof window.loadPengumuman === 'function') {
+            window.loadPengumuman(true);
+        }
+
+    } catch (e) { 
+        console.error("Error load dashboard:", e); 
+    }
 };
 
 // ==========================================
