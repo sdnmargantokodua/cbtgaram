@@ -630,3 +630,157 @@ window.simpanPenempatanEkskul = async () => {
         if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
     }
 };
+
+// ==========================================
+// DATA MASTER GURU
+// ==========================================
+window.loadGuru = async () => {
+    try {
+        const snap = await getDocs(collection(db, 'master_guru'));
+        state.masterGuru = [];
+        snap.forEach(d => state.masterGuru.push({id: d.id, ...d.data()}));
+        
+        // Urutkan berdasarkan nama
+        state.masterGuru.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        window.renderGridGuru();
+    } catch(e) {
+        console.error("Error load guru:", e);
+    }
+};
+
+window.renderGridGuru = () => {
+    const container = document.getElementById('gridGuruContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (!state.masterGuru || state.masterGuru.length === 0) {
+        container.innerHTML = '<div class="col-span-full p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">Belum ada data guru. Klik tombol + Tambah untuk memasukkan data.</div>';
+        return;
+    }
+
+    state.masterGuru.forEach((g) => {
+        // Penanda status aktif / nonaktif
+        const badgeAktif = g.isActive !== false 
+            ? `<span class="bg-green-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Aktif</span>` 
+            : `<span class="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Nonaktif</span>`;
+            
+        container.innerHTML += `
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden relative transition hover:shadow-md">
+                <div class="h-1 w-full bg-blue-500 absolute top-0 left-0"></div>
+                <div class="p-5 flex gap-4 mt-1 items-center">
+                    <div class="w-[70px] h-[70px] rounded-full border-2 border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center text-4xl shadow-inner">👨‍🏫</div>
+                    <div class="flex-1">
+                        <p class="text-[11px] text-slate-500 tracking-wider font-mono">${g.nip || '-'}</p>
+                        <h4 class="font-bold text-[15px] text-slate-800 uppercase mt-0.5 leading-tight line-clamp-2">${g.nama || '-'}</h4>
+                        <p class="text-[10px] text-blue-600 font-bold uppercase mt-1 mb-2">${g.jabatan || 'Guru Kelas'}</p>
+                        <div>${badgeAktif}</div>
+                    </div>
+                </div>
+                <div class="px-4 pb-4 pt-3 flex justify-between items-center gap-2 border-t border-slate-100 bg-slate-50/50 mt-1">
+                    <div class="flex gap-2">
+                        <button onclick="editGuru('${g.id}')" class="text-blue-600 bg-white border border-blue-500 hover:bg-blue-50 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm">✏️ Profile</button>
+                        <button onclick="editJabatanGuru('${g.id}')" class="text-blue-600 bg-white border border-blue-500 hover:bg-blue-50 px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm">✏️ Jabatan</button>
+                    </div>
+                    <button onclick="hapusGuru('${g.id}')" class="text-red-500 bg-white border border-red-300 hover:bg-red-50 hover:border-red-500 px-3 py-1.5 rounded text-xs transition shadow-sm">🗑️</button>
+                </div>
+            </div>
+        `;
+    });
+};
+
+window.openModalGuru = () => {
+    document.getElementById('guruId').value = '';
+    document.getElementById('guruNip').value = '';
+    document.getElementById('guruKode').value = '';
+    document.getElementById('guruNama').value = '';
+    document.getElementById('guruUsername').value = '';
+    document.getElementById('guruPassword').value = '';
+    document.getElementById('guruStatus').checked = true;
+    document.getElementById('modalGuru').classList.remove('hidden');
+};
+
+window.simpanGuru = async () => {
+    const id = document.getElementById('guruId').value;
+    const nip = document.getElementById('guruNip').value.trim();
+    const nama = document.getElementById('guruNama').value.trim().toUpperCase();
+    
+    if(!nip || !nama) return alert("NIP/NUPTK dan Nama Lengkap wajib diisi!");
+    
+    // Terapkan indikator tombol loading
+    const btn = document.querySelector("#modalGuru button.bg-blue-600");
+    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
+
+    const data = { 
+        nip, 
+        kode: document.getElementById('guruKode').value.trim().toUpperCase(), 
+        nama, 
+        // Jika username/password tidak diisi, gunakan NIP sebagai bawaan
+        username: document.getElementById('guruUsername').value.trim().toLowerCase() || nip, 
+        password: document.getElementById('guruPassword').value.trim() || nip, 
+        isActive: document.getElementById('guruStatus').checked 
+    };
+
+    try {
+        if(id) {
+            await updateDoc(doc(db, 'master_guru', id), data);
+        } else {
+            // Default jabatan untuk guru baru
+            data.jabatan = 'GURU KELAS';
+            await addDoc(collection(db, 'master_guru'), data);
+        }
+        
+        closeModal('modalGuru');
+        alert("Data Guru berhasil disimpan!");
+        loadGuru(); // Muat ulang grid
+    } catch(e) {
+        alert("Gagal menyimpan data guru.");
+        console.error(e);
+    } finally {
+        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+    }
+};
+
+window.editGuru = (id) => {
+    const g = state.masterGuru.find(x => x.id === id);
+    if(!g) return;
+    
+    document.getElementById('guruId').value = g.id;
+    document.getElementById('guruNip').value = g.nip || '';
+    document.getElementById('guruKode').value = g.kode || '';
+    document.getElementById('guruNama').value = g.nama || '';
+    document.getElementById('guruUsername').value = g.username || '';
+    document.getElementById('guruPassword').value = g.password || '';
+    document.getElementById('guruStatus').checked = g.isActive !== false;
+    document.getElementById('modalGuru').classList.remove('hidden');
+};
+
+window.hapusGuru = async (id) => {
+    if(confirm("Yakin ingin menghapus data guru ini? Data yang terhapus tidak dapat dikembalikan.")) {
+        try {
+            await deleteDoc(doc(db, 'master_guru', id));
+            loadGuru(); // Muat ulang grid setelah terhapus
+        } catch(e) {
+            console.error(e);
+            alert("Gagal menghapus data guru.");
+        }
+    }
+};
+
+// Fitur cepat untuk langsung mengubah jabatan via popup konfirmasi
+window.editJabatanGuru = async (id) => {
+    const g = state.masterGuru.find(x => x.id === id);
+    if(!g) return;
+    
+    const jabatanBaru = prompt(`Masukkan Jabatan untuk ${g.nama}\n(Contoh: Wali Kelas 5A, Guru PAI, dll):`, g.jabatan || "Guru Kelas");
+    
+    if(jabatanBaru !== null && jabatanBaru.trim() !== "") {
+        try {
+            await updateDoc(doc(db, 'master_guru', id), { jabatan: jabatanBaru.toUpperCase() });
+            loadGuru();
+        } catch(e) {
+            console.error(e);
+            alert("Gagal merubah jabatan.");
+        }
+    }
+};
