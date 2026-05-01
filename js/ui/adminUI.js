@@ -3119,7 +3119,7 @@ window.loadUserManagement = async () => {
         
         // Urutkan siswa berdasarkan Kelas, lalu Nama
         state.masterSiswa.sort((a,b) => {
-            if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || ''));
+            if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
             return (a.kelas || '').localeCompare(b.kelas || '');
         });
 
