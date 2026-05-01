@@ -3062,3 +3062,111 @@ window.cetakBeritaAcara = () => {
     printWindow.document.close();
     setTimeout(() => printWindow.print(), 500);
 };
+
+// ==========================================
+// USER MANAGEMENT (GURU & SISWA)
+// ==========================================
+window.loadUserManagement = async () => {
+    try {
+        // 1. Load Data Guru
+        const snapGuru = await getDocs(collection(db, 'master_guru'));
+        state.masterGuru = [];
+        snapGuru.forEach(d => state.masterGuru.push({id: d.id, ...d.data()}));
+        state.masterGuru.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+
+        // 2. Load Data Siswa
+        const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+        state.masterSiswa = [];
+        snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        
+        // Urutkan siswa berdasarkan Kelas, lalu Nama
+        state.masterSiswa.sort((a,b) => {
+            if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || ''));
+            return (a.kelas || '').localeCompare(b.kelas || '');
+        });
+
+        window.renderTableUserGuru();
+        window.renderTableUserSiswa();
+    } catch(e) {
+        console.error("Error load user management:", e);
+    }
+};
+
+window.renderTableUserGuru = () => {
+    const tb = document.getElementById('tableUserGuruBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+    
+    if(state.masterGuru.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic bg-slate-50">Data Guru Kosong.</td></tr>';
+        return;
+    }
+
+    state.masterGuru.forEach((g, i) => {
+        const isActive = g.isActive !== false;
+        
+        // Tombol toggle status
+        const btnStatus = isActive 
+            ? `<button onclick="toggleStatusUser('master_guru', '${g.id}', true)" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">🚫 Nonaktifkan</button>`
+            : `<button onclick="toggleStatusUser('master_guru', '${g.id}', false)" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">✔️ Aktifkan</button>`;
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100 ${!isActive ? 'opacity-50' : ''}">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r text-slate-800 uppercase font-bold text-sm">${g.nama || '-'}</td>
+                <td class="p-3 border-r text-center text-blue-700 font-mono font-bold">${g.username || '-'}</td>
+                <td class="p-3 border-r text-center text-slate-600 font-mono text-sm">${g.password || '-'}</td>
+                <td class="p-3 border-r text-center">
+                    <button onclick="alert('Reset sesi login untuk ${g.nama} berhasil.')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded transition shadow-sm text-[10px] font-black uppercase w-full">🔄 Reset</button>
+                </td>
+                <td class="p-3 text-center w-32">${btnStatus}</td>
+            </tr>
+        `;
+    });
+};
+
+window.renderTableUserSiswa = () => {
+    const tb = document.getElementById('tableUserSiswaBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+
+    if(state.masterSiswa.length === 0) {
+        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 italic bg-slate-50">Data Siswa Kosong.</td></tr>';
+        return;
+    }
+
+    state.masterSiswa.forEach((s, i) => {
+        const isActive = s.isActive !== false;
+        
+        // Tombol toggle status
+        const btnStatus = isActive 
+            ? `<button onclick="toggleStatusUser('master_siswa', '${s.id}', true)" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">🚫 Nonaktif</button>`
+            : `<button onclick="toggleStatusUser('master_siswa', '${s.id}', false)" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">✔️ Aktif</button>`;
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100 ${!isActive ? 'opacity-50' : ''}">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r text-center font-mono font-bold text-slate-600 tracking-wider">${s.nis || s.nisn || '-'}</td>
+                <td class="p-3 border-r font-bold text-slate-800 uppercase text-sm">${s.nama || '-'}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-700">${s.kelas || '-'}</td>
+                <td class="p-3 border-r text-center font-mono font-bold text-blue-700">${s.username || '-'}</td>
+                <td class="p-3 border-r text-center font-mono text-sm text-slate-600">${s.password || '-'}</td>
+                <td class="p-3 border-r text-center">
+                    <button onclick="resetLoginSiswa('${s.id}', '${s.nama}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded transition shadow-sm text-[10px] font-black uppercase w-full">🔄 Reset</button>
+                </td>
+                <td class="p-3 text-center w-28">${btnStatus}</td>
+            </tr>
+        `;
+    });
+};
+
+window.toggleStatusUser = async (collectionName, id, currentStatus) => {
+    try {
+        const newStatus = !currentStatus; // Balikkan status aktif ke nonaktif, atau sebaliknya
+        await updateDoc(doc(db, collectionName, id), { isActive: newStatus });
+        window.loadUserManagement(); // Muat ulang tabel agar perubahan langsung terlihat
+    } catch(e) {
+        console.error(e);
+        alert("Gagal mengubah status pengguna.");
+    }
+};
