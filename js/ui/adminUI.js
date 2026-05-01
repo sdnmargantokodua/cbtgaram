@@ -1630,3 +1630,91 @@ window.simpanPengawas = async () => {
         if (btn) { btn.disabled = false; btn.innerHTML = "💾 Simpan"; }
     }
 };
+
+// ==========================================
+// GENERATE NOMOR PESERTA UJIAN
+// ==========================================
+window.loadNomorPeserta = async () => {
+    try {
+        // 1. Load Data Kelas untuk filter dropdown
+        if (state.masterKelas.length === 0) {
+            const snapKelas = await getDocs(collection(db, 'master_kelas'));
+            state.masterKelas = [];
+            snapKelas.forEach(d => state.masterKelas.push({ id: d.id, ...d.data() }));
+            state.masterKelas.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+        }
+
+        // 2. Load Data Siswa
+        const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+        state.masterSiswa = [];
+        snapSiswa.forEach(d => state.masterSiswa.push({ id: d.id, ...d.data() }));
+
+        // 3. Render Dropdown Kelas
+        const selectKelas = document.getElementById('selectKelasNomor');
+        if (selectKelas) {
+            selectKelas.innerHTML = '<option value="ALL">Semua Kelas</option>';
+            state.masterKelas.forEach(k => {
+                selectKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`;
+            });
+        }
+    } catch (e) {
+        console.error("Error load nomor peserta:", e);
+    }
+};
+
+window.generateNomorPeserta = async () => {
+    const kelasVal = document.getElementById('selectKelasNomor').value;
+    const btn = document.getElementById('btnGenerateNomor');
+    const NPSN_SEKOLAH = '20528347'; // Berdasarkan data profil sekolah Anda
+
+    let siswaTarget = [];
+    if (kelasVal === 'ALL') {
+        siswaTarget = [...state.masterSiswa];
+    } else {
+        siswaTarget = state.masterSiswa.filter(s => s.kelas === kelasVal);
+    }
+
+    if (siswaTarget.length === 0) return alert("Tidak ada data siswa untuk kelas ini!");
+
+    // Urutkan siswa berdasarkan Kelas lalu Nama agar nomor urut rapi
+    siswaTarget.sort((a, b) => {
+        if (a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
+        return (a.kelas || '').localeCompare(b.kelas || '');
+    });
+
+    if (!confirm(`Sistem akan men-generate ulang nomor ujian untuk ${siswaTarget.length} siswa. Lanjutkan?`)) return;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "Memproses...";
+    }
+
+    try {
+        const promises = [];
+        siswaTarget.forEach((s, index) => {
+            // Format: NPSN-NomorUrut (Contoh: 20528347-001)
+            const noUrut = String(index + 1).padStart(3, '0');
+            const noUjianBaru = `${NPSN_SEKOLAH}-${noUrut}`;
+            
+            // Update nomor ujian dan juga NIS (karena NIS digunakan sebagai username login siswa)
+            promises.push(updateDoc(doc(db, 'master_siswa', s.id), { 
+                nis: noUjianBaru,
+                noUjian: noUjianBaru 
+            }));
+        });
+
+        await Promise.all(promises);
+        alert("Nomor Peserta berhasil di-generate dan disimpan ke data siswa!");
+        
+        // Segarkan data lokal
+        await loadSiswa(); 
+    } catch (e) {
+        console.error("Gagal generate nomor:", e);
+        alert("Terjadi kesalahan saat memperbarui database.");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = "💾 Simpan";
+        }
+    }
+};
