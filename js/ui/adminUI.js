@@ -8,9 +8,53 @@ import { getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/fireb
 window.checkAdminSession = () => { if (sessionStorage.getItem('admin_logged_in') === 'true') { document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('appScreen').classList.remove('hidden'); document.getElementById('appScreen').classList.add('flex'); initFirebase(); } };
 window.handleLogin = (e) => { e.preventDefault(); if (document.getElementById('inputPinAdmin').value === state.ADMIN_PIN) { sessionStorage.setItem('admin_logged_in', 'true'); checkAdminSession(); } else { document.getElementById('loginError').classList.remove('hidden'); } };
 window.logoutAdmin = () => { sessionStorage.removeItem('admin_logged_in'); location.reload(); };
-window.switchTab = (id, title) => { document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.menu-btn').forEach(btn => btn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"); document.getElementById(id).classList.remove('hidden'); document.getElementById('btn-' + id).className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/50"; document.getElementById('pageTitle').innerText = title; if (window.innerWidth < 768) toggleSidebar(); };
+window.switchTab = (id, title) => { document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden')); document.querySelectorAll('.menu-btn').forEach(btn => btn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"); document.getElementById(id).classList.remove('hidden'); document.getElementById('btn-' + id).className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/50"; document.getElementById('pageTitle').innerText = title; if (window.innerWidth < 768) toggleSidebar(); 
+    // Trigger spesifik jika tab tertentu diklik
+    if(id === 'viewBersihkan') window.loadBersihkan();
+};
 window.toggleSidebar = () => { const s = document.getElementById('sidebar'); s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); };
 window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
+
+
+// ==========================================
+// PENGATURAN: BERSIHKAN DATA & BACKUP (BARU)
+// ==========================================
+window.loadBersihkan = async () => {
+    try {
+        // Menghitung data dari Firestore untuk ditampilkan di tabel "Hapus Data"
+        const cols = [
+            { id: 'count_bs', name: 'master_bank_soal' },
+            { id: 'count_jdw', name: 'master_jadwal_ujian' },
+            { id: 'count_nl', name: 'exam_results' },
+            { id: 'count_ss', name: 'master_sesi_ujian' },
+            { id: 'count_guru', name: 'master_guru' },
+            { id: 'count_jrs', name: 'master_jurusan' },
+            { id: 'count_kls', name: 'master_kelas' },
+            { id: 'count_mapel', name: 'master_subjects' },
+            { id: 'count_siswa', name: 'master_siswa' }
+        ];
+
+        for (const c of cols) {
+            const el = document.getElementById(c.id);
+            if (el) {
+                el.innerText = '...';
+                // Jika data sudah ada di memory (state), gunakan itu untuk efisiensi
+                let count = 0;
+                if(c.name === 'master_siswa' && state.masterSiswa.length > 0) count = state.masterSiswa.length;
+                else if(c.name === 'master_guru' && state.masterGuru.length > 0) count = state.masterGuru.length;
+                else if(c.name === 'master_kelas' && state.masterKelas.length > 0) count = state.masterKelas.length;
+                else {
+                    // Fetch langsung ke DB untuk kolom lain
+                    const snap = await getDocs(collection(db, c.name));
+                    count = snap.size;
+                }
+                el.innerText = count;
+            }
+        }
+    } catch (e) {
+        console.error("Error menghitung data:", e);
+    }
+};
 
 
 // ==========================================
