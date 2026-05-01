@@ -592,7 +592,112 @@ window.hapusTahun = async (nama) => {
     } catch(e) { console.error(e); }
 };
 
-window.loadMataPelajaran = async () => { /* Logika dipertahankan */ };
+// ==========================================
+// MATA PELAJARAN
+// ==========================================
+window.loadMataPelajaran = async () => {
+    try {
+        const snap = await getDocs(collection(db, 'master_subjects'));
+        state.masterSubjects = [];
+        snap.forEach(d => state.masterSubjects.push({id: d.id, ...d.data()}));
+        
+        // Urutkan berdasarkan nama mapel
+        state.masterSubjects.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        
+        window.renderTableMapel();
+    } catch(e) { 
+        console.error("Error load mata pelajaran:", e); 
+    }
+};
+
+window.renderTableMapel = () => {
+    const tb = document.getElementById('tableMapelBody');
+    tb.innerHTML = '';
+    
+    if (state.masterSubjects.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data Mata Pelajaran.</td></tr>';
+        return;
+    }
+    
+    state.masterSubjects.forEach((m) => {
+        const badgeAktif = m.isActive !== false 
+            ? `<span class="bg-green-500 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Aktif</span>` 
+            : `<span class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Nonaktif</span>`;
+            
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center font-mono font-bold text-slate-600">${m.kode || '-'}</td>
+                <td class="p-3 font-bold text-slate-800 uppercase">${m.nama || '-'}</td>
+                <td class="p-3 text-center text-slate-600 text-sm">${m.kelompok || '-'}</td>
+                <td class="p-3 text-center">${badgeAktif}</td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="editMapel('${m.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusMapel('${m.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalMapel = () => {
+    document.getElementById('mapelId').value = '';
+    document.getElementById('inputNamaMapel').value = '';
+    document.getElementById('inputKodeMapel').value = '';
+    document.getElementById('inputKelompokMapel').value = 'Kelompok A (Wajib)';
+    document.getElementById('inputStatusMapel').checked = true;
+    document.getElementById('modalMataPelajaran').classList.remove('hidden');
+};
+
+window.simpanMapel = async () => {
+    const id = document.getElementById('mapelId').value;
+    const nama = document.getElementById('inputNamaMapel').value.trim().toUpperCase();
+    const kode = document.getElementById('inputKodeMapel').value.trim().toUpperCase();
+    const kelompok = document.getElementById('inputKelompokMapel').value;
+    const isActive = document.getElementById('inputStatusMapel').checked;
+
+    if(!nama || !kode) {
+        return alert("Nama dan Kode Mapel wajib diisi!");
+    }
+
+    const data = { nama, kode, kelompok, isActive };
+
+    try {
+        if(id) {
+            await updateDoc(doc(db, 'master_subjects', id), data);
+        } else {
+            await addDoc(collection(db, 'master_subjects'), data);
+        }
+        closeModal('modalMataPelajaran');
+        loadMataPelajaran();
+    } catch(e) {
+        console.error(e);
+        alert("Gagal menyimpan data Mata Pelajaran.");
+    }
+};
+
+window.editMapel = (id) => {
+    const m = state.masterSubjects.find(x => x.id === id);
+    if(!m) return;
+    
+    document.getElementById('mapelId').value = m.id;
+    document.getElementById('inputNamaMapel').value = m.nama || '';
+    document.getElementById('inputKodeMapel').value = m.kode || '';
+    document.getElementById('inputKelompokMapel').value = m.kelompok || 'Kelompok A (Wajib)';
+    document.getElementById('inputStatusMapel').checked = m.isActive !== false;
+    document.getElementById('modalMataPelajaran').classList.remove('hidden');
+};
+
+window.hapusMapel = async (id) => {
+    if(confirm("Yakin ingin menghapus Mata Pelajaran ini? Data yang terkait mungkin akan kehilangan referensinya.")) {
+        try {
+            await deleteDoc(doc(db, 'master_subjects', id));
+            loadMataPelajaran();
+        } catch(e) {
+            console.error(e);
+        }
+    }
+};
+
 window.loadJurusan = async () => { /* Logika dipertahankan */ };
 window.changeSubject = () => { /* Logika dipertahankan */ };
 
