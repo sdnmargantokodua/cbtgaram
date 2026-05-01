@@ -2101,3 +2101,217 @@ window.hapusButirSoal = async () => {
         } catch(e) { console.error(e); }
     }
 };
+
+// ==========================================
+// JADWAL UJIAN / PENILAIAN
+// ==========================================
+window.loadJadwalUjian = async () => {
+    try {
+        // 1. Pastikan data referensi Dropdown tersedia
+        if (state.masterSubjects.length === 0) {
+            const s1 = await getDocs(collection(db, 'master_subjects'));
+            state.masterSubjects = [];
+            s1.forEach(d => state.masterSubjects.push({id: d.id, ...d.data()}));
+        }
+        if (state.masterJenisUjian.length === 0) {
+            const s2 = await getDocs(collection(db, 'master_jenis_ujian'));
+            state.masterJenisUjian = [];
+            s2.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()}));
+        }
+        if (state.masterBankSoal.length === 0) {
+            const s3 = await getDocs(collection(db, 'master_bank_soal'));
+            state.masterBankSoal = [];
+            s3.forEach(d => state.masterBankSoal.push({id: d.id, ...d.data()}));
+        }
+
+        // 2. Isi Dropdown di Modal Jadwal
+        const selMapel = document.getElementById('juMapel');
+        selMapel.innerHTML = '<option value="">-- Pilih Mata Pelajaran --</option>';
+        state.masterSubjects.forEach(m => selMapel.innerHTML += `<option value="${m.nama}">${m.nama}</option>`);
+
+        const selJenis = document.getElementById('juJenis');
+        selJenis.innerHTML = '<option value="">-- Pilih Jenis Penilaian --</option>';
+        state.masterJenisUjian.forEach(j => selJenis.innerHTML += `<option value="${j.nama}">${j.nama}</option>`);
+
+        // 3. Load Data Jadwal Utama
+        const snap = await getDocs(collection(db, 'master_jadwal_ujian'));
+        state.masterJadwalUjian = [];
+        snap.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
+        
+        window.renderTableJadwalUjian();
+    } catch(e) {
+        console.error("Error load jadwal ujian:", e);
+    }
+};
+
+window.filterBankSoalByMapel = () => {
+    const mapelTerpilih = document.getElementById('juMapel').value;
+    const selBank = document.getElementById('juBankSoal');
+    selBank.innerHTML = '<option value="">-- Pilih Bank Soal --</option>';
+    
+    if(!mapelTerpilih) return;
+
+    // Hanya tampilkan Bank Soal yang Mapelnya sama dan statusnya Aktif
+    const bankFiltered = state.masterBankSoal.filter(b => b.mapel === mapelTerpilih && b.isActive);
+    
+    if(bankFiltered.length === 0) {
+        selBank.innerHTML = '<option value="">Belum ada Bank Soal Aktif untuk mapel ini</option>';
+        return;
+    }
+
+    bankFiltered.forEach(b => {
+        selBank.innerHTML += `<option value="${b.id}">${b.kode} - (Kls ${b.kelas}) - ${b.totalSoal} Soal</option>`;
+    });
+};
+
+window.renderTableJadwalUjian = () => {
+    const tb = document.getElementById('tableJadwalUjianBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+
+    if (state.masterJadwalUjian.length === 0) {
+        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada Jadwal Ujian. Silakan klik + Tambah Jadwal.</td></tr>';
+        return;
+    }
+
+    state.masterJadwalUjian.forEach((j, i) => {
+        const bs = state.masterBankSoal.find(x => x.id === j.bankSoalId);
+        const bsLabel = bs ? `${bs.kode} (Kls ${bs.kelas})` : '<span class="text-red-500 italic">Bank Soal Hilang</span>';
+        
+        // Logika Status Badge Sederhana
+        let statusBadge = `<span class="bg-pink-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Belum dimulai</span>`;
+        if(!j.isActive) {
+            statusBadge = `<span class="bg-slate-500 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Tidak aktif</span>`;
+        }
+
+        const tglMulai = j.tglMulai ? new Date(j.tglMulai).toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-l-4 ${j.isActive ? 'border-l-blue-500' : 'border-l-slate-400'} border-b border-slate-100">
+                <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r">
+                    <p class="font-bold text-slate-800">${j.mapel || '-'}</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">${j.jenis || '-'}</p>
+                </td>
+                <td class="p-3 border-r font-mono text-sm text-blue-700 font-bold">${bsLabel}</td>
+                <td class="p-3 border-r text-center text-[11px] whitespace-nowrap font-bold text-slate-600">${tglMulai}</td>
+                <td class="p-3 border-r text-center font-black text-slate-700">${j.durasi || 0} <span class="text-[10px] font-normal">Mnt</span></td>
+                <td class="p-3 border-r text-center">${statusBadge}</td>
+                <td class="p-3 text-center space-x-1 whitespace-nowrap">
+                    <button onclick="editJadwalUjian('${j.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-2 py-1 rounded shadow-sm text-xs font-bold transition">✏️</button>
+                    <button onclick="hapusJadwalUjian('${j.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow-sm text-xs transition">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalJadwalUjian = () => {
+    document.getElementById('jadwalUjianId').value = '';
+    document.getElementById('juMapel').value = '';
+    document.getElementById('juBankSoal').innerHTML = '<option value="">-- Pilih Bank Soal --</option>';
+    
+    // Set Waktu Default (Sekarang s/d Besok)
+    const now = new Date();
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    const localNow = (new Date(now - tzOffset)).toISOString().slice(0, 16);
+    const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+    const localTom = (new Date(tomorrow - tzOffset)).toISOString().slice(0, 16);
+
+    document.getElementById('juTglMulai').value = localNow;
+    document.getElementById('juTglExpired').value = localTom;
+    document.getElementById('juDurasi').value = '90';
+    document.getElementById('juDurasiMin').value = '30';
+    
+    // Default Checkboxes
+    document.getElementById('juAcakSoal').checked = true;
+    document.getElementById('juAcakJawaban').checked = true;
+    document.getElementById('juGunakanToken').checked = false;
+    document.getElementById('juTampilkanHasil').checked = false;
+    document.getElementById('juResetIzin').checked = false;
+    document.getElementById('juAktif').checked = true;
+
+    document.getElementById('modalJadwalUjian').classList.remove('hidden');
+};
+
+window.simpanJadwalUjian = async () => {
+    const id = document.getElementById('jadwalUjianId').value;
+    const mapel = document.getElementById('juMapel').value;
+    const bankSoalId = document.getElementById('juBankSoal').value;
+    const jenis = document.getElementById('juJenis').value;
+    const tglMulai = document.getElementById('juTglMulai').value;
+    const tglExpired = document.getElementById('juTglExpired').value;
+
+    if(!mapel || !bankSoalId || !tglMulai || !tglExpired) {
+        return alert("Mata Pelajaran, Bank Soal, dan Rentang Waktu wajib diisi!");
+    }
+
+    const data = {
+        mapel, bankSoalId, jenis, tglMulai, tglExpired,
+        durasi: parseInt(document.getElementById('juDurasi').value) || 90,
+        durasiMin: parseInt(document.getElementById('juDurasiMin').value) || 30,
+        acakSoal: document.getElementById('juAcakSoal').checked,
+        acakJawaban: document.getElementById('juAcakJawaban').checked,
+        gunakanToken: document.getElementById('juGunakanToken').checked,
+        tampilkanHasil: document.getElementById('juTampilkanHasil').checked,
+        resetIzin: document.getElementById('juResetIzin').checked,
+        isActive: document.getElementById('juAktif').checked
+    };
+
+    const btn = document.getElementById('btnSimpanJadwal');
+    if(btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
+
+    try {
+        if(id) await updateDoc(doc(db, 'master_jadwal_ujian', id), data);
+        else await addDoc(collection(db, 'master_jadwal_ujian'), data);
+        
+        closeModal('modalJadwalUjian');
+        alert("Jadwal Ujian berhasil diterbitkan!");
+        loadJadwalUjian();
+    } catch(e) {
+        console.error("Gagal simpan jadwal:", e);
+        alert("Gagal menyimpan jadwal.");
+    } finally {
+        if(btn) { btn.disabled = false; btn.innerText = "✔️ Simpan"; }
+    }
+};
+
+window.editJadwalUjian = (id) => {
+    const j = state.masterJadwalUjian.find(x => x.id === id);
+    if(!j) return;
+
+    document.getElementById('jadwalUjianId').value = j.id;
+    document.getElementById('juMapel').value = j.mapel || '';
+    
+    // Filter bank soal dulu agar dropdown bank soal terisi, baru set value-nya
+    window.filterBankSoalByMapel();
+    
+    setTimeout(() => {
+        document.getElementById('juBankSoal').value = j.bankSoalId || '';
+    }, 100);
+
+    document.getElementById('juJenis').value = j.jenis || '';
+    document.getElementById('juTglMulai').value = j.tglMulai || '';
+    document.getElementById('juTglExpired').value = j.tglExpired || '';
+    document.getElementById('juDurasi').value = j.durasi || '90';
+    document.getElementById('juDurasiMin').value = j.durasiMin || '30';
+    
+    document.getElementById('juAcakSoal').checked = j.acakSoal !== false;
+    document.getElementById('juAcakJawaban').checked = j.acakJawaban !== false;
+    document.getElementById('juGunakanToken').checked = j.gunakanToken === true;
+    document.getElementById('juTampilkanHasil').checked = j.tampilkanHasil === true;
+    document.getElementById('juResetIzin').checked = j.resetIzin === true;
+    document.getElementById('juAktif').checked = j.isActive !== false;
+
+    document.getElementById('modalJadwalUjian').classList.remove('hidden');
+};
+
+window.hapusJadwalUjian = async (id) => {
+    if(confirm("Yakin ingin menghapus jadwal ini? Siswa tidak akan bisa lagi mengerjakan ujian melalui jadwal ini.")) {
+        try {
+            await deleteDoc(doc(db, 'master_jadwal_ujian', id));
+            loadJadwalUjian();
+        } catch(e) { console.error(e); }
+    }
+};
