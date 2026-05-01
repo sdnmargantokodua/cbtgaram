@@ -5,9 +5,34 @@ import { getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/fireb
 // ==========================================
 // SESSION & UTILS
 // ==========================================
-window.checkAdminSession = () => { if (sessionStorage.getItem('admin_logged_in') === 'true') { document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('appScreen').classList.remove('hidden'); document.getElementById('appScreen').classList.add('flex'); initFirebase(); window.loadDashboard(); window.loadProfil(); } };
-window.handleLogin = (e) => { e.preventDefault(); if (document.getElementById('inputPinAdmin').value === state.ADMIN_PIN) { sessionStorage.setItem('admin_logged_in', 'true'); checkAdminSession(); } else { document.getElementById('loginError').classList.remove('hidden'); } };
-window.logoutAdmin = () => { sessionStorage.removeItem('admin_logged_in'); location.reload(); };
+window.checkAdminSession = () => { 
+    // Menggunakan localStorage agar sesi tidak hilang saat browser diclose
+    if (localStorage.getItem('admin_logged_in') === 'true') { 
+        document.getElementById('loginScreen').classList.add('hidden'); 
+        document.getElementById('appScreen').classList.remove('hidden'); 
+        document.getElementById('appScreen').classList.add('flex'); 
+        initFirebase(); 
+        
+        // Menampilkan tab Dashboard secara default saat halaman direload
+        switchTab('viewDashboard', 'Dashboard');
+        window.loadDashboard(); 
+    } 
+};
+
+window.handleLogin = (e) => { 
+    e.preventDefault(); 
+    if (document.getElementById('inputPinAdmin').value === state.ADMIN_PIN) { 
+        localStorage.setItem('admin_logged_in', 'true'); // Simpan ke localStorage
+        checkAdminSession(); 
+    } else { 
+        document.getElementById('loginError').classList.remove('hidden'); 
+    } 
+};
+
+window.logoutAdmin = () => { 
+    localStorage.removeItem('admin_logged_in'); // Hapus dari localStorage
+    location.reload(); 
+};
 
 // FUNGSI TOGGLE ACCORDION MENU SIDEBAR
 window.toggleNavMenu = (id) => {
@@ -34,12 +59,11 @@ window.switchTab = (id, title) => {
     
     document.getElementById('pageTitle').innerText = title; 
     if (window.innerWidth < 768) toggleSidebar(); 
-    
-    // Trigger spesifik saat menu diklik
     if(id === 'viewBersihkan') window.loadBersihkan();
     if(id === 'viewPengumuman') window.loadPengumuman();
     if(id === 'viewProfil') window.loadProfil();
 };
+
 window.toggleSidebar = () => { const s = document.getElementById('sidebar'); s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); };
 window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
