@@ -3,7 +3,7 @@ import { db, doc, collection, addDoc, updateDoc, deleteDoc, setDoc, initFirebase
 import { getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // ==========================================
-// SESSION & UTILS
+// SESSION & UI NAVIGATION (SIDEBAR FIXED)
 // ==========================================
 window.checkAdminSession = () => { 
     if (localStorage.getItem('admin_logged_in') === 'true') { 
@@ -34,21 +34,44 @@ window.logoutAdmin = () => {
     location.reload();
 };
 
-window.switchTab = (tabId, title) => {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-    document.getElementById(tabId).classList.remove('hidden');
-    document.getElementById('currentTabTitle').innerText = title;
+// Fungsi ini wajib ada agar dropdown sidebar bisa diklik
+window.toggleNavMenu = (id) => {
+    const menu = document.getElementById(id);
+    const icon = document.getElementById('icon-' + id);
+    if (menu.classList.contains('hidden')) {
+        menu.classList.remove('hidden');
+        menu.classList.add('block');
+        icon.classList.add('rotate-180');
+    } else {
+        menu.classList.add('hidden');
+        menu.classList.remove('block');
+        icon.classList.remove('rotate-180');
+    }
+};
 
-    // Trigger loader data sesuai tab
-    if (tabId === 'viewDashboard') loadDashboard();
-    if (tabId === 'viewAkademik') loadAkademik();
-    if (tabId === 'viewMapel') loadMataPelajaran();
-    if (tabId === 'viewJurusan') loadJurusan();
-    if (tabId === 'viewKelas') loadKelas();
+// Fungsi ini wajib ada untuk buka-tutup sidebar di versi HP (Mobile)
+window.toggleSidebar = () => { 
+    const s = document.getElementById('sidebar'); 
+    s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); 
 };
 
 window.closeModal = (id) => {
     document.getElementById(id).classList.add('hidden');
+};
+
+// Fungsi perpindahan Tab yang sudah disesuaikan dengan HTML admin.html Anda
+window.switchTab = (id, title) => { 
+    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden')); 
+    document.querySelectorAll('.menu-btn').forEach(btn => btn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"); 
+    
+    document.getElementById(id).classList.remove('hidden'); 
+    const activeBtn = document.getElementById('btn-' + id);
+    if(activeBtn) activeBtn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/50"; 
+    
+    document.getElementById('pageTitle').innerText = title; 
+    
+    // Tutup sidebar otomatis jika di layar kecil
+    if (window.innerWidth < 768) toggleSidebar(); 
 };
 
 // ==========================================
@@ -59,58 +82,96 @@ window.loadDashboard = async () => {
         const snapSiswa = await getDocs(collection(db, 'master_siswa'));
         const snapMapel = await getDocs(collection(db, 'master_subjects'));
         const snapKelas = await getDocs(collection(db, 'master_kelas'));
-        const snapUjian = await getDocs(collection(db, 'exam_schedules'));
+        const snapGuru = await getDocs(collection(db, 'master_guru'));
 
-        document.getElementById('statSiswa').innerText = snapSiswa.size;
-        document.getElementById('statMapel').innerText = snapMapel.size;
-        document.getElementById('statKelas').innerText = snapKelas.size;
-        document.getElementById('statUjian').innerText = snapUjian.size;
-    } catch (e) { console.error(e); }
+        // Update ID sesuai dengan admin.html
+        if(document.getElementById('dashSiswa')) document.getElementById('dashSiswa').innerText = snapSiswa.size;
+        if(document.getElementById('dashRombel')) document.getElementById('dashRombel').innerText = snapKelas.size;
+        if(document.getElementById('dashGuru')) document.getElementById('dashGuru').innerText = snapGuru.size;
+        if(document.getElementById('dashMapel')) document.getElementById('dashMapel').innerText = snapMapel.size;
+    } catch (e) { console.error("Error load dashboard:", e); }
 };
 
 // ==========================================
 // AKADEMIK (TAHUN & SEMESTER)
 // ==========================================
-window.loadAkademik = async () => {
+window.loadTahunPelajaran = async () => {
     try {
         const docRef = doc(db, 'settings', 'academic_config');
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             state.academicConfig = docSnap.data();
+        } else {
+            state.academicConfig = { years: [{name: '2025/2026', isActive: true}], activeSemester: 'Ganjil' };
+            await setDoc(docRef, state.academicConfig);
         }
         window.renderTahunPelajaran();
     } catch (e) { console.error(e); }
 };
 
 window.renderTahunPelajaran = () => {
-    const tb = document.getElementById('tableTahunBody');
-    const sem = document.getElementById('statusSemesterAktif');
-    tb.innerHTML = '';
+    const tbTahun = document.getElementById('tableTahunBody');
+    const tbSmt = document.getElementById('tableSemesterBody');
+    if(!tbTahun || !tbSmt) return;
+
+    tbTahun.innerHTML = '';
+    tbSmt.innerHTML = '';
     
-    sem.innerText = state.academicConfig.activeSemester || 'Ganjil';
-    
-    state.academicConfig.years.forEach(y => {
-        const status = y.isActive 
-            ? '<span class="bg-green-500 text-white px-2 py-1 rounded text-xs">Aktif</span>' 
-            : '<button onclick="setTahunAktif(\''+y.name+'\')" class="text-blue-600 hover:underline text-xs">Set Aktif</button>';
+    if(state.academicConfig && state.academicConfig.years) {
+        state.academicConfig.years.forEach((y, i) => {
+            const badge = y.isActive 
+                ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Aktif</span>` 
+                : `<button onclick="setTahunAktif('${y.name}')" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-slate-300 transition shadow-sm">Set Aktif</button>`;
+            
+            const btnHapus = y.isActive 
+                ? `<span class="text-slate-300 text-xs italic">Digunakan</span>` 
+                : `<button onclick="hapusTahun('${y.name}')" class="text-red-500 hover:text-red-700 transition">🗑️</button>`;
+            
+            tbTahun.innerHTML += `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                    <td class="p-3 text-center border-r text-slate-500 font-bold">${i+1}</td>
+                    <td class="p-3 border-r font-bold text-slate-800 text-center">${y.name}</td>
+                    <td class="p-3 border-r text-center">${badge}</td>
+                    <td class="p-3 text-center">${btnHapus}</td>
+                </tr>
+            `;
+        });
+    }
+
+    const smt = ['Ganjil', 'Genap'];
+    const activeSmt = state.academicConfig ? state.academicConfig.activeSemester : 'Ganjil';
+    smt.forEach((s, i) => {
+        const badge = s === activeSmt 
+            ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Aktif</span>` 
+            : `<button onclick="setSemesterAktif('${s}')" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-slate-300 transition shadow-sm">Set Aktif</button>`;
         
-        tb.innerHTML += `
-            <tr class="border-b">
-                <td class="p-2">${y.name}</td>
-                <td class="p-2 text-center">${status}</td>
-                <td class="p-2 text-center">
-                    <button onclick="hapusTahun(\''+y.name+'\')" class="text-red-500">🗑️</button>
-                </td>
+        tbSmt.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r text-slate-500 font-bold">${i+1}</td>
+                <td class="p-3 border-r font-bold text-slate-800 text-center">${s}</td>
+                <td class="p-3 text-center">${badge}</td>
             </tr>
         `;
     });
 };
 
-window.tambahTahun = async () => {
-    const nama = prompt("Masukkan Tahun Pelajaran (Contoh: 2025/2026):");
-    if(!nama) return;
+window.openModalTahun = () => {
+    document.getElementById('tahunId').value = '';
+    document.getElementById('inputNamaTahun').value = '';
+    document.getElementById('inputNamaTahun').placeholder = 'Contoh: 2026/2027';
+    document.getElementById('modalTahunPelajaran').classList.remove('hidden');
+};
+
+window.simpanTahunPelajaran = async () => {
+    const nama = document.getElementById('inputNamaTahun').value.trim();
+    if(!nama) return alert('Nama tahun pelajaran wajib diisi!');
+    if(!state.academicConfig) state.academicConfig = { years: [], activeSemester: 'Ganjil' };
+    if(!state.academicConfig.years) state.academicConfig.years = [];
+    if(state.academicConfig.years.find(x => x.name === nama)) return alert('Tahun pelajaran sudah ada!');
+    
     state.academicConfig.years.push({ name: nama, isActive: false });
     await setDoc(doc(db, 'settings', 'academic_config'), state.academicConfig);
+    closeModal('modalTahunPelajaran');
     window.renderTahunPelajaran();
 };
 
@@ -154,16 +215,16 @@ window.renderTableMapel = () => {
         return;
     }
     state.masterSubjects.forEach((m) => {
-        const badge = m.isActive !== false ? '<span class="bg-green-500 text-white px-2 py-0.5 rounded text-[10px]">Aktif</span>' : '<span class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px]">Nonaktif</span>';
+        const badge = m.isActive !== false ? '<span class="bg-green-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Aktif</span>' : '<span class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Nonaktif</span>';
         tb.innerHTML += `
-            <tr class="border-b hover:bg-slate-50">
-                <td class="p-3 text-center font-mono font-bold">${m.kode || '-'}</td>
-                <td class="p-3 font-bold uppercase">${m.nama || '-'}</td>
-                <td class="p-3 text-center text-sm">${m.kelompok || '-'}</td>
+            <tr class="border-b hover:bg-slate-50 transition border-slate-100">
+                <td class="p-3 text-center font-mono font-bold text-slate-600">${m.kode || '-'}</td>
+                <td class="p-3 font-bold uppercase text-slate-800">${m.nama || '-'}</td>
+                <td class="p-3 text-center text-sm text-slate-600">${m.kelompok || '-'}</td>
                 <td class="p-3 text-center">${badge}</td>
                 <td class="p-3 text-center space-x-2">
-                    <button onclick="editMapel('${m.id}')" class="text-amber-600 font-bold">✏️</button>
-                    <button onclick="hapusMapel('${m.id}')" class="text-red-500">🗑️</button>
+                    <button onclick="editMapel('${m.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusMapel('${m.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
                 </td>
             </tr>`;
     });
@@ -185,7 +246,7 @@ window.simpanMapel = async () => {
         kelompok: document.getElementById('inputKelompokMapel').value,
         isActive: document.getElementById('inputStatusMapel').checked
     };
-    if(!data.nama || !data.kode) return alert("Wajib diisi!");
+    if(!data.nama || !data.kode) return alert("Nama dan Kode Mapel Wajib diisi!");
     try {
         if(id) await updateDoc(doc(db, 'master_subjects', id), data);
         else await addDoc(collection(db, 'master_subjects'), data);
@@ -218,8 +279,10 @@ window.hapusMapel = async (id) => {
 window.loadJurusan = async () => {
     try {
         const snap = await getDocs(collection(db, 'master_jurusan'));
+        if(!state.masterJurusan) state.masterJurusan = [];
         state.masterJurusan = [];
         snap.forEach(d => state.masterJurusan.push({id: d.id, ...d.data()}));
+        state.masterJurusan.sort((a,b) => (a.kode || '').localeCompare(b.kode || ''));
         window.renderTableJurusan();
     } catch(e) { console.error(e); }
 };
@@ -227,15 +290,19 @@ window.loadJurusan = async () => {
 window.renderTableJurusan = () => {
     const tb = document.getElementById('tableJurusanBody');
     tb.innerHTML = '';
+    if (!state.masterJurusan || state.masterJurusan.length === 0) {
+        tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-500 italic">Belum ada data Jurusan.</td></tr>';
+        return;
+    }
     state.masterJurusan.forEach((j, i) => {
         tb.innerHTML += `
-            <tr class="border-b">
-                <td class="p-3 text-center">${i+1}</td>
-                <td class="p-3 text-center font-mono">${j.kode}</td>
-                <td class="p-3 font-bold uppercase">${j.nama}</td>
-                <td class="p-3 text-center">
-                    <button onclick="editJurusan('${j.id}')" class="text-amber-600">✏️</button>
-                    <button onclick="hapusJurusan('${j.id}')" class="text-red-500 ml-2">🗑️</button>
+            <tr class="border-b transition hover:bg-slate-50 border-slate-100">
+                <td class="p-3 text-center font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 text-center font-mono font-bold text-slate-600">${j.kode}</td>
+                <td class="p-3 font-bold uppercase text-slate-800 text-left">${j.nama}</td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="editJurusan('${j.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusJurusan('${j.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
                 </td>
             </tr>`;
     });
@@ -254,6 +321,7 @@ window.simpanJurusan = async () => {
         kode: document.getElementById('inputKodeJurusan').value.trim().toUpperCase(),
         nama: document.getElementById('inputNamaJurusan').value.trim().toUpperCase()
     };
+    if(!data.kode || !data.nama) return alert("Kode dan Nama Jurusan Wajib diisi!");
     try {
         if(id) await updateDoc(doc(db, 'master_jurusan', id), data);
         else await addDoc(collection(db, 'master_jurusan'), data);
@@ -264,6 +332,7 @@ window.simpanJurusan = async () => {
 
 window.editJurusan = (id) => {
     const j = state.masterJurusan.find(x => x.id === id);
+    if(!j) return;
     document.getElementById('jurusanId').value = j.id;
     document.getElementById('inputKodeJurusan').value = j.kode;
     document.getElementById('inputNamaJurusan').value = j.nama;
@@ -282,10 +351,13 @@ window.hapusJurusan = async (id) => {
 // ==========================================
 window.loadKelas = async () => {
     try {
-        // Load siswa dulu untuk hitung jumlah
-        const snapSiswa = await getDocs(collection(db, 'master_siswa'));
-        state.masterSiswa = [];
-        snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        try {
+            const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+            state.masterSiswa = [];
+            snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        } catch(errSiswa) {
+            if(!state.masterSiswa) state.masterSiswa = [];
+        }
 
         const snap = await getDocs(collection(db, 'master_kelas'));
         state.masterKelas = [];
@@ -298,18 +370,22 @@ window.loadKelas = async () => {
 window.renderTableKelas = () => {
     const tb = document.getElementById('tableKelasBody');
     tb.innerHTML = '';
+    if (!state.masterKelas || state.masterKelas.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada data Kelas / Rombel.</td></tr>';
+        return;
+    }
     state.masterKelas.forEach((k, i) => {
-        const jml = state.masterSiswa.filter(s => s.kelas === k.nama).length;
+        const jml = state.masterSiswa ? state.masterSiswa.filter(s => s.kelas === k.nama).length : 0;
         tb.innerHTML += `
-            <tr class="border-b">
-                <td class="p-3 text-center">${i+1}</td>
-                <td class="p-3 font-bold uppercase">${k.nama}</td>
-                <td class="p-3 font-mono text-center">${k.kode}</td>
-                <td class="p-3 uppercase">${k.waliKelas || '-'}</td>
-                <td class="p-3 text-center font-bold text-blue-600">${jml}</td>
-                <td class="p-3 text-center">
-                    <button onclick="editKelas('${k.id}')" class="text-amber-600">✏️</button>
-                    <button onclick="hapusKelas('${k.id}')" class="text-red-500 ml-2">🗑️</button>
+            <tr class="border-b transition hover:bg-slate-50 border-slate-100 border-teal-100">
+                <td class="p-3 text-center border-r border-teal-100 text-slate-500 font-bold">${i+1}</td>
+                <td class="p-3 font-bold uppercase border-r border-teal-100 text-slate-800">${k.nama}</td>
+                <td class="p-3 font-mono text-center border-r border-teal-100 font-bold text-slate-600">${k.kode}</td>
+                <td class="p-3 uppercase border-r border-teal-100 text-slate-700">${k.waliKelas || '-'}</td>
+                <td class="p-3 text-center border-r border-teal-100 font-black text-blue-600">${jml}</td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="editKelas('${k.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusKelas('${k.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
                 </td>
             </tr>`;
     });
@@ -324,27 +400,40 @@ window.openModalKelas = () => {
 };
 
 window.simpanKelas = async () => {
+    const btnSimpan = document.querySelector("#modalKelas button.bg-blue-600");
+    const originalText = btnSimpan ? btnSimpan.innerText : 'Simpan';
+    
     const id = document.getElementById('kelasId').value;
-    const btn = document.querySelector("#modalKelas button.bg-blue-600");
     const data = {
         nama: document.getElementById('inputNamaKelas').value.trim().toUpperCase(),
         kode: document.getElementById('inputKodeKelas').value.trim().toUpperCase(),
         waliKelas: document.getElementById('inputWaliKelas').value.trim().toUpperCase()
     };
-    if(!data.nama || !data.kode) return alert("Isi nama dan kode!");
+    if(!data.nama || !data.kode) return alert("Nama dan kode wajib diisi!");
     
-    if(btn) btn.disabled = true;
+    if(btnSimpan) {
+        btnSimpan.innerText = "Menyimpan...";
+        btnSimpan.disabled = true;
+    }
+    
     try {
         if(id) await updateDoc(doc(db, 'master_kelas', id), data);
         else await addDoc(collection(db, 'master_kelas'), data);
         closeModal('modalKelas');
-        loadKelas();
+        alert("Data Kelas / Rombel berhasil disimpan!");
+        await loadKelas();
     } catch(e) { console.error(e); }
-    finally { if(btn) btn.disabled = false; }
+    finally { 
+        if(btnSimpan) {
+            btnSimpan.innerText = originalText;
+            btnSimpan.disabled = false;
+        } 
+    }
 };
 
 window.editKelas = (id) => {
     const k = state.masterKelas.find(x => x.id === id);
+    if(!k) return;
     document.getElementById('kelasId').value = k.id;
     document.getElementById('inputNamaKelas').value = k.nama;
     document.getElementById('inputKodeKelas').value = k.kode;
@@ -353,7 +442,7 @@ window.editKelas = (id) => {
 };
 
 window.hapusKelas = async (id) => {
-    if(confirm("Hapus kelas?")) {
+    if(confirm("Hapus kelas? Pastikan tidak ada siswa di kelas ini.")) {
         await deleteDoc(doc(db, 'master_kelas', id));
         loadKelas();
     }
