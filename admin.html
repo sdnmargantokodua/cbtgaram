@@ -74,7 +74,7 @@
         <div class="flex-1 flex flex-col h-screen overflow-hidden">
             <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b border-slate-200">
                 <div class="flex items-center gap-3"><button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600">☰</button><h2 id="pageTitle" class="text-xl font-bold text-slate-800">Data Nilai Siswa</h2></div>
-                <div class="flex items-center gap-3"><div class="bg-blue-50 border border-blue-200 rounded-lg p-1.5 flex items-center"><span class="text-xs font-bold text-blue-800 mr-2">Mapel:</span><select id="subjectSelector" onchange="changeSubject()" class="bg-white text-blue-900 border rounded px-3 py-1.5 text-sm font-bold outline-none"></select></div></div>
+                <!-- Mapel Dropdown Removed as requested -->
             </header>
 
             <main class="flex-1 overflow-y-auto bg-slate-100 p-4 md:p-8">
@@ -152,6 +152,7 @@
     <div id="modalJurusan" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4"><div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl"><h3 class="font-bold mb-4">Data Jurusan</h3><input type="hidden" id="jurusanId"><input type="text" id="inputKodeJurusan" class="w-full p-2 border rounded-lg mb-2 uppercase" placeholder="KODE JURUSAN"><input type="text" id="inputNamaJurusan" class="w-full p-2 border rounded-lg mb-4 uppercase" placeholder="NAMA JURUSAN"><div class="flex justify-end gap-2"><button onclick="closeModal('modalJurusan')" class="p-2 text-slate-400">Batal</button><button onclick="simpanJurusan()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">Simpan</button></div></div></div>
     <div id="modalDetailNilai" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4"><div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl"><h3 class="font-bold mb-4" id="detailNamaSiswa">Nama</h3><button onclick="closeModal('modalDetailNilai')" class="bg-blue-600 text-white px-4 py-2 mt-4 rounded-lg font-bold">Tutup</button></div></div>
     <div id="modalPeserta" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4"><div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl"><h3 class="font-bold mb-4">Data Peserta Ujian</h3><input type="hidden" id="pesertaId"><div class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="text-[10px] font-bold">Absen</label><input type="number" id="pesertaAbsen" class="w-full p-2 border rounded-lg"></div><div><label class="text-[10px] font-bold">No Peserta</label><input type="text" id="pesertaNoUjian" class="w-full p-2 border rounded-lg"></div></div><div><label class="text-[10px] font-bold">Nama Lengkap</label><input type="text" id="pesertaNama" class="w-full p-2 border rounded-lg uppercase"></div></div><div class="flex justify-end gap-2 mt-6"><button onclick="closeModal('modalPeserta')" class="p-2 text-slate-400 font-bold">Batal</button><button onclick="simpanPeserta()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">Simpan</button></div></div></div>
+    <div id="modalAnalisaSoal" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4"></div>
 
     <script type="module" src="./js/main.js"></script>
     <script>
