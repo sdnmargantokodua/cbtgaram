@@ -5,11 +5,10 @@ import { getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/fireb
 // ==========================================
 // SESSION & UTILS
 // ==========================================
-window.checkAdminSession = () => { if (sessionStorage.getItem('admin_logged_in') === 'true') { document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('appScreen').classList.remove('hidden'); document.getElementById('appScreen').classList.add('flex'); initFirebase(); } };
+window.checkAdminSession = () => { if (sessionStorage.getItem('admin_logged_in') === 'true') { document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('appScreen').classList.remove('hidden'); document.getElementById('appScreen').classList.add('flex'); initFirebase(); window.loadDashboard(); } };
 window.handleLogin = (e) => { e.preventDefault(); if (document.getElementById('inputPinAdmin').value === state.ADMIN_PIN) { sessionStorage.setItem('admin_logged_in', 'true'); checkAdminSession(); } else { document.getElementById('loginError').classList.remove('hidden'); } };
 window.logoutAdmin = () => { sessionStorage.removeItem('admin_logged_in'); location.reload(); };
 
-// FUNGSI TOGGLE ACCORDION MENU SIDEBAR (BARU)
 window.toggleNavMenu = (id) => {
     const menu = document.getElementById(id);
     const icon = document.getElementById('icon-' + id);
@@ -26,20 +25,119 @@ window.toggleNavMenu = (id) => {
 
 window.switchTab = (id, title) => { 
     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden')); 
-    // Mengembalikan style default pada semua button di dalam dropdown
     document.querySelectorAll('.menu-btn').forEach(btn => btn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"); 
     
     document.getElementById(id).classList.remove('hidden'); 
-    // Menyorot menu yang sedang aktif
     const activeBtn = document.getElementById('btn-' + id);
     if(activeBtn) activeBtn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/50"; 
     
     document.getElementById('pageTitle').innerText = title; 
     if (window.innerWidth < 768) toggleSidebar(); 
     if(id === 'viewBersihkan') window.loadBersihkan();
+    if(id === 'viewPengumuman') window.loadPengumuman();
 };
 window.toggleSidebar = () => { const s = document.getElementById('sidebar'); s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); };
 window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
+
+
+// ==========================================
+// DASHBOARD & PENGUMUMAN (BARU)
+// ==========================================
+window.loadDashboard = async () => {
+    try {
+        // Hitung Data Utama
+        if(state.masterSiswa.length === 0) { const s = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; s.forEach(d => state.masterSiswa.push(d.data())); }
+        if(state.masterKelas.length === 0) { const s = await getDocs(collection(db, 'master_kelas')); state.masterKelas = []; s.forEach(d => state.masterKelas.push(d.data())); }
+        if(state.masterGuru.length === 0) { const s = await getDocs(collection(db, 'master_guru')); state.masterGuru = []; s.forEach(d => state.masterGuru.push(d.data())); }
+        if(state.masterSubjects.length === 0) { const s = await getDocs(collection(db, 'master_subjects')); state.masterSubjects = []; s.forEach(d => state.masterSubjects.push(d.data())); }
+
+        document.getElementById('dashSiswa').innerText = state.masterSiswa.length;
+        document.getElementById('dashRombel').innerText = state.masterKelas.length;
+        document.getElementById('dashGuru').innerText = state.masterGuru.length;
+        document.getElementById('dashMapel').innerText = state.masterSubjects.length;
+
+        // Hitung Penilaian
+        if(state.masterRuangUjian.length === 0) { const s = await getDocs(collection(db, 'master_ruang_ujian')); state.masterRuangUjian = []; s.forEach(d => state.masterRuangUjian.push(d.data())); }
+        if(state.masterSesiUjian.length === 0) { const s = await getDocs(collection(db, 'master_sesi_ujian')); state.masterSesiUjian = []; s.forEach(d => state.masterSesiUjian.push(d.data())); }
+        if(state.masterBankSoal.length === 0) { const s = await getDocs(collection(db, 'master_bank_soal')); state.masterBankSoal = []; s.forEach(d => state.masterBankSoal.push(d.data())); }
+        if(state.masterJadwalUjian.length === 0) { const s = await getDocs(collection(db, 'master_jadwal_ujian')); state.masterJadwalUjian = []; s.forEach(d => state.masterJadwalUjian.push(d.data())); }
+        
+        document.getElementById('dashRuang').innerText = state.masterRuangUjian.length;
+        document.getElementById('dashSesi').innerText = state.masterSesiUjian.length;
+        document.getElementById('dashBankSoal').innerText = state.masterBankSoal.length;
+        document.getElementById('dashJadwal').innerText = state.masterJadwalUjian.length;
+
+        const snapToken = await getDoc(doc(db, 'settings', 'token_ujian'));
+        if(snapToken.exists()) document.getElementById('dashToken').innerText = snapToken.data().currentToken || '-';
+
+        // Load Aktifitas Simulasi (Misal 3 login terakhir)
+        const actCont = document.getElementById('dashActivity');
+        actCont.innerHTML = `
+            <div class="flex items-center justify-between border-b pb-2">
+                <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm">Y</div><div><p class="text-sm font-bold text-slate-800 leading-tight">Yoyon Sugiyono</p><p class="text-xs text-emerald-600 font-bold">Login Admin</p></div></div>
+                <span class="text-xs text-slate-400">Baru saja</span>
+            </div>
+            <div class="flex items-center justify-between border-b pb-2">
+                <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-bold text-sm">G</div><div><p class="text-sm font-bold text-slate-800 leading-tight">Guru PAI</p><p class="text-xs text-slate-500">Melihat Nilai</p></div></div>
+                <span class="text-xs text-slate-400">1 jam lalu</span>
+            </div>
+        `;
+
+        // Load Pengumuman
+        window.loadPengumuman(true);
+
+    } catch(e) { console.error("Gagal load dashboard", e); }
+};
+
+window.loadPengumuman = async (isDashboard = false) => {
+    try {
+        const snap = await getDoc(doc(db, 'settings', 'pengumuman_config'));
+        let config = { r1: '', r2: '', r3: '', kepada: '', teks: '' };
+        if(snap.exists()) config = snap.data();
+
+        if (isDashboard) {
+            const txt = config.teks ? config.teks : 'Tidak ada pengumuman.';
+            document.getElementById('dashPengumumanText').innerHTML = txt;
+        } else {
+            document.getElementById('rt1').value = config.r1 || '';
+            document.getElementById('rt2').value = config.r2 || '';
+            document.getElementById('rt3').value = config.r3 || '';
+            document.getElementById('pengumumanKepada').value = config.kepada || '';
+            document.getElementById('pengumumanTeks').value = config.teks || '';
+        }
+    } catch(e) { console.error(e); }
+};
+
+window.simpanRunningText = async () => {
+    try {
+        const r1 = document.getElementById('rt1').value;
+        const r2 = document.getElementById('rt2').value;
+        const r3 = document.getElementById('rt3').value;
+        await updateDoc(doc(db, 'settings', 'pengumuman_config'), { r1, r2, r3 });
+        alert('Running text disimpan!');
+    } catch(e) {
+        // Jika dokumen belum ada, gunakan setDoc
+        try {
+            await setDoc(doc(db, 'settings', 'pengumuman_config'), { r1: document.getElementById('rt1').value, r2: document.getElementById('rt2').value, r3: document.getElementById('rt3').value });
+            alert('Running text disimpan!');
+        } catch(e2) { console.error(e2); }
+    }
+};
+
+window.simpanPengumuman = async () => {
+    try {
+        const kepada = document.getElementById('pengumumanKepada').value;
+        const teks = document.getElementById('pengumumanTeks').value;
+        await updateDoc(doc(db, 'settings', 'pengumuman_config'), { kepada, teks });
+        alert('Pengumuman disimpan!');
+        window.loadDashboard(); // Segarkan tampilan dashboard
+    } catch(e) {
+        try {
+            await setDoc(doc(db, 'settings', 'pengumuman_config'), { kepada: document.getElementById('pengumumanKepada').value, teks: document.getElementById('pengumumanTeks').value });
+            alert('Pengumuman disimpan!');
+        } catch(e2) { console.error(e2); }
+    }
+};
 
 
 // ==========================================
@@ -127,30 +225,6 @@ window.renderTableJenisUjian = () => { const tb = document.getElementById('table
 window.openModalJenisUjian = () => { document.getElementById('jenisUjianId').value = ''; document.getElementById('inputNamaJenisUjian').value = ''; document.getElementById('inputKodeJenisUjian').value = ''; document.getElementById('modalJenisUjian').classList.remove('hidden'); };
 window.simpanJenisUjian = async () => { const id = document.getElementById('jenisUjianId').value; const nama = document.getElementById('inputNamaJenisUjian').value.trim(); const kode = document.getElementById('inputKodeJenisUjian').value.trim().toUpperCase(); if(!nama) return alert("Nama Jenis Ujian wajib diisi!"); const data = { nama, kode, noUrut: state.masterJenisUjian.length + 1 }; try { if(id) { const old = state.masterJenisUjian.find(x => x.id === id); if(old) data.noUrut = old.noUrut; await updateDoc(doc(db, 'master_jenis_ujian', id), data); } else { await addDoc(collection(db, 'master_jenis_ujian'), data); } closeModal('modalJenisUjian'); loadJenisUjian(); } catch(e) { console.error(e); } };
 window.editJenisUjian = (id) => { const ju = state.masterJenisUjian.find(x => x.id === id); if(!ju) return; document.getElementById('jenisUjianId').value = ju.id; document.getElementById('inputNamaJenisUjian').value = ju.nama || ''; document.getElementById('inputKodeJenisUjian').value = ju.kode || ''; document.getElementById('modalJenisUjian').classList.remove('hidden'); };
-
-window.loadEkskul = async () => { /* Logika dipertahankan */ };
-window.renderTableEkskul = () => { /* Logika dipertahankan */ };
-window.openModalEkskul = () => { /* Logika dipertahankan */ };
-window.simpanEkskul = async () => { /* Logika dipertahankan */ };
-window.editEkskul = (id) => { /* Logika dipertahankan */ };
-window.hapusEkskul = async (id) => { /* Logika dipertahankan */ };
-window.renderPenempatanEkskul = () => { /* Logika dipertahankan */ };
-window.simpanPenempatanEkskul = async () => { /* Logika dipertahankan */ };
-
-window.loadKelas = async () => { /* Logika dipertahankan */ };
-window.renderTableKelas = () => { /* Logika dipertahankan */ };
-window.openModalKelas = () => { /* Logika dipertahankan */ };
-window.simpanKelas = async () => { /* Logika dipertahankan */ };
-window.editKelas = (id) => { /* Logika dipertahankan */ };
-window.hapusKelas = async (id) => { /* Logika dipertahankan */ };
-window.kenaikanKelas = () => { /* Logika dipertahankan */ };
-
-window.loadTahunPelajaran = async () => { /* Logika dipertahankan */ };
-window.loadMataPelajaran = async () => { /* Logika dipertahankan */ };
-window.loadJurusan = async () => { /* Logika dipertahankan */ };
-window.isiFormProfil = () => { /* Logika dipertahankan */ };
-window.simpanProfil = async () => { /* Logika dipertahankan */ };
-window.changeSubject = () => { /* Logika dipertahankan */ };
 
 // Start Application
 checkAdminSession();
