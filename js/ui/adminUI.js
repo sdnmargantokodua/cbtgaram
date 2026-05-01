@@ -1478,3 +1478,155 @@ window.simpanAturRuangSesi = async () => {
         if (btn) { btn.disabled = false; btn.innerHTML = "💾 Simpan"; }
     }
 };
+
+// ==========================================
+// ATUR PENGAWAS UJIAN
+// ==========================================
+window.loadPengawas = async () => {
+    try {
+        // 1. Load Data Jenis Ujian
+        if (!state.masterJenisUjian || state.masterJenisUjian.length === 0) {
+            const snapJenis = await getDocs(collection(db, 'master_jenis_ujian'));
+            state.masterJenisUjian = [];
+            snapJenis.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()}));
+            state.masterJenisUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        }
+
+        // 2. Load Data Ruang Ujian
+        if (!state.masterRuangUjian || state.masterRuangUjian.length === 0) {
+            const snapRuang = await getDocs(collection(db, 'master_ruang_ujian'));
+            state.masterRuangUjian = [];
+            snapRuang.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
+            state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        }
+
+        // 3. Load Data Sesi Ujian
+        if (!state.masterSesiUjian || state.masterSesiUjian.length === 0) {
+            const snapSesi = await getDocs(collection(db, 'master_sesi_ujian'));
+            state.masterSesiUjian = [];
+            snapSesi.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()}));
+            state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        }
+
+        // 4. Load Data Guru
+        if (!state.masterGuru || state.masterGuru.length === 0) {
+            const snapGuru = await getDocs(collection(db, 'master_guru'));
+            state.masterGuru = [];
+            snapGuru.forEach(d => state.masterGuru.push({id: d.id, ...d.data()}));
+            state.masterGuru.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        }
+
+        // 5. Load Data Penempatan Pengawas yang sudah tersimpan
+        const snapPengawas = await getDoc(doc(db, 'settings', 'pengawas_ujian'));
+        if (snapPengawas.exists()) {
+            state.pengawasUjian = snapPengawas.data();
+        } else {
+            state.pengawasUjian = {};
+        }
+
+        // 6. Render Dropdown Jenis Penilaian
+        const filterJenis = document.getElementById('filterPengawasJenis');
+        if (state.masterJenisUjian.length > 0) {
+            filterJenis.innerHTML = '<option value="">-- Pilih Jenis Penilaian --</option>';
+            state.masterJenisUjian.forEach(j => {
+                filterJenis.innerHTML += `<option value="${j.nama}">${j.nama}</option>`;
+            });
+        } else {
+            filterJenis.innerHTML = '<option value="">Belum ada data Jenis Ujian</option>';
+        }
+
+        window.renderTablePengawas();
+    } catch (e) {
+        console.error("Error load pengawas:", e);
+    }
+};
+
+window.renderTablePengawas = () => {
+    const jenisVal = document.getElementById('filterPengawasJenis').value;
+    const tb = document.getElementById('tablePengawasBody');
+    tb.innerHTML = '';
+
+    if (!jenisVal) {
+        tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-500 italic bg-slate-50">Silakan Pilih Jenis Penilaian terlebih dahulu.</td></tr>';
+        return;
+    }
+
+    if (!state.masterRuangUjian || state.masterRuangUjian.length === 0 || !state.masterSesiUjian || state.masterSesiUjian.length === 0) {
+        tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-500 italic bg-slate-50">Data Master Ruang atau Sesi masih kosong.</td></tr>';
+        return;
+    }
+
+    // Siapkan dropdown opsi Guru
+    let optGuru = '<option value="">-- Pilih Pengawas --</option>';
+    state.masterGuru.forEach(g => {
+        optGuru += `<option value="${g.nama}">${g.nama}</option>`;
+    });
+
+    let no = 1;
+    // Loop Ruang -> Loop Sesi untuk membuat matriks penempatan
+    state.masterRuangUjian.forEach(r => {
+        state.masterSesiUjian.forEach(s => {
+            const key = `${r.nama}_${s.nama}`; // Kunci unik kombinasi ruang dan sesi
+            
+            tb.innerHTML += `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100" data-key="${key}">
+                    <td class="p-3 text-center border-r font-bold text-slate-500">${no++}</td>
+                    <td class="p-3 border-r font-bold text-slate-800 uppercase">${r.nama}</td>
+                    <td class="p-3 border-r text-center font-bold text-slate-600">${s.nama}</td>
+                    <td class="p-2 border-r bg-slate-50">
+                        <select class="w-full p-2 border border-slate-300 rounded outline-none text-sm bg-white select-guru focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
+                            ${optGuru}
+                        </select>
+                    </td>
+                </tr>
+            `;
+        });
+    });
+
+    // Timeout untuk memuat data yang sudah tersimpan ke dalam dropdown guru
+    setTimeout(() => {
+        tb.querySelectorAll('tr[data-key]').forEach(row => {
+            const key = row.getAttribute('data-key');
+            if (state.pengawasUjian[jenisVal] && state.pengawasUjian[jenisVal][key]) {
+                row.querySelector('.select-guru').value = state.pengawasUjian[jenisVal][key];
+            }
+        });
+    }, 50);
+};
+
+window.simpanPengawas = async () => {
+    const jenisVal = document.getElementById('filterPengawasJenis').value;
+    if (!jenisVal) return alert("Pilih Jenis Penilaian terlebih dahulu!");
+
+    const btn = document.getElementById('btnSimpanPengawas');
+    if (btn) { btn.disabled = true; btn.innerHTML = "Menyimpan..."; }
+
+    const tb = document.getElementById('tablePengawasBody');
+    const rows = tb.querySelectorAll('tr[data-key]');
+    
+    // Inisialisasi object untuk jenis ujian ini jika belum ada
+    if (!state.pengawasUjian) state.pengawasUjian = {};
+    if (!state.pengawasUjian[jenisVal]) state.pengawasUjian[jenisVal] = {};
+
+    rows.forEach(row => {
+        const key = row.getAttribute('data-key');
+        const guru = row.querySelector('.select-guru').value;
+        
+        if (guru) {
+            state.pengawasUjian[jenisVal][key] = guru;
+        } else {
+            // Hapus jika opsi dikosongkan
+            delete state.pengawasUjian[jenisVal][key];
+        }
+    });
+
+    try {
+        await setDoc(doc(db, 'settings', 'pengawas_ujian'), state.pengawasUjian);
+        alert(`Alokasi Pengawas untuk "${jenisVal}" berhasil disimpan!`);
+    } catch (e) {
+        console.error("Gagal menyimpan pengawas:", e);
+        alert("Gagal menyimpan data ke server.");
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = "💾 Simpan"; }
+    }
+};
