@@ -1186,3 +1186,129 @@ window.hapusSesiUjian = async (id) => {
         }
     }
 };
+
+// ==========================================
+// DATA RUANG UJIAN
+// ==========================================
+window.loadRuangUjian = async () => {
+    try {
+        const snap = await getDocs(collection(db, 'master_ruang_ujian'));
+        state.masterRuangUjian = [];
+        snap.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
+
+        // Generate data default jika database masih kosong
+        if(state.masterRuangUjian.length === 0) {
+            const defaultRuang = [
+                { nama: 'Ruang 1', kode: 'R1', jumSesi: 2, noUrut: 1 },
+                { nama: 'Ruang 2', kode: 'R2', jumSesi: 2, noUrut: 2 },
+                { nama: 'Ruang 3', kode: 'R3', jumSesi: 2, noUrut: 3 }
+            ];
+            
+            for (const r of defaultRuang) {
+                const docRef = await addDoc(collection(db, 'master_ruang_ujian'), r);
+                state.masterRuangUjian.push({ id: docRef.id, ...r });
+            }
+        }
+
+        // Urutkan berdasarkan noUrut
+        state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        window.renderTableRuangUjian();
+    } catch(e) {
+        console.error("Error load ruang ujian:", e);
+    }
+};
+
+window.renderTableRuangUjian = () => {
+    const tb = document.getElementById('tableRuangUjianBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+
+    if (state.masterRuangUjian.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada data Ruang Ujian.</td></tr>';
+        return;
+    }
+
+    state.masterRuangUjian.forEach((r, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r font-bold text-slate-800 uppercase">${r.nama || '-'}</td>
+                <td class="p-3 border-r text-center font-mono font-bold text-blue-700">${r.kode || '-'}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-600">${r.jumSesi || '0'} Sesi</td>
+                <td class="p-3 text-center space-x-2">
+                    <button onclick="editRuangUjian('${r.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusRuangUjian('${r.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded shadow-sm text-xs transition">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalRuangUjian = () => {
+    document.getElementById('ruangUjianId').value = '';
+    document.getElementById('inputNamaRuang').value = '';
+    document.getElementById('inputKodeRuang').value = '';
+    document.getElementById('inputJumSesi').value = '1';
+    document.getElementById('modalRuangUjian').classList.remove('hidden');
+};
+
+window.simpanRuangUjian = async () => {
+    const id = document.getElementById('ruangUjianId').value;
+    const nama = document.getElementById('inputNamaRuang').value.trim();
+    const kode = document.getElementById('inputKodeRuang').value.trim().toUpperCase();
+    const jumSesi = parseInt(document.getElementById('inputJumSesi').value) || 1;
+
+    if(!nama || !kode) {
+        return alert("Nama dan Kode Ruang wajib diisi!");
+    }
+
+    const btn = document.querySelector("#modalRuangUjian button.bg-blue-600");
+    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
+
+    const data = { 
+        nama, 
+        kode, 
+        jumSesi,
+        noUrut: id ? (state.masterRuangUjian.find(x => x.id === id)?.noUrut || state.masterRuangUjian.length + 1) : state.masterRuangUjian.length + 1 
+    };
+
+    try {
+        if(id) {
+            await updateDoc(doc(db, 'master_ruang_ujian', id), data);
+        } else {
+            await addDoc(collection(db, 'master_ruang_ujian'), data);
+        }
+        closeModal('modalRuangUjian');
+        alert("Data Ruang Ujian berhasil disimpan!");
+        loadRuangUjian(); // Muat ulang tabel
+    } catch(e) {
+        console.error(e);
+        alert("Gagal menyimpan data.");
+    } finally {
+        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+    }
+};
+
+window.editRuangUjian = (id) => {
+    const r = state.masterRuangUjian.find(x => x.id === id);
+    if(!r) return;
+
+    document.getElementById('ruangUjianId').value = r.id;
+    document.getElementById('inputNamaRuang').value = r.nama || '';
+    document.getElementById('inputKodeRuang').value = r.kode || '';
+    document.getElementById('inputJumSesi').value = r.jumSesi || 1;
+    document.getElementById('modalRuangUjian').classList.remove('hidden');
+};
+
+window.hapusRuangUjian = async (id) => {
+    if(confirm("Yakin ingin menghapus Ruang Ujian ini?")) {
+        try {
+            await deleteDoc(doc(db, 'master_ruang_ujian', id));
+            loadRuangUjian();
+        } catch(e) {
+            console.error(e);
+            alert("Gagal menghapus data.");
+        }
+    }
+};
