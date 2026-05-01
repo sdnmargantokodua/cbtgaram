@@ -3416,3 +3416,202 @@ setTimeout(() => {
         btnMenuProfil.addEventListener('click', () => { window.loadProfil(); });
     }
 }, 1000);
+
+// ==========================================
+// PENGUMUMAN & RUNNING TEXT
+// ==========================================
+window.loadPengumuman = async (isDashboard = false) => {
+    try {
+        const snap = await getDoc(doc(db, 'settings', 'pengumuman_config'));
+        let config = { r1: '', r2: '', r3: '', kepada: '', teks: '' };
+        
+        if (snap.exists()) {
+            config = snap.data();
+        }
+
+        if (isDashboard) {
+            // Tampilkan di widget dashboard
+            const txt = config.teks ? config.teks : 'Tidak ada pengumuman.';
+            const dashText = document.getElementById('dashPengumumanText');
+            if (dashText) dashText.innerHTML = txt;
+        } else {
+            // Isi form di menu Pengumuman
+            const setVal = (id, val) => { 
+                const el = document.getElementById(id); 
+                if(el) el.value = val || ''; 
+            };
+            
+            setVal('rt1', config.r1);
+            setVal('rt2', config.r2);
+            setVal('rt3', config.r3);
+            setVal('pengumumanKepada', config.kepada);
+            setVal('pengumumanTeks', config.teks);
+        }
+    } catch(e) {
+        console.error("Error load pengumuman:", e);
+    }
+};
+
+window.simpanRunningText = async () => {
+    // Ambil tombol simpan khusus untuk Running Text
+    const btn = document.querySelector('#viewPengumuman .bg-white:nth-child(1) button.bg-blue-600');
+    if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
+    
+    const data = {
+        r1: document.getElementById('rt1').value,
+        r2: document.getElementById('rt2').value,
+        r3: document.getElementById('rt3').value
+    };
+
+    try {
+        // Gunakan merge: true agar tidak menimpa data pengumuman utama
+        await setDoc(doc(db, 'settings', 'pengumuman_config'), data, { merge: true });
+        alert('Running text berhasil disimpan! Teks akan muncul di layar siswa.');
+    } catch(e) {
+        console.error(e);
+        alert('Gagal menyimpan running text.');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan"; }
+    }
+};
+
+window.simpanPengumuman = async () => {
+    // Ambil tombol simpan khusus untuk Pengumuman Teks
+    const btn = document.querySelector('#viewPengumuman .bg-white:nth-child(2) button.bg-blue-600');
+    if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
+    
+    const data = {
+        kepada: document.getElementById('pengumumanKepada').value,
+        teks: document.getElementById('pengumumanTeks').value
+    };
+
+    try {
+        // Gunakan merge: true agar tidak menimpa data running text
+        await setDoc(doc(db, 'settings', 'pengumuman_config'), data, { merge: true });
+        alert('Pengumuman berhasil disimpan!');
+        
+        // Segarkan teks pengumuman di Dashboard
+        if (typeof loadDashboard === 'function') loadDashboard();
+    } catch(e) {
+        console.error(e);
+        alert('Gagal menyimpan pengumuman.');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan"; }
+    }
+};
+
+// Injection otomatis: Memastikan data dimuat saat menu Pengumuman diklik
+setTimeout(() => {
+    const btnMenuPengumuman = document.getElementById('btn-viewPengumuman');
+    if (btnMenuPengumuman) {
+        btnMenuPengumuman.addEventListener('click', () => { window.loadPengumuman(false); });
+    }
+}, 1000);
+
+// ==========================================
+// BERSIHKAN DATA (HAPUS MASAL)
+// ==========================================
+window.loadBersihkan = async () => {
+    try {
+        // Pemetaan ID HTML ke nama koleksi di Firestore
+        const collectionsMap = [
+            { id: 'count_bs', name: 'master_bank_soal', label: 'Bank Soal' },
+            { id: 'count_jdw', name: 'master_jadwal_ujian', label: 'Jadwal Ujian' },
+            { id: 'count_nl', name: 'exam_results', label: 'Hasil Ujian (Nilai)' },
+            { id: 'count_ss', name: 'master_sesi_ujian', label: 'Sesi Ujian' },
+            { id: 'count_guru', name: 'master_guru', label: 'Master Guru' },
+            { id: 'count_jrs', name: 'master_jurusan', label: 'Master Jurusan' },
+            { id: 'count_kls', name: 'master_kelas', label: 'Master Kelas' },
+            { id: 'count_mapel', name: 'master_subjects', label: 'Master Mapel' },
+            { id: 'count_siswa', name: 'master_siswa', label: 'Master Siswa' }
+        ];
+
+        for (const c of collectionsMap) {
+            const tdCount = document.getElementById(c.id);
+            if (tdCount) {
+                tdCount.innerText = '...'; // Indikator loading saat menghitung
+                
+                // Ambil jumlah data aktual dari Firestore
+                const snap = await getDocs(collection(db, c.name));
+                tdCount.innerText = snap.size;
+
+                // Tanamkan fungsi onclick ke tombol di sebelah angka
+                const tdAction = tdCount.nextElementSibling;
+                if(tdAction) {
+                    const btn = tdAction.querySelector('button');
+                    if(btn) {
+                        btn.onclick = () => window.kosongkanKoleksi(c.name, c.label, c.id);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error load bersihkan data:", e);
+    }
+};
+
+window.kosongkanKoleksi = async (collectionName, label, elementId) => {
+    // 1. Peringatan Pertama
+    const konfirmasi = confirm(`PERINGATAN KERAS!\n\nAnda yakin ingin MENGHAPUS SEMUA DATA [${label}]?\nAksi ini permanen dan tidak dapat dibatalkan!\n\nPastikan Anda sudah melakukan BACKUP di menu Backup/Restore.`);
+    if (!konfirmasi) return;
+
+    // 2. Peringatan Kedua (Khusus untuk tabel Master)
+    if (collectionName.includes('master_')) {
+        const konfirmasi2 = confirm(`Ini adalah Data Master (${label}). Menghapusnya dapat menyebabkan error pada relasi data lain. Tetap kosongkan?`);
+        if(!konfirmasi2) return;
+    }
+
+    const tdCount = document.getElementById(elementId);
+    const btn = tdCount.nextElementSibling.querySelector('button');
+    const originalHTML = btn.innerHTML;
+    
+    btn.innerHTML = 'Memproses...';
+    btn.disabled = true;
+
+    try {
+        const snap = await getDocs(collection(db, collectionName));
+        const promises = [];
+
+        snap.forEach(docItem => {
+            promises.push(deleteDoc(doc(db, collectionName, docItem.id)));
+            
+            // Khusus Bank Soal, kita harus membersihkan sub-koleksi butir soalnya juga
+            if (collectionName === 'master_bank_soal') {
+                getDocs(collection(db, `master_bank_soal/${docItem.id}/butir_soal`)).then(subSnap => {
+                    subSnap.forEach(subDoc => {
+                        deleteDoc(doc(db, `master_bank_soal/${docItem.id}/butir_soal`, subDoc.id));
+                    });
+                });
+            }
+        });
+
+        // Eksekusi penghapusan massal
+        await Promise.all(promises);
+        
+        // Reset state array lokal agar aplikasi terhindar dari membaca data yang sudah dihapus
+        if(collectionName === 'master_siswa') state.masterSiswa = [];
+        if(collectionName === 'master_guru') state.masterGuru = [];
+        if(collectionName === 'master_kelas') state.masterKelas = [];
+        if(collectionName === 'master_subjects') state.masterSubjects = [];
+        if(collectionName === 'master_bank_soal') state.masterBankSoal = [];
+        if(collectionName === 'master_jadwal_ujian') state.masterJadwalUjian = [];
+        if(collectionName === 'exam_results') state.allResults = [];
+
+        alert(`Seluruh data [${label}] berhasil dikosongkan!`);
+        tdCount.innerText = '0'; // Set angka jadi 0 di UI
+    } catch (e) {
+        console.error("Gagal menghapus data:", e);
+        alert(`Terjadi kesalahan saat menghapus data ${label}.`);
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+};
+
+// Injection otomatis: Memastikan jumlah data dihitung saat menu diklik
+setTimeout(() => {
+    const btnMenuBersihkan = document.getElementById('btn-viewBersihkan');
+    if (btnMenuBersihkan) {
+        btnMenuBersihkan.addEventListener('click', () => { window.loadBersihkan(); });
+    }
+}, 1000);
