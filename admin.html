@@ -252,24 +252,34 @@
     <div id="modalAnalisaSoal" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4"></div>
 
     <script type="module" src="./js/main.js"></script>
-    <script>
+   <script>
         // Update live clock
         setInterval(() => {
             const now = new Date();
             document.getElementById('clockDisplay').innerText = now.toLocaleTimeString('id-ID', { hour12: false });
         }, 1000);
         
+        // Update Pratinjau Kop Surat Secara Real-time
         window.updatePreviewKop = () => {
             const getVal = (id, def) => document.getElementById(id).value || def;
-            document.getElementById('kopNamaSekolah').innerText = getVal('profSekolah', 'UPTD SDN MARGANTOKO 2');
-            document.getElementById('kopAlamatSekolah').innerText = getVal('profAlamat', 'Alamat Sekolah');
+            
+            const kab = getVal('profKabupaten', 'SAMPANG').toUpperCase();
+            document.getElementById('kopDinas').innerHTML = `PEMERINTAH KABUPATEN ${kab}<br>DINAS PENDIDIKAN`;
+            document.getElementById('kopNamaSekolah').innerText = getVal('profSekolah', 'UPTD SDN MARGANTOKO 2').toUpperCase();
+            
+            const alamat = getVal('profAlamat', '');
+            const desa = getVal('profDesa', '');
+            const kec = getVal('profKecamatan', '');
+            const kdpos = getVal('profKodePos', '');
+            document.getElementById('kopAlamatSekolah').innerText = `${alamat} ${desa} Kec. ${kec} ${kab} Kode Pos ${kdpos}`;
+            
             document.getElementById('kopEmail').innerText = "Email: " + getVal('profEmail', '-');
             document.getElementById('kopWebsite').innerText = "Website: " + getVal('profWebsite', '-');
-            document.getElementById('previewNamaUjian').innerText = document.getElementById('profNamaUjian').value;
-            document.getElementById('previewKelas').innerText = getVal('profKelas', '-');
-            document.getElementById('previewTahunPelajaran').innerText = getVal('profTahun', '-');
-            const l1 = document.getElementById('logoKabBase64').value; if(l1) { document.getElementById('kopLogoKiri').src = l1; document.getElementById('kopLogoKiri').classList.remove('hidden'); }
-            const l2 = document.getElementById('logoSekolahBase64').value; if(l2) { document.getElementById('kopLogoKanan').src = l2; document.getElementById('kopLogoKanan').classList.remove('hidden'); }
+
+            const l1 = document.getElementById('logoKiriBase64').value; 
+            if(l1) { document.getElementById('kopLogoKiri').src = l1; document.getElementById('kopLogoKiri').classList.remove('hidden'); }
+            const l2 = document.getElementById('logoKananBase64').value; 
+            if(l2) { document.getElementById('kopLogoKanan').src = l2; document.getElementById('kopLogoKanan').classList.remove('hidden'); }
         };
     </script>
 </body>
