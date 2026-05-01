@@ -12,71 +12,38 @@ window.switchTab = (id, title) => { document.querySelectorAll('.view-section').f
 window.toggleSidebar = () => { const s = document.getElementById('sidebar'); s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); };
 window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
-
 // ==========================================
-// DATA UJIAN: TOKEN UJIAN (BARU)
+// PELAKSANAAN: CETAK DATA PENILAIAN (BARU)
 // ==========================================
-state.tokenConfig = { currentToken: 'XG7H2A', isAuto: false, interval: 60 };
-
-window.loadToken = async () => {
-    try {
-        const snap = await getDoc(doc(db, 'settings', 'token_ujian'));
-        if(snap.exists()) {
-            state.tokenConfig = snap.data();
-        } else {
-            // Jika belum ada, buat dokumen default
-            await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig);
-        }
-        window.renderTokenUI();
-    } catch(e) {
-        console.error("Error load token:", e);
-    }
+window.cetakKartuPeserta = () => {
+    alert("Format Cetak Kartu Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
 };
 
-window.renderTokenUI = () => {
-    document.getElementById('tokenOtomatis').value = state.tokenConfig.isAuto ? 'YA' : 'TIDAK';
-    document.getElementById('tokenInterval').value = state.tokenConfig.interval || 60;
-    document.getElementById('displayTokenSaatIni').innerText = state.tokenConfig.currentToken || '------';
+window.cetakDaftarHadir = () => {
+    alert("Format Cetak Daftar Hadir Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
 };
 
-window.generateNewToken = async () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    let newToken = '';
-    for (let i = 0; i < 6; i++) {
-        newToken += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    
-    try {
-        state.tokenConfig.currentToken = newToken;
-        await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig);
-        window.renderTokenUI();
-        alert(`Token berhasil diperbarui: ${newToken}`);
-    } catch(e) {
-        console.error(e);
-        alert("Gagal menggenerate token.");
-    }
+window.cetakJadwalPengawas = () => {
+    alert("Format Cetak Jadwal Pengawas Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
 };
 
-window.simpanTokenSettings = async () => {
-    const isAuto = document.getElementById('tokenOtomatis').value === 'YA';
-    const interval = parseInt(document.getElementById('tokenInterval').value) || 60;
-    
-    try {
-        state.tokenConfig.isAuto = isAuto;
-        state.tokenConfig.interval = interval;
-        await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig);
-        alert("Pengaturan token berhasil disimpan!");
-    } catch(e) {
-        console.error(e);
-        alert("Gagal menyimpan pengaturan token.");
-    }
+window.cetakPesertaUjian = () => {
+    alert("Format Cetak Daftar Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
 };
 
+window.cetakBeritaAcara = () => {
+    alert("Format Cetak Berita Acara Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
+};
 
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
-state.pengawasUjian = {}; state.masterJadwalUjian = []; state.masterBankSoal = []; state.masterRuangUjian = []; state.masterSesiUjian = []; state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+state.tokenConfig = { currentToken: 'XG7H2A', isAuto: false, interval: 60 }; state.pengawasUjian = {}; state.masterJadwalUjian = []; state.masterBankSoal = []; state.masterRuangUjian = []; state.masterSesiUjian = []; state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
+
+window.loadToken = async () => { try { const snap = await getDoc(doc(db, 'settings', 'token_ujian')); if(snap.exists()) { state.tokenConfig = snap.data(); } else { await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig); } window.renderTokenUI(); } catch(e) { console.error(e); } };
+window.renderTokenUI = () => { document.getElementById('tokenOtomatis').value = state.tokenConfig.isAuto ? 'YA' : 'TIDAK'; document.getElementById('tokenInterval').value = state.tokenConfig.interval || 60; document.getElementById('displayTokenSaatIni').innerText = state.tokenConfig.currentToken || '------'; };
+window.generateNewToken = async () => { const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; let newToken = ''; for (let i = 0; i < 6; i++) { newToken += chars.charAt(Math.floor(Math.random() * chars.length)); } try { state.tokenConfig.currentToken = newToken; await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig); window.renderTokenUI(); alert(`Token berhasil diperbarui: ${newToken}`); } catch(e) { console.error(e); } };
+window.simpanTokenSettings = async () => { const isAuto = document.getElementById('tokenOtomatis').value === 'YA'; const interval = parseInt(document.getElementById('tokenInterval').value) || 60; try { state.tokenConfig.isAuto = isAuto; state.tokenConfig.interval = interval; await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig); alert("Pengaturan token disimpan!"); } catch(e) { console.error(e); } };
 
 window.loadPengawas = async () => { try { if(state.masterJenisUjian.length === 0) { const s1 = await getDocs(collection(db, 'master_jenis_ujian')); state.masterJenisUjian = []; s1.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()})); state.masterJenisUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); } if(state.masterRuangUjian.length === 0) { const s2 = await getDocs(collection(db, 'master_ruang_ujian')); state.masterRuangUjian = []; s2.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()})); state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); } if(state.masterSesiUjian.length === 0) { const s3 = await getDocs(collection(db, 'master_sesi_ujian')); state.masterSesiUjian = []; s3.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()})); state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0)); } if(state.masterGuru.length === 0) { const s4 = await getDocs(collection(db, 'master_guru')); state.masterGuru = []; s4.forEach(d => state.masterGuru.push({id: d.id, ...d.data()})); state.masterGuru.sort((a,b) => (a.nama || '').localeCompare(b.nama || '')); } const snapPengawas = await getDoc(doc(db, 'settings', 'pengawas_ujian')); if(snapPengawas.exists()) { state.pengawasUjian = snapPengawas.data(); } else { state.pengawasUjian = {}; } const filterJenis = document.getElementById('filterPengawasJenis'); if(state.masterJenisUjian.length > 0) { filterJenis.innerHTML = '<option value="">-- Pilih Jenis Penilaian --</option>'; state.masterJenisUjian.forEach(j => { filterJenis.innerHTML += `<option value="${j.nama}">${j.nama}</option>`; }); } else { filterJenis.innerHTML = '<option value="">belum ada jadwal ujian</option>'; } window.renderTablePengawas(); } catch(e) { console.error(e); } };
 window.renderTablePengawas = () => { const jenisVal = document.getElementById('filterPengawasJenis').value; const tb = document.getElementById('tablePengawasBody'); tb.innerHTML = ''; if (!jenisVal) return tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-500 bg-slate-50">Silakan Pilih Jenis Penilaian terlebih dahulu.</td></tr>'; if (state.masterRuangUjian.length === 0 || state.masterSesiUjian.length === 0) return tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-500 bg-slate-50">Data Master Ruang atau Sesi masih kosong.</td></tr>'; let optGuru = '<option value="">Pilih Pengawas</option>'; state.masterGuru.forEach(g => { optGuru += `<option value="${g.nama}">${g.nama}</option>`; }); let no = 1; state.masterRuangUjian.forEach(r => { state.masterSesiUjian.forEach(s => { const key = `${r.nama}_${s.nama}`; tb.innerHTML += `<tr class="hover:bg-slate-50 transition border-b border-slate-100" data-key="${key}"><td class="p-3 text-center border-r">${no++}</td><td class="p-3 border-r font-bold text-slate-800">${r.nama}</td><td class="p-3 border-r text-center font-bold text-slate-600">${s.nama}</td><td class="p-2 border-r bg-slate-50"><select class="w-full p-2 border border-slate-300 rounded outline-none text-sm bg-white select-guru focus:border-blue-500">${optGuru}</select></td></tr>`; }); }); setTimeout(() => { tb.querySelectorAll('tr[data-key]').forEach(row => { const key = row.getAttribute('data-key'); if(state.pengawasUjian[jenisVal] && state.pengawasUjian[jenisVal][key]) { row.querySelector('.select-guru').value = state.pengawasUjian[jenisVal][key]; } }); }, 50); };
@@ -158,6 +125,7 @@ window.kenaikanKelas = () => { /* Logika dipertahankan */ };
 window.loadSiswa = async () => { try { const snap = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; snap.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()})); state.masterSiswa.sort((a,b) => { if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || ''); return (a.kelas || '').localeCompare(b.kelas || ''); }); window.renderTableSiswa(); } catch(e) { console.error(e); } };
 window.renderTableSiswa = () => { const tb = document.getElementById('tableSiswaBody'); tb.innerHTML = ''; if (state.masterSiswa.length === 0) return tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500">Belum ada siswa.</td></tr>'; state.masterSiswa.forEach((s, i) => { const avatar = s.jk === 'P' ? '👩' : '👦'; const colorJk = s.jk === 'P' ? 'bg-pink-500' : 'bg-blue-500'; const badgeAktif = s.isActive === false ? `<span class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Nonaktif</span>` : `<span class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Aktif</span>`; tb.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="p-3 text-center border-r"><input type="checkbox" class="w-4 h-4"></td><td class="p-3 text-center font-bold text-slate-500 border-r">${i+1}</td><td class="p-3 border-r"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-slate-200 rounded-full flex justify-center items-center text-2xl border">${avatar}</div><div><p class="font-bold text-[15px] uppercase">${s.nama}</p><div class="flex gap-1 mt-1"><span class="bg-teal-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">KELAS ${s.kelas || '-'}</span><span class="${colorJk} text-white px-2 py-0.5 rounded text-[10px] font-bold">${s.jk || 'L'}</span>${badgeAktif}</div></div></div></td><td class="p-3 border-r"><p class="text-[11px] text-slate-500 font-bold mb-0.5">No Ujian: <span class="text-blue-600 text-sm font-black tracking-widest">${s.nis || '-'}</span></p><p class="text-[11px] text-slate-500 font-bold">NISN: <span class="text-slate-800 text-sm font-black tracking-widest">${s.nisn || '-'}</span></p></td><td class="p-3 text-center space-y-1"><button onclick="editSiswa('${s.id}')" class="bg-amber-400 w-full px-3 py-1.5 rounded text-xs font-bold transition">✏️ Edit</button><button onclick="hapusSiswa('${s.id}')" class="bg-red-500 text-white w-full px-3 py-1.5 rounded text-xs font-bold transition">🗑️ Hapus</button></td></tr>`; }); };
 window.openModalSiswa = () => { document.getElementById('siswaId').value = ''; document.getElementById('siswaNisn').value = ''; document.getElementById('siswaNama').value = ''; document.getElementById('siswaUsername').value = ''; document.getElementById('siswaPassword').value = ''; document.getElementById('modalSiswa').classList.remove('hidden'); };
+window.generatePassword = () => { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let p = ''; for (let i = 0; i < 6; i++) p += c.charAt(Math.floor(Math.random() * c.length)); document.getElementById('pesertaPassword').value = p; };
 window.simpanSiswa = async () => { const id = document.getElementById('siswaId').value; const nisn = document.getElementById('siswaNisn').value.trim(); const nama = document.getElementById('siswaNama').value.trim().toUpperCase(); if(!nisn || !nama) return; const data = { nisn, nis: document.getElementById('siswaNis').value.trim(), nama, jk: document.getElementById('siswaJk').value, kelas: document.getElementById('siswaKelas').value.trim().toUpperCase(), username: document.getElementById('siswaUsername').value.trim() || nisn, password: document.getElementById('siswaPassword').value.trim() || nisn, isActive: document.getElementById('siswaStatus').checked }; try { if(id) await updateDoc(doc(db, 'master_siswa', id), data); else await addDoc(collection(db, 'master_siswa'), data); closeModal('modalSiswa'); loadSiswa(); } catch(e) { console.error(e); } };
 window.editSiswa = (id) => { const s = state.masterSiswa.find(x => x.id === id); if(!s) return; document.getElementById('siswaId').value = s.id; document.getElementById('siswaNisn').value = s.nisn || ''; document.getElementById('siswaNis').value = s.nis || ''; document.getElementById('siswaNama').value = s.nama || ''; document.getElementById('siswaJk').value = s.jk || 'L'; document.getElementById('siswaKelas').value = s.kelas || ''; document.getElementById('siswaUsername').value = s.username || ''; document.getElementById('siswaPassword').value = s.password || ''; document.getElementById('siswaStatus').checked = s.isActive !== false; document.getElementById('modalSiswa').classList.remove('hidden'); };
 window.hapusSiswa = async (id) => { if(confirm("Yakin hapus?")) { await deleteDoc(doc(db, 'master_siswa', id)); loadSiswa(); } };
