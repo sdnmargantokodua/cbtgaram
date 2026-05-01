@@ -698,7 +698,104 @@ window.hapusMapel = async (id) => {
     }
 };
 
-window.loadJurusan = async () => { /* Logika dipertahankan */ };
+// ==========================================
+// DATA JURUSAN
+// ==========================================
+window.loadJurusan = async () => {
+    try {
+        const snap = await getDocs(collection(db, 'master_jurusan'));
+        // Inisialisasi state jika belum ada
+        if(!state.masterJurusan) state.masterJurusan = [];
+        
+        state.masterJurusan = [];
+        snap.forEach(d => state.masterJurusan.push({id: d.id, ...d.data()}));
+        
+        // Urutkan berdasarkan kode jurusan
+        state.masterJurusan.sort((a,b) => (a.kode || '').localeCompare(b.kode || ''));
+        
+        window.renderTableJurusan();
+    } catch(e) { 
+        console.error("Error load jurusan:", e); 
+    }
+};
+
+window.renderTableJurusan = () => {
+    const tb = document.getElementById('tableJurusanBody');
+    tb.innerHTML = '';
+    
+    if (!state.masterJurusan || state.masterJurusan.length === 0) {
+        tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-500 italic">Belum ada data Jurusan.</td></tr>';
+        return;
+    }
+    
+    state.masterJurusan.forEach((j, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center text-slate-500 font-bold">${i+1}</td>
+                <td class="p-3 text-center font-mono font-bold text-slate-600">${j.kode || '-'}</td>
+                <td class="p-3 font-bold text-slate-800 uppercase text-left">${j.nama || '-'}</td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="editJurusan('${j.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusJurusan('${j.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalJurusan = () => {
+    document.getElementById('jurusanId').value = '';
+    document.getElementById('inputKodeJurusan').value = '';
+    document.getElementById('inputNamaJurusan').value = '';
+    document.getElementById('modalJurusan').classList.remove('hidden');
+};
+
+window.simpanJurusan = async () => {
+    const id = document.getElementById('jurusanId').value;
+    const kode = document.getElementById('inputKodeJurusan').value.trim().toUpperCase();
+    const nama = document.getElementById('inputNamaJurusan').value.trim().toUpperCase();
+
+    if(!kode || !nama) {
+        return alert("Kode dan Nama Jurusan wajib diisi!");
+    }
+
+    const data = { kode, nama };
+
+    try {
+        if(id) {
+            await updateDoc(doc(db, 'master_jurusan', id), data);
+        } else {
+            await addDoc(collection(db, 'master_jurusan'), data);
+        }
+        closeModal('modalJurusan');
+        loadJurusan(); // Refresh tabel setelah menyimpan
+    } catch(e) {
+        console.error(e);
+        alert("Gagal menyimpan data Jurusan.");
+    }
+};
+
+window.editJurusan = (id) => {
+    const j = state.masterJurusan.find(x => x.id === id);
+    if(!j) return;
+    
+    document.getElementById('jurusanId').value = j.id;
+    document.getElementById('inputKodeJurusan').value = j.kode || '';
+    document.getElementById('inputNamaJurusan').value = j.nama || '';
+    document.getElementById('modalJurusan').classList.remove('hidden');
+};
+
+window.hapusJurusan = async (id) => {
+    if(confirm("Yakin ingin menghapus Jurusan ini?")) {
+        try {
+            await deleteDoc(doc(db, 'master_jurusan', id));
+            loadJurusan(); // Refresh tabel setelah menghapus
+        } catch(e) {
+            console.error(e);
+        }
+    }
+};
+
 window.changeSubject = () => { /* Logika dipertahankan */ };
 
 // Start Application
