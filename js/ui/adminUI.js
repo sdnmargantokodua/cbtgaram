@@ -2430,3 +2430,125 @@ window.simpanAlokasiWaktu = async () => {
         if (btn) { btn.disabled = false; btn.innerHTML = `💾 Simpan Alokasi`; }
     }
 };
+
+// ==========================================
+// MONITORING STATUS UJIAN SISWA
+// ==========================================
+window.loadStatusSiswa = async () => {
+    try {
+        // 1. Pastikan data referensi (Jadwal, Ruang, Sesi) tersedia
+        if (state.masterJadwalUjian.length === 0) {
+            const s1 = await getDocs(collection(db, 'master_jadwal_ujian'));
+            state.masterJadwalUjian = [];
+            s1.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
+        }
+        if (state.masterRuangUjian.length === 0) {
+            const s2 = await getDocs(collection(db, 'master_ruang_ujian'));
+            state.masterRuangUjian = [];
+            s2.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
+            state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        }
+        if (state.masterSesiUjian.length === 0) {
+            const s3 = await getDocs(collection(db, 'master_sesi_ujian'));
+            state.masterSesiUjian = [];
+            s3.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()}));
+            state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+        }
+        
+        // 2. Load Data Siswa Terbaru
+        const s4 = await getDocs(collection(db, 'master_siswa'));
+        state.masterSiswa = [];
+        s4.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+
+        // 3. Ambil Token Aktif untuk ditampilkan di header
+        const snapToken = await getDoc(doc(db, 'settings', 'token_ujian'));
+        if (snapToken.exists()) {
+            document.getElementById('displayTokenStatusSiswa').innerText = snapToken.data().currentToken || '------';
+        }
+
+        // 4. Render Dropdown Filter
+        const selJadwal = document.getElementById('filterStatusJadwal');
+        selJadwal.innerHTML = '<option value="">-- Pilih Jadwal Aktif --</option>';
+        state.masterJadwalUjian.filter(j => j.isActive).forEach(j => {
+            selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} (${j.jenis})</option>`;
+        });
+
+        const selRuang = document.getElementById('filterStatusRuang');
+        selRuang.innerHTML = '<option value="">Semua Ruang</option>';
+        state.masterRuangUjian.forEach(r => {
+            selRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`;
+        });
+
+        const selSesi = document.getElementById('filterStatusSesi');
+        selSesi.innerHTML = '<option value="">Semua Sesi</option>';
+        state.masterSesiUjian.forEach(s => {
+            selSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
+        });
+
+        window.renderTableStatusSiswa();
+    } catch (e) {
+        console.error("Error load status siswa:", e);
+    }
+};
+
+window.renderTableStatusSiswa = () => {
+    const ruangVal = document.getElementById('filterStatusRuang').value;
+    const sesiVal = document.getElementById('filterStatusSesi').value;
+    const tb = document.getElementById('tableStatusSiswaBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+
+    // Filter siswa berdasarkan Ruang dan Sesi yang dipilih
+    let filteredSiswa = [...state.masterSiswa];
+    if (ruangVal) filteredSiswa = filteredSiswa.filter(s => s.ruang === ruangVal);
+    if (sesiVal) filteredSiswa = filteredSiswa.filter(s => s.sesi === sesiVal);
+
+    // Urutkan berdasarkan nama
+    filteredSiswa.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
+
+    if (filteredSiswa.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa yang terdaftar di ruang/sesi tersebut.</td></tr>';
+        return;
+    }
+
+    filteredSiswa.forEach((s, i) => {
+        // Logika Status: Jika 'isOnline' true di database (diset saat siswa mulai ujian)
+        const isOnline = s.isOnline === true;
+        const statusBadge = isOnline 
+            ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-sm animate-pulse">Sedang Mengerjakan</span>` 
+            : `<span class="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm">Offline / Belum Mulai</span>`;
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i + 1}</td>
+                <td class="p-3 border-r text-center font-mono font-bold text-blue-700 tracking-tighter">${s.nis || s.nisn || '-'}</td>
+                <td class="p-3 border-r font-bold text-slate-800 uppercase text-sm">${s.nama || '-'}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-600">Kelas ${s.kelas || '-'}</td>
+                <td class="p-3 border-r text-center">${statusBadge}</td>
+                <td class="p-3 text-center">
+                    <button onclick="resetLoginSiswa('${s.id}', '${s.nama}')" 
+                        class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-[10px] font-black transition w-full uppercase">
+                        Reset Login
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.resetLoginSiswa = async (id, nama) => {
+    if (confirm(`Yakin ingin me-reset status login untuk ${nama}? Siswa akan bisa melakukan login kembali dari perangkat mana pun.`)) {
+        try {
+            // Update status di database agar siswa bisa login ulang
+            await updateDoc(doc(db, 'master_siswa', id), { 
+                isOnline: false,
+                currentExamSession: null 
+            });
+            alert(`Berhasil! Sesi login ${nama} telah dibersihkan.`);
+            window.loadStatusSiswa(); // Refresh tampilan
+        } catch (e) {
+            console.error("Gagal reset login:", e);
+            alert("Gagal menghubungi server.");
+        }
+    }
+};
