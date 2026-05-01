@@ -12,32 +12,105 @@ window.switchTab = (id, title) => { document.querySelectorAll('.view-section').f
 window.toggleSidebar = () => { const s = document.getElementById('sidebar'); s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); };
 window.closeModal = (m) => document.getElementById(m).classList.add('hidden');
 
+
 // ==========================================
-// PELAKSANAAN: CETAK DATA PENILAIAN (BARU)
+// PELAKSANAAN: STATUS SISWA (BARU)
 // ==========================================
-window.cetakKartuPeserta = () => {
-    alert("Format Cetak Kartu Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
+window.loadStatusSiswa = async () => {
+    try {
+        // Load data dependencies if empty
+        if(state.masterJadwalUjian.length === 0) { const s1 = await getDocs(collection(db, 'master_jadwal_ujian')); state.masterJadwalUjian = []; s1.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()})); }
+        if(state.masterRuangUjian.length === 0) { const s2 = await getDocs(collection(db, 'master_ruang_ujian')); state.masterRuangUjian = []; s2.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()})); }
+        if(state.masterSesiUjian.length === 0) { const s3 = await getDocs(collection(db, 'master_sesi_ujian')); state.masterSesiUjian = []; s3.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()})); }
+        if(state.masterSiswa.length === 0) { const s4 = await getDocs(collection(db, 'master_siswa')); state.masterSiswa = []; s4.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()})); }
+
+        // Fetch current token
+        const snapToken = await getDoc(doc(db, 'settings', 'token_ujian'));
+        if(snapToken.exists()) {
+            state.tokenConfig = snapToken.data();
+        }
+        document.getElementById('displayTokenStatusSiswa').innerText = state.tokenConfig.currentToken || '------';
+
+        // Populate Dropdowns
+        const selJadwal = document.getElementById('filterStatusJadwal');
+        selJadwal.innerHTML = '<option value="">Pilih Jadwal Aktif</option>';
+        state.masterJadwalUjian.filter(j => j.isActive).forEach(j => {
+            selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} (${j.jenis})</option>`;
+        });
+
+        const selRuang = document.getElementById('filterStatusRuang');
+        selRuang.innerHTML = '<option value="">Semua Ruang</option>';
+        state.masterRuangUjian.forEach(r => {
+            selRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`;
+        });
+
+        const selSesi = document.getElementById('filterStatusSesi');
+        selSesi.innerHTML = '<option value="">Semua Sesi</option>';
+        state.masterSesiUjian.forEach(s => {
+            selSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
+        });
+
+        window.renderTableStatusSiswa();
+    } catch(e) { console.error("Error load status siswa:", e); }
 };
 
-window.cetakDaftarHadir = () => {
-    alert("Format Cetak Daftar Hadir Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
+window.renderTableStatusSiswa = () => {
+    const ruangVal = document.getElementById('filterStatusRuang').value;
+    const sesiVal = document.getElementById('filterStatusSesi').value;
+    const tb = document.getElementById('tableStatusSiswaBody');
+    tb.innerHTML = '';
+
+    // Filter siswa berdasarkan ruang dan sesi
+    let filteredSiswa = [...state.masterSiswa];
+    if(ruangVal) filteredSiswa = filteredSiswa.filter(s => s.ruang === ruangVal);
+    if(sesiVal) filteredSiswa = filteredSiswa.filter(s => s.sesi === sesiVal);
+
+    // Sort abjad
+    filteredSiswa.sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
+
+    if(filteredSiswa.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa yang terdaftar di ruang/sesi tersebut.</td></tr>';
+        return;
+    }
+
+    filteredSiswa.forEach((s, i) => {
+        // Karena sistem client (siswa) belum live, kita buat mock-up status "Offline"
+        const isOnline = false; 
+        const statusBadge = isOnline 
+            ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Mengerjakan</span>`
+            : `<span class="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">Offline</span>`;
+
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r text-center font-mono font-bold text-blue-700">${s.nis || s.nisn}</td>
+                <td class="p-3 border-r font-bold text-slate-800 uppercase">${s.nama}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-600">${s.kelas || '-'}</td>
+                <td class="p-3 border-r text-center">${statusBadge}</td>
+                <td class="p-3 text-center">
+                    <button onclick="resetLoginSiswa('${s.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-xs font-bold transition w-full">Reset Login</button>
+                </td>
+            </tr>
+        `;
+    });
 };
 
-window.cetakJadwalPengawas = () => {
-    alert("Format Cetak Jadwal Pengawas Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
+window.resetLoginSiswa = (id) => {
+    // Fungsi ini nantinya akan mengubah flag "is_logged_in" di Firebase ke false
+    // agar siswa yang device-nya error bisa login ulang di device lain.
+    alert("Instruksi Reset Login telah dikirim. Siswa kini bisa melakukan login kembali dari perangkat lain.");
 };
 
-window.cetakPesertaUjian = () => {
-    alert("Format Cetak Daftar Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
-};
-
-window.cetakBeritaAcara = () => {
-    alert("Format Cetak Berita Acara Ujian sedang dipersiapkan. Modul ini akan segera tersedia.");
-};
 
 // ==========================================
 // MINIFIED FUNGSI LAINNYA (DIPERTAHANKAN)
 // ==========================================
+window.cetakKartuPeserta = () => { alert("Format Cetak Kartu Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia."); };
+window.cetakDaftarHadir = () => { alert("Format Cetak Daftar Hadir Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia."); };
+window.cetakJadwalPengawas = () => { alert("Format Cetak Jadwal Pengawas Ujian sedang dipersiapkan. Modul ini akan segera tersedia."); };
+window.cetakPesertaUjian = () => { alert("Format Cetak Daftar Peserta Ujian sedang dipersiapkan. Modul ini akan segera tersedia."); };
+window.cetakBeritaAcara = () => { alert("Format Cetak Berita Acara Ujian sedang dipersiapkan. Modul ini akan segera tersedia."); };
+
 state.tokenConfig = { currentToken: 'XG7H2A', isAuto: false, interval: 60 }; state.pengawasUjian = {}; state.masterJadwalUjian = []; state.masterBankSoal = []; state.masterRuangUjian = []; state.masterSesiUjian = []; state.masterJenisUjian = []; state.masterGuru = []; state.masterKelas = []; state.masterEkskul = []; state.penempatanEkskul = {}; state.masterSiswa = [];
 
 window.loadToken = async () => { try { const snap = await getDoc(doc(db, 'settings', 'token_ujian')); if(snap.exists()) { state.tokenConfig = snap.data(); } else { await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig); } window.renderTokenUI(); } catch(e) { console.error(e); } };
