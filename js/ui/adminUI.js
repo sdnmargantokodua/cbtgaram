@@ -2552,3 +2552,100 @@ window.resetLoginSiswa = async (id, nama) => {
         }
     }
 };
+
+// ==========================================
+// HASIL UJIAN SISWA
+// ==========================================
+window.loadHasilUjian = async () => {
+    try {
+        // 1. Pastikan data Kelas tersedia untuk filter dropdown
+        if (state.masterKelas.length === 0) {
+            const s1 = await getDocs(collection(db, 'master_kelas'));
+            state.masterKelas = [];
+            s1.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
+            state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        }
+
+        // 2. Pastikan data Jadwal tersedia untuk filter dropdown
+        if (state.masterJadwalUjian.length === 0) {
+            const s2 = await getDocs(collection(db, 'master_jadwal_ujian'));
+            state.masterJadwalUjian = [];
+            s2.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
+        }
+
+        // 3. Load Data Hasil Ujian dari collection exam_results
+        const s3 = await getDocs(collection(db, 'exam_results'));
+        state.allResults = [];
+        s3.forEach(d => state.allResults.push({id: d.id, ...d.data()}));
+
+        // 4. Render Opsi Filter Kelas
+        const selKelas = document.getElementById('filterHasilKelas');
+        selKelas.innerHTML = '<option value="">Pilih Kelas</option>';
+        state.masterKelas.forEach(k => {
+            selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`;
+        });
+
+        // 5. Render Opsi Filter Jadwal
+        const selJadwal = document.getElementById('filterHasilJadwal');
+        selJadwal.innerHTML = '<option value="">Pilih Jadwal</option>';
+        state.masterJadwalUjian.forEach(j => {
+            selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} - ${j.jenis}</option>`;
+        });
+
+        window.renderTableHasilUjian();
+    } catch(e) {
+        console.error("Error load hasil ujian:", e);
+    }
+};
+
+window.renderTableHasilUjian = () => {
+    const kelasVal = document.getElementById('filterHasilKelas').value;
+    const jadwalVal = document.getElementById('filterHasilJadwal').value;
+    const tb = document.getElementById('tableHasilUjianBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+
+    if (!kelasVal || !jadwalVal) {
+        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 bg-slate-50 italic">Silakan pilih Kelas dan Jadwal terlebih dahulu untuk menampilkan data nilai.</td></tr>';
+        return;
+    }
+
+    // Filter data berdasarkan pilihan dropdown
+    let filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal);
+
+    if (filteredResults.length === 0) {
+        tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada data nilai yang masuk untuk kelas dan jadwal ini.</td></tr>';
+        return;
+    }
+
+    // Urutkan berdasarkan nama siswa
+    filteredResults.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+
+    filteredResults.forEach((r, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r"><input type="checkbox" class="rounded accent-blue-600"></td>
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
+                <td class="p-3 border-r font-bold uppercase text-slate-800 text-sm">${r.nama || '-'}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-600 text-xs">${r.kelas || '-'}</td>
+                <td class="p-3 border-r text-center text-green-600 font-bold">${r.benar || 0}</td>
+                <td class="p-3 border-r text-center text-red-600 font-bold">${r.salah || 0}</td>
+                <td class="p-3 border-r text-center font-black text-blue-700 text-lg">${r.skor || 0}</td>
+                <td class="p-3 text-center">
+                    <button onclick="lihatDetailNilai('${r.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded shadow-sm text-[10px] font-bold transition w-full uppercase">
+                        🔍 Detail
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.lihatDetailNilai = (resultId) => {
+    const res = state.allResults.find(x => x.id === resultId);
+    if (!res) return;
+    
+    // Fungsi ini akan menampilkan popup detail jawaban siswa
+    alert(`Menampilkan detail pengerjaan untuk: ${res.nama}\nSkor: ${res.skor}\nBenar: ${res.benar}\nSalah: ${res.salah}`);
+    // Pak Yoyon bisa mengembangkan ini untuk membuka modal modalDetailNilai yang ada di HTML
+};
