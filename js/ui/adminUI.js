@@ -36,7 +36,7 @@ window.handleLogin = async (e) => {
         return alert("Username dan Sandi tidak boleh kosong!");
     }
 
-    // Trik Cerdas: Jika user mengetik 'admin', kita ubah otomatis jadi 'admin@cbt.local'
+    // Trik Cerdas: Jika user mengetik 'admin', kita ubah otomatis jadi 'admin@garam.cbt'
     // agar diterima oleh standar keamanan Firebase Auth
     if (!inputUser.includes('@')) {
         inputUser = inputUser + '@cbt.local';
