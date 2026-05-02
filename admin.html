@@ -815,6 +815,35 @@
 <!-- INPUT GAIB UNTUK IMPORT SISWA -->
 <input type="file" id="importSiswaFile" class="hidden" accept=".xlsx, .xls" onchange="prosesImportSiswa(event)">
 
+<!-- MODAL DATA JENIS UJIAN -->
+<div id="modalJenisUjian" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+            <h3 class="font-bold text-lg text-slate-800">Data Jenis Ujian</h3>
+            <button onclick="closeModal('modalJenisUjian')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+        </div>
+        
+        <!-- ID PENTING untuk JavaScript -->
+        <input type="hidden" id="jenisUjianId">
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Jenis Ujian</label>
+                <input type="text" id="inputNamaJenisUjian" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SUMATIF AKHIR SEMESTER">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Kode Ujian</label>
+                <input type="text" id="inputKodeJenisUjian" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SAS">
+            </div>
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+            <button onclick="closeModal('modalJenisUjian')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+            <button onclick="simpanJenisUjian()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+        </div>
+    </div>
+</div>
+
     <script type="module" src="./js/ui/adminUI.js"></script>
     <script>
         // Update live clock
