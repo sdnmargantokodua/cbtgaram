@@ -1463,17 +1463,97 @@ window.renderTableSiswa = () => {
     });
 };
 
-window.openModalSiswa = () => {
-    document.getElementById('siswaId').value = '';
-    document.getElementById('siswaNisn').value = '';
-    document.getElementById('siswaNis').value = '';
-    document.getElementById('siswaNama').value = '';
-    document.getElementById('siswaJk').value = 'L';
-    document.getElementById('siswaKelas').value = '';
-    document.getElementById('siswaUsername').value = '';
-    document.getElementById('siswaPassword').value = '';
-    document.getElementById('siswaStatus').checked = true;
-    document.getElementById('modalSiswa').classList.remove('hidden');
+// ==========================================
+// 1. FUNGSI BUKA MODAL TAMBAH SISWA
+// ==========================================
+window.openModalSiswa = (id = '', nisn = '', nis = '', nama = '', jk = 'L', kelas = '', username = '', password = '') => {
+    // Sesuaikan ID dengan yang akan kita pakai di HTML
+    const elId = document.getElementById('siswaId');
+    const elNisn = document.getElementById('siswaNisn');
+    const elNis = document.getElementById('siswaNis');
+    const elNama = document.getElementById('siswaNama');
+    const elJk = document.getElementById('siswaJk');
+    const elKelas = document.getElementById('siswaKelas');
+    const elUsername = document.getElementById('siswaUsername');
+    const elPassword = document.getElementById('siswaPassword');
+    const modal = document.getElementById('modalSiswa');
+
+    // 🛡️ PENGAMAN: Hanya isi nilai jika elemen formnya ditemukan
+    if (elId) elId.value = id;
+    if (elNisn) elNisn.value = nisn;
+    if (elNis) elNis.value = nis;
+    if (elNama) elNama.value = nama;
+    if (elJk) elJk.value = jk;
+    if (elKelas) elKelas.value = kelas;
+    if (elUsername) elUsername.value = username;
+    if (elPassword) elPassword.value = password;
+
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalSiswa' tidak ditemukan di HTML.");
+    }
+};
+
+// ==========================================
+// 2. FUNGSI BUKA MODAL EDIT SISWA
+// ==========================================
+window.editSiswa = (id) => {
+    const siswa = state.masterSiswa ? state.masterSiswa.find(s => s.id === id) : null;
+    if (!siswa) {
+        console.error("Data siswa tidak ditemukan di memori!");
+        return;
+    }
+
+    const elId = document.getElementById('siswaId');
+    const elNisn = document.getElementById('siswaNisn');
+    const elNis = document.getElementById('siswaNis');
+    const elNama = document.getElementById('siswaNama');
+    const elJk = document.getElementById('siswaJk');
+    const elKelas = document.getElementById('siswaKelas');
+    const elUsername = document.getElementById('siswaUsername');
+    const elPassword = document.getElementById('siswaPassword');
+    const modal = document.getElementById('modalSiswa');
+
+    // 🛡️ PENGAMAN: Lempar data dari state ke dalam form
+    if (elId) elId.value = siswa.id;
+    if (elNisn) elNisn.value = siswa.nisn || '';
+    if (elNis) elNis.value = siswa.nis || '';
+    if (elNama) elNama.value = siswa.nama || '';
+    if (elJk) elJk.value = siswa.jk || 'L';
+    if (elKelas) elKelas.value = siswa.kelas || '';
+    if (elUsername) elUsername.value = siswa.username || '';
+    if (elPassword) elPassword.value = siswa.password || '';
+
+    if (modal) modal.classList.remove('hidden');
+};
+
+// ==========================================
+// 3. FUNGSI IMPORT SISWA (MEMBUAT INPUT GAIB)
+// ==========================================
+window.importSiswa = () => {
+    // Buat elemen input file sementara secara gaib
+    const inputExcel = document.createElement('input');
+    inputExcel.type = 'file';
+    inputExcel.accept = '.xlsx, .xls'; 
+    
+    inputExcel.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return; 
+        
+        try {
+            alert(`Memproses file Siswa: ${file.name}... Mohon tunggu.`);
+            // --- TEMPATKAN LOGIKA BACA EXCEL (SheetJS) BAPAK DI SINI ---
+            
+            // -----------------------------------------------------------
+        } catch (err) {
+            console.error("Gagal membaca Excel Siswa:", err);
+            alert("Terjadi kesalahan saat memproses file Excel.");
+        }
+    };
+    
+    // Picu klik secara otomatis untuk membuka jendela pilih file komputer
+    inputExcel.click();
 };
 
 window.simpanSiswa = async () => {
@@ -1513,22 +1593,6 @@ window.simpanSiswa = async () => {
     } finally {
         if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
     }
-};
-
-window.editSiswa = (id) => {
-    const s = state.masterSiswa.find(x => x.id === id);
-    if(!s) return;
-    
-    document.getElementById('siswaId').value = s.id;
-    document.getElementById('siswaNisn').value = s.nisn || '';
-    document.getElementById('siswaNis').value = s.nis || '';
-    document.getElementById('siswaNama').value = s.nama || '';
-    document.getElementById('siswaJk').value = s.jk || 'L';
-    document.getElementById('siswaKelas').value = s.kelas || '';
-    document.getElementById('siswaUsername').value = s.username || '';
-    document.getElementById('siswaPassword').value = s.password || '';
-    document.getElementById('siswaStatus').checked = s.isActive !== false;
-    document.getElementById('modalSiswa').classList.remove('hidden');
 };
 
 window.hapusSiswa = async (id) => {
