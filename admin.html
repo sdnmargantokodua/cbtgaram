@@ -378,7 +378,7 @@
                             <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Master Data Siswa</h3>
                             <div class="flex flex-wrap gap-2">
                                 <button onclick="openModalSiswa()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">+ Tambah Siswa</button>
-                                <button onclick="importSiswa()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📥 Import</button>
+                                <button onclick="triggerImportSiswa()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📥 Import</button>
 								<!-- TOMBOL EXPORT BARU -->
 								<button onclick="exportSiswa()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📤 Export / Template</button>
 							</div>
@@ -811,6 +811,9 @@
         </div>
     </div>
 </div>
+
+<!-- INPUT GAIB UNTUK IMPORT SISWA -->
+<input type="file" id="importSiswaFile" class="hidden" accept=".xlsx, .xls" onchange="prosesImportSiswa(event)">
 
     <script type="module" src="./js/ui/adminUI.js"></script>
     <script>
