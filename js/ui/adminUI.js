@@ -106,51 +106,80 @@ window.toggleNavMenu = (id) => {
     }
 };
 
-// Fungsi ini wajib ada untuk buka-tutup sidebar di versi HP (Mobile)
-window.toggleSidebar = () => { 
-    const s = document.getElementById('sidebar'); 
-    s.classList.contains('-translate-x-full') ? s.classList.remove('-translate-x-full') : s.classList.add('-translate-x-full'); 
+// Fungsi untuk buka-tutup sidebar (Mobile)
+window.toggleSidebar = () => {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('-translate-x-full');
+    }
 };
 
+// Fungsi untuk buka-tutup dropdown menu (Data Umum, Data Ujian, dll)
+window.toggleNavMenu = (menuId) => {
+    const menu = document.getElementById(menuId);
+    const icon = document.getElementById('icon-' + menuId);
+    
+    if (menu) {
+        menu.classList.toggle('hidden');
+        // Putar ikon panah jika ada
+        if (icon) icon.classList.toggle('rotate-180');
+    }
+};
 window.closeModal = (id) => {
     document.getElementById(id).classList.add('hidden');
 };
 
 // Fungsi perpindahan Tab yang sudah disesuaikan dengan HTML admin.html Anda
 window.switchTab = (viewId, title) => {
-    // 1. Ambil elemen target
-    const targetView = document.getElementById(viewId);
-    const targetBtn = document.getElementById('btn-' + viewId);
+    try {
+        const targetView = document.getElementById(viewId);
+        const targetBtn = document.getElementById('btn-' + viewId);
 
-    // 2. PROTEKSI: Jika elemen section tidak ditemukan, jangan teruskan (agar tidak error)
-    if (!targetView) {
-        console.warn(`Peringatan: Section dengan ID ${viewId} tidak ditemukan!`);
-        return; 
-    }
+        // 1. Validasi: Jika section tidak ada, jangan teruskan
+        if (!targetView) {
+            console.error(`Error: Section ID "${viewId}" tidak ditemukan di HTML.`);
+            return;
+        }
 
-    // Sembunyikan semua section
-    document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
-    
-    // Tampilkan yang dipilih (Baris 124 yang tadinya error)
-    targetView.classList.remove('hidden');
+        // 2. Sembunyikan semua section
+        document.querySelectorAll('.view-section').forEach(s => {
+            s.classList.add('hidden');
+            s.classList.remove('block');
+        });
 
-    // Update Judul Page
-    const pageTitle = document.getElementById('pageTitle');
-    if (pageTitle) pageTitle.innerText = title;
+        // 3. Tampilkan section yang dituju
+        targetView.classList.remove('hidden');
+        targetView.classList.add('block');
 
-    // Kelola warna tombol aktif di sidebar
-    document.querySelectorAll('.menu-btn').forEach(b => {
-        b.classList.remove('bg-slate-800', 'text-blue-400');
-        b.classList.add('text-slate-300');
-    });
+        // 4. Update Judul di Header
+        const pageTitle = document.getElementById('pageTitle');
+        if (pageTitle) pageTitle.innerText = title;
 
-    // PROTEKSI: Jika tombol sidebar ditemukan, berikan warna aktif
-    if (targetBtn) {
-        targetBtn.classList.add('bg-slate-800', 'text-blue-400');
-        targetBtn.classList.remove('text-slate-300');
+        // 5. Update Status Tombol Sidebar (Warna Aktif)
+        document.querySelectorAll('.menu-btn').forEach(b => {
+            b.classList.remove('bg-slate-800', 'text-blue-400', 'border-l-4', 'border-blue-500');
+            b.classList.add('text-slate-300');
+        });
+
+        // HANYA update tombol jika ID-nya ditemukan (Mencegah error null classList)
+        if (targetBtn) {
+            targetBtn.classList.add('bg-slate-800', 'text-blue-400', 'border-l-4', 'border-blue-500');
+            targetBtn.classList.remove('text-slate-300');
+        }
+
+        // Tutup sidebar otomatis di HP
+        if (window.innerWidth < 768) toggleSidebar();
+
+    } catch (err) {
+        console.error("Gagal berpindah menu:", err);
     }
 };
 
+// Tambahkan fungsi Dashboard kosong agar tidak error saat diklik
+window.loadDashboard = () => {
+    console.log("Dashboard dimuat.");
+    // Anda bisa menambahkan fungsi hitung total data di sini nanti
+};
 // ==========================================
 // DASHBOARD
 // ==========================================
