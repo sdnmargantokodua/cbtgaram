@@ -210,6 +210,81 @@
                     </div>
                 </section>
 
+<!-- SECTION: TAHUN PELAJARAN -->
+<section id="viewTahunPelajaran" class="hidden view-section">
+    <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <div class="xl:col-span-3 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Tahun Pelajaran</h3>
+                <button onclick="openModalTahun()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah</button>
+            </div>
+            <table class="w-full text-center border-collapse">
+                <thead class="bg-slate-50 border-b">
+                    <tr>
+                        <th class="p-3">No</th>
+                        <th class="p-3">Tahun</th>
+                        <th class="p-3">Status</th>
+                        <th class="p-3">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableTahunBody" class="divide-y"></tbody>
+            </table>
+        </div>
+        <div class="xl:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h3 class="font-bold text-lg text-slate-800 mb-4">Semester</h3>
+            <table class="w-full text-center border-collapse">
+                <thead class="bg-slate-50 border-b">
+                    <tr>
+                        <th class="p-3">No</th>
+                        <th class="p-3">Semester</th>
+                        <th class="p-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tableSemesterBody" class="divide-y"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section id="viewMataPelajaran" class="hidden view-section bg-white p-6 rounded-xl border border-slate-200">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg">Daftar Mata Pelajaran</h3>
+        <button onclick="openModalMapel()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah</button>
+    </div>
+    <table class="w-full border-collapse">
+        <thead class="bg-slate-50 border-b">
+            <tr>
+                <th class="p-3 text-center">Kode</th>
+                <th class="p-3">Mata Pelajaran</th>
+                <th class="p-3 text-center">Kelompok</th>
+                <th class="p-3 text-center">Status</th>
+                <th class="p-3 text-center">Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="tableMapelBody" class="divide-y"></tbody>
+    </table>
+</section>
+
+<section id="viewJurusan" class="hidden view-section">
+    <div class="bg-white p-6 rounded-xl border border-slate-200">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg">Daftar Jurusan</h3>
+            <button onclick="openModalJurusan()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah</button>
+        </div>
+        <table class="w-full border-collapse">
+            <thead class="bg-slate-50 border-b">
+                <tr>
+                    <th class="p-3 text-center">No</th>
+                    <th class="p-3 text-center">Kode</th>
+                    <th class="p-3">Jurusan</th>
+                    <th class="p-3 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tableJurusanBody" class="divide-y text-center"></tbody>
+        </table>
+    </div>
+</section>
+
                 <!-- SECTION LAINNYA DIVISI MINIFIED -->
                 <section id="viewEditorSoal" class="hidden view-section">
     <div class="flex justify-between items-center mb-4">
