@@ -910,36 +910,107 @@ window.renderTableEkskul = () => {
     });
 };
 
-window.openModalEkskul = () => {
-    document.getElementById('ekskulId').value = '';
-    document.getElementById('inputNamaEkskul').value = '';
-    document.getElementById('inputKodeEkskul').value = '';
-    document.getElementById('modalEkskul').classList.remove('hidden');
+window.openModalEkskul = (id = '', nama = '', kode = '') => {
+    // 1. Sesuaikan ID dengan yang ada di admin.html
+    const elId = document.getElementById('ekskulId');
+    const elNama = document.getElementById('inputNamaEkskul');
+    const elKode = document.getElementById('inputKodeEkskul');
+    const modal = document.getElementById('modalEkskul');
+
+    // 2. 🛡️ PENGAMAN: Hanya isi nilai jika elemen formnya ditemukan
+    if (elId) elId.value = id;
+    if (elNama) elNama.value = nama;
+    if (elKode) elKode.value = kode;
+
+    // 3. Tampilkan modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalEkskul' tidak ditemukan di HTML.");
+    }
+};
+
+window.editEkskul = (id) => {
+    // 1. Cari data ekskul dari memori (state) berdasarkan ID
+    const ekskul = state.masterEkskul ? state.masterEkskul.find(e => e.id === id) : null;
+    
+    if (!ekskul) {
+        console.error("Data ekskul tidak ditemukan di memori!");
+        return;
+    }
+
+    // 2. Ambil elemen form modal
+    const elId = document.getElementById('ekskulId');
+    const elNama = document.getElementById('inputNamaEkskul');
+    const elKode = document.getElementById('inputKodeEkskul');
+    const modal = document.getElementById('modalEkskul');
+
+    // 3. 🛡️ PENGAMAN: Lempar data dari state ke dalam form
+    if (elId) elId.value = ekskul.id;
+    if (elNama) elNama.value = ekskul.nama || '';
+    if (elKode) elKode.value = ekskul.kode || '';
+
+    // 4. Buka modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 };
 
 window.simpanEkskul = async () => {
-    const id = document.getElementById('ekskulId').value;
-    const nama = document.getElementById('inputNamaEkskul').value.trim().toUpperCase();
-    const kode = document.getElementById('inputKodeEkskul').value.trim().toUpperCase();
-
-    if(!nama || !kode) {
-        return alert("Nama dan Kode Ekskul wajib diisi!");
-    }
-
-    const data = { nama, kode };
-
     try {
-        if(id) {
-            await updateDoc(doc(db, 'master_ekskul', id), data);
-        } else {
-            await addDoc(collection(db, 'master_ekskul'), data);
+        // Ambil nilai dengan pengaman (Safe Navigation ?.)
+        const idEkskul = document.getElementById('ekskulId')?.value || '';
+        const nama = document.getElementById('inputNamaEkskul')?.value.trim();
+        const kode = document.getElementById('inputKodeEkskul')?.value.trim();
+
+        if (!nama) {
+            alert('Gagal: Nama Ekstrakurikuler wajib diisi!');
+            return;
         }
-        closeModal('modalEkskul');
-        alert("Data Ekstrakurikuler berhasil disimpan!");
-        loadEkskul(); 
-    } catch(e) {
-        console.error(e);
-        alert("Gagal menyimpan data Ekstrakurikuler.");
+
+        // Efek loading di tombol
+        const btnSimpan = document.querySelector('#modalEkskul button[onclick="simpanEkskul()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳ Menyimpan...';
+            btnSimpan.disabled = true;
+        }
+
+        // Format data
+        const payload = {
+            nama: nama.toUpperCase(),
+            kode: (kode || '').toUpperCase()
+        };
+
+        // Simpan ke Firebase
+        if (idEkskul) {
+            await updateDoc(doc(db, 'master_ekskul', idEkskul), payload);
+        } else {
+            await addDoc(collection(db, 'master_ekskul'), payload);
+        }
+
+        // Kembalikan tombol
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        window.closeModal('modalEkskul');
+        window.loadEkskul(); // Segarkan tabel otomatis
+
+        // Bersihkan form
+        if (document.getElementById('inputNamaEkskul')) document.getElementById('inputNamaEkskul').value = '';
+        if (document.getElementById('inputKodeEkskul')) document.getElementById('inputKodeEkskul').value = '';
+
+    } catch (error) {
+        console.error("Gagal menyimpan Ekskul:", error);
+        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
+        
+        const btnSimpan = document.querySelector('#modalEkskul button[onclick="simpanEkskul()"]');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan';
+            btnSimpan.disabled = false;
+        }
     }
 };
 
