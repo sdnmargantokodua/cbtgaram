@@ -346,28 +346,30 @@
                     </div>
                 </section>
 
-                <!-- SECTION: DATA MASTER GURU -->
-                <section id="viewGuru" class="hidden view-section">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Master Data Guru</h3>
-                            <div class="flex flex-wrap gap-2">
-                                <button onclick="openModalGuru()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">+ Tambah Guru</button>
-                                <button onclick="importGuru()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📥 Import</button>
-								<!-- TOMBOL EXPORT BARU -->
-								<button onclick="exportGuru()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📤 Export / Template</button>                           
-							</div>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse border border-slate-200">
-                                <thead class="bg-slate-50 text-slate-700 text-sm border-b">
-                                    <tr><th class="p-3 text-center w-12 border-r">No.</th><th class="p-3 border-r">Nama Guru</th><th class="p-3 border-r text-center">NIP/Kode</th><th class="p-3 border-r text-center">Username</th><th class="p-3 text-center w-32">Aksi</th></tr>
-                                </thead>
-                                <tbody id="tableGuruBody" class="divide-y divide-slate-100 text-sm"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
+                <!-- SECTION: MASTER DATA GURU -->
+<section id="viewGuru" class="hidden view-section">
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        
+        <!-- HEADER (Lengkap dengan tombol Export yang baru kita buat) -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Master Data Guru</h3>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="openModalGuru()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">+ Tambah Guru</button>
+                <button onclick="importGuru()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📥 Import</button>
+                <button onclick="exportGuru()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📤 Export / Template</button>
+            </div>
+        </div>
+
+        <!-- WADAH GRID KARTU GURU (Pengganti Tabel) -->
+        <div id="gridGuruContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Teks ini akan hilang otomatis saat JavaScript memasukkan kartu guru -->
+            <div class="col-span-full p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200 italic">
+                Memuat data guru...
+            </div>
+        </div>
+
+    </div>
+</section>
 
                 <!-- SECTION: DATA MASTER SISWA -->
                 <section id="viewSiswa" class="hidden view-section">
