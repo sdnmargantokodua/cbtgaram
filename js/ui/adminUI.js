@@ -5038,3 +5038,93 @@ window.sisipkanGambar = (targetTextareaId) => {
     
     input.click(); // Buka dialog pemilihan file
 };
+
+// ==========================================
+// FUNGSI EXPORT / DOWNLOAD TEMPLATE GURU
+// ==========================================
+window.exportGuru = () => {
+    let dataExport = [];
+    
+    // Cek apakah sudah ada data guru
+    if (state.masterGuru && state.masterGuru.length > 0) {
+        dataExport = state.masterGuru.map((g, i) => ({
+            "NO": i + 1,
+            "NIP_NUPTK": g.nip || "",
+            "KODE_GURU": g.kode || "",
+            "NAMA_LENGKAP": g.nama || "",
+            "USERNAME": g.username || "",
+            "PASSWORD": g.password || ""
+        }));
+    } else {
+        // Jika kosong, berikan data dummy sebagai contoh (Template)
+        dataExport = [{
+            "NO": 1,
+            "NIP_NUPTK": "198001012005011001",
+            "KODE_GURU": "GR01",
+            "NAMA_LENGKAP": "NAMA GURU CONTOH, S.Pd",
+            "USERNAME": "guru01",
+            "PASSWORD": "password123"
+        }];
+        alert("Karena data guru kosong, sistem mengunduh Template Excel. Silakan hapus baris contoh dan isi dengan data asli Bapak.");
+    }
+
+    try {
+        // Buat file Excel menggunakan SheetJS
+        const ws = XLSX.utils.json_to_sheet(dataExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Data_Guru");
+
+        // Download ke komputer
+        XLSX.writeFile(wb, "Data_Atau_Template_Guru.xlsx");
+    } catch (error) {
+        console.error("Gagal mengexport file:", error);
+        alert("Gagal mengunduh Excel. Pastikan library SheetJS berhasil dimuat.");
+    }
+};
+
+// ==========================================
+// FUNGSI EXPORT / DOWNLOAD TEMPLATE SISWA
+// ==========================================
+window.exportSiswa = () => {
+    let dataExport = [];
+    
+    // Cek apakah sudah ada data siswa
+    if (state.masterSiswa && state.masterSiswa.length > 0) {
+        dataExport = state.masterSiswa.map((s, i) => ({
+            "NO": i + 1,
+            "NISN": s.nisn || "",
+            "NIS": s.nis || "",
+            "NAMA_LENGKAP": s.nama || "",
+            "JENIS_KELAMIN": s.jk || "",
+            "KELAS": s.kelas || "",
+            "USERNAME": s.username || "",
+            "PASSWORD": s.password || ""
+        }));
+    } else {
+        // Jika kosong, berikan data dummy sebagai contoh (Template)
+        dataExport = [{
+            "NO": 1,
+            "NISN": "0123456789",
+            "NIS": "1234",
+            "NAMA_LENGKAP": "NAMA SISWA CONTOH",
+            "JENIS_KELAMIN": "L",
+            "KELAS": "6A",
+            "USERNAME": "siswa01",
+            "PASSWORD": "password123"
+        }];
+        alert("Karena data siswa kosong, sistem mengunduh Template Excel. Silakan hapus baris contoh dan isi dengan data asli Bapak.");
+    }
+
+    try {
+        // Buat file Excel menggunakan SheetJS
+        const ws = XLSX.utils.json_to_sheet(dataExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Data_Siswa");
+
+        // Download ke komputer
+        XLSX.writeFile(wb, "Data_Atau_Template_Siswa.xlsx");
+    } catch (error) {
+        console.error("Gagal mengexport file:", error);
+        alert("Gagal mengunduh Excel. Pastikan library SheetJS berhasil dimuat.");
+    }
+};
