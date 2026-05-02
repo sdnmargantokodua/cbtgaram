@@ -667,59 +667,120 @@ window.hapusJurusan = async (id) => {
 // ==========================================
 // KELAS / ROMBEL
 // ==========================================
+// 1. FUNGSI LOAD KELAS DARI FIREBASE
 window.loadKelas = async () => {
-    try {
-        try {
-            const snapSiswa = await getDocs(collection(db, 'master_siswa'));
-            state.masterSiswa = [];
-            snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
-        } catch(errSiswa) {
-            if(!state.masterSiswa) state.masterSiswa = [];
-        }
+    const tb = document.getElementById('tableKelasBody');
+    if (!tb) return;
 
+    tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>';
+    
+    try {
         const snap = await getDocs(collection(db, 'master_kelas'));
         state.masterKelas = [];
         snap.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
+        
+        // Urutkan berdasarkan nama kelas secara alfabetis
         state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        
         window.renderTableKelas();
-    } catch(e) { console.error(e); }
+    } catch(e) {
+        console.error("Error load kelas:", e);
+        tb.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold">Gagal memuat data: ${e.message}</td></tr>`;
+    }
 };
 
+// 2. FUNGSI RENDER TABEL KELAS
 window.renderTableKelas = () => {
     const tb = document.getElementById('tableKelasBody');
-
-    // ==========================================
-    // 🛡️ PENGAMAN (ASURANSI KODE)
-    // ==========================================
-    if (!tb) {
-        console.warn("Peringatan: Elemen 'tableKelasBody' tidak ditemukan. Pastikan ID ini ada di admin.html pada bagian Section Kelas.");
-        return; 
-    }
-
+    if (!tb) return;
+    
     tb.innerHTML = '';
-
+    
     if (!state.masterKelas || state.masterKelas.length === 0) {
-        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada data Kelas / Rombel.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada data Kelas. Klik Tambah Kelas.</td></tr>';
         return;
     }
 
     state.masterKelas.forEach((k, i) => {
-        // Menghitung jumlah siswa yang memiliki nama kelas yang sama
-        const jml = state.masterSiswa ? state.masterSiswa.filter(s => s.kelas === k.nama).length : 0;
-        
+        // Otomatis menghitung jumlah siswa di kelas ini (jika data siswa sudah diload)
+        let jmlSiswa = 0;
+        if (state.masterSiswa) {
+            jmlSiswa = state.masterSiswa.filter(s => s.kelas === k.nama).length;
+        }
+
         tb.innerHTML += `
-            <tr class="border-b transition hover:bg-slate-50 border-slate-100 border-teal-100">
-                <td class="p-3 text-center border-r border-teal-100 text-slate-500 font-bold">${i+1}</td>
-                <td class="p-3 font-bold uppercase border-r border-teal-100 text-slate-800">${k.nama}</td>
-                <td class="p-3 font-mono text-center border-r border-teal-100 font-bold text-slate-600">${k.kode}</td>
-                <td class="p-3 uppercase border-r border-teal-100 text-slate-700">${k.waliKelas || '-'}</td>
-                <td class="p-3 text-center border-r border-teal-100 font-black text-blue-600">${jml}</td>
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r text-slate-500 font-bold">${i + 1}</td>
+                <td class="p-3 border-r font-bold uppercase text-slate-800">${k.nama || '-'}</td>
+                <td class="p-3 text-center border-r font-mono font-bold text-slate-600">${k.kode || '-'}</td>
+                <td class="p-3 border-r text-slate-700">${k.wali || '-'}</td>
+                <td class="p-3 text-center border-r font-bold text-blue-600">${jmlSiswa} Siswa</td>
                 <td class="p-3 text-center space-x-1">
+                    <!-- Tombol Edit diperbaiki dengan kutipan id yang aman -->
                     <button onclick="editKelas('${k.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
                     <button onclick="hapusKelas('${k.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
                 </td>
-            </tr>`;
+            </tr>
+        `;
     });
+};
+
+// 3. FUNGSI SIMPAN KELAS (KEBAL ERROR)
+window.simpanKelas = async () => {
+    try {
+        const idKelas = document.getElementById('kelasId')?.value || '';
+        const nama = document.getElementById('inputNamaKelas')?.value.trim();
+        const kode = document.getElementById('inputKodeKelas')?.value.trim();
+        const wali = document.getElementById('inputWaliKelas')?.value.trim();
+
+        if (!nama) {
+            alert('Gagal: Nama Kelas wajib diisi!');
+            return;
+        }
+
+        // Tampilkan loading di tombol
+        const btnSimpan = document.querySelector('#modalKelas button[onclick="simpanKelas()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳ Menyimpan...';
+            btnSimpan.disabled = true;
+        }
+
+        const payload = {
+            nama: nama.toUpperCase(), // Pastikan tersimpan dengan huruf kapital
+            kode: kode.toUpperCase(),
+            wali: wali
+        };
+
+        if (idKelas) {
+            await updateDoc(doc(db, 'master_kelas', idKelas), payload);
+        } else {
+            await addDoc(collection(db, 'master_kelas'), payload);
+        }
+
+        // Kembalikan tombol seperti semula
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        window.closeModal('modalKelas');
+        window.loadKelas(); // Segarkan tabel otomatis
+
+        // Bersihkan form
+        if (document.getElementById('inputNamaKelas')) document.getElementById('inputNamaKelas').value = '';
+        if (document.getElementById('inputKodeKelas')) document.getElementById('inputKodeKelas').value = '';
+        if (document.getElementById('inputWaliKelas')) document.getElementById('inputWaliKelas').value = '';
+
+    } catch (error) {
+        console.error("Gagal menyimpan Kelas:", error);
+        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
+        const btnSimpan = document.querySelector('#modalKelas button[onclick="simpanKelas()"]');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan';
+            btnSimpan.disabled = false;
+        }
+    }
 };
 
 window.openModalKelas = (id = '', nama = '', kode = '', wali = '') => {
@@ -744,37 +805,6 @@ window.openModalKelas = (id = '', nama = '', kode = '', wali = '') => {
     }
 };
 
-window.simpanKelas = async () => {
-    const btnSimpan = document.querySelector("#modalKelas button.bg-blue-600");
-    const originalText = btnSimpan ? btnSimpan.innerText : 'Simpan';
-    
-    const id = document.getElementById('kelasId').value;
-    const data = {
-        nama: document.getElementById('inputNamaKelas').value.trim().toUpperCase(),
-        kode: document.getElementById('inputKodeKelas').value.trim().toUpperCase(),
-        waliKelas: document.getElementById('inputWaliKelas').value.trim().toUpperCase()
-    };
-    if(!data.nama || !data.kode) return alert("Nama dan kode wajib diisi!");
-    
-    if(btnSimpan) {
-        btnSimpan.innerText = "Menyimpan...";
-        btnSimpan.disabled = true;
-    }
-    
-    try {
-        if(id) await updateDoc(doc(db, 'master_kelas', id), data);
-        else await addDoc(collection(db, 'master_kelas'), data);
-        closeModal('modalKelas');
-        alert("Data Kelas / Rombel berhasil disimpan!");
-        await loadKelas();
-    } catch(e) { console.error(e); }
-    finally { 
-        if(btnSimpan) {
-            btnSimpan.innerText = originalText;
-            btnSimpan.disabled = false;
-        } 
-    }
-};
 
 window.editKelas = (id) => {
     // 1. Cari data kelas dari memori (state) berdasarkan ID
