@@ -1531,29 +1531,83 @@ window.editSiswa = (id) => {
 // ==========================================
 // 3. FUNGSI IMPORT SISWA (MEMBUAT INPUT GAIB)
 // ==========================================
-window.importSiswa = () => {
-    // Buat elemen input file sementara secara gaib
-    const inputExcel = document.createElement('input');
-    inputExcel.type = 'file';
-    inputExcel.accept = '.xlsx, .xls'; 
-    
-    inputExcel.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return; 
-        
+// ==========================================
+// 1. FUNGSI PEMICU (Membuka Jendela File)
+// ==========================================
+window.triggerImportSiswa = () => { 
+    const fileInput = document.getElementById('importSiswaFile');
+    if (fileInput) {
+        fileInput.click(); 
+    } else {
+        alert("Elemen input file tidak ditemukan di HTML!");
+    }
+};
+
+// ==========================================
+// 2. FUNGSI MESIN PEMBACA EXCEL (Dipanggil setelah file dipilih)
+// ==========================================
+window.prosesImportSiswa = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return; // Batal pilih file
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
         try {
-            alert(`Memproses file Siswa: ${file.name}... Mohon tunggu.`);
-            // --- TEMPATKAN LOGIKA BACA EXCEL (SheetJS) BAPAK DI SINI ---
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+            if (jsonData.length === 0) return alert("File Excel kosong atau format tidak sesuai!");
+            if (!confirm(`Ditemukan ${jsonData.length} baris data siswa. Lanjutkan import ke database?`)) return;
+
+            alert("Proses import sedang berjalan. Jangan tutup browser...");
+
+            const promises = [];
+            jsonData.forEach(row => {
+                const nisn = (row["NISN"] || '').toString().trim();
+                
+                // Cerdas membaca judul kolom baru (NAMA_LENGKAP) atau format lama (Nama Lengkap)
+                const nama = (row["NAMA_LENGKAP"] || row["Nama Lengkap"] || '').toString().trim().toUpperCase();
+                if (!nama) return; 
+
+                const siswaData = {
+                    nisn: nisn,
+                    nis: (row["NIS"] || '').toString().trim(),
+                    nama: nama,
+                    jk: (row["JENIS_KELAMIN"] || row["Jenis Kelamin (L/P)"] || 'L').toString().trim().toUpperCase(),
+                    kelas: (row["KELAS"] || row["Kelas"] || '').toString().trim().toUpperCase(),
+                    username: (row["USERNAME"] || row["Username"] || nisn || nama.replace(/\s/g,'').toLowerCase()).toString().trim().toLowerCase(),
+                    password: (row["PASSWORD"] || row["Password"] || nisn || '123456').toString().trim(),
+                    isActive: true
+                };
+
+                // Cek jika siswa sudah ada
+                let existingSiswa = nisn ? state.masterSiswa.find(s => s.nisn === nisn) : null;
+
+                if (existingSiswa) {
+                    promises.push(updateDoc(doc(db, 'master_siswa', existingSiswa.id), siswaData));
+                } else {
+                    promises.push(addDoc(collection(db, 'master_siswa'), siswaData));
+                }
+            });
+
+            await Promise.all(promises);
+            alert("Import Data Siswa Berhasil!");
             
-            // -----------------------------------------------------------
+            if (typeof window.loadSiswa === 'function') {
+                window.loadSiswa();
+            }
+
         } catch (err) {
-            console.error("Gagal membaca Excel Siswa:", err);
-            alert("Terjadi kesalahan saat memproses file Excel.");
+            console.error("Gagal Import Siswa:", err);
+            alert("Gagal membaca file Excel. Pastikan format tabel sesuai.");
+        } finally {
+            // Kosongkan input agar bisa mengimport file yang sama lagi jika perlu
+            event.target.value = '';
         }
     };
-    
-    // Picu klik secara otomatis untuk membuka jendela pilih file komputer
-    inputExcel.click();
+    reader.readAsArrayBuffer(file);
 };
 
 // ==========================================
@@ -1778,56 +1832,103 @@ window.renderTableJenisUjian = () => {
     });
 };
 
-window.openModalJenisUjian = () => {
-    document.getElementById('jenisUjianId').value = '';
-    document.getElementById('inputNamaJenisUjian').value = '';
-    document.getElementById('inputKodeJenisUjian').value = '';
-    document.getElementById('modalJenisUjian').classList.remove('hidden');
-};
+// ==========================================
+// 1. BUKA MODAL JENIS UJIAN (TAMBAH)
+// ==========================================
+window.openModalJenisUjian = (id = '', nama = '', kode = '') => {
+    const elId = document.getElementById('jenisUjianId');
+    const elNama = document.getElementById('inputNamaJenisUjian');
+    const elKode = document.getElementById('inputKodeJenisUjian');
+    const modal = document.getElementById('modalJenisUjian');
 
-window.simpanJenisUjian = async () => {
-    const id = document.getElementById('jenisUjianId').value;
-    const nama = document.getElementById('inputNamaJenisUjian').value.trim();
-    const kode = document.getElementById('inputKodeJenisUjian').value.trim().toUpperCase();
+    // 🛡️ Guard Clause pengaman
+    if (elId) elId.value = id;
+    if (elNama) elNama.value = nama;
+    if (elKode) elKode.value = kode;
 
-    if(!nama || !kode) {
-        return alert("Nama dan Kode Jenis Ujian wajib diisi!");
-    }
-
-    const btn = document.querySelector("#modalJenisUjian button.bg-blue-600");
-    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
-
-    const data = { 
-        nama, 
-        kode, 
-        noUrut: id ? (state.masterJenisUjian.find(x => x.id === id)?.noUrut || state.masterJenisUjian.length + 1) : state.masterJenisUjian.length + 1 
-    };
-
-    try {
-        if(id) {
-            await updateDoc(doc(db, 'master_jenis_ujian', id), data);
-        } else {
-            await addDoc(collection(db, 'master_jenis_ujian'), data);
-        }
-        closeModal('modalJenisUjian');
-        alert("Data Jenis Ujian berhasil disimpan!");
-        loadJenisUjian(); // Muat ulang tabel
-    } catch(e) {
-        console.error(e);
-        alert("Gagal menyimpan data.");
-    } finally {
-        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalJenisUjian' tidak ditemukan di HTML.");
     }
 };
 
+// ==========================================
+// 2. BUKA MODAL JENIS UJIAN (EDIT)
+// ==========================================
 window.editJenisUjian = (id) => {
-    const ju = state.masterJenisUjian.find(x => x.id === id);
-    if(!ju) return;
+    const ujian = state.masterJenisUjian ? state.masterJenisUjian.find(u => u.id === id) : null;
+    if (!ujian) return;
 
-    document.getElementById('jenisUjianId').value = ju.id;
-    document.getElementById('inputNamaJenisUjian').value = ju.nama || '';
-    document.getElementById('inputKodeJenisUjian').value = ju.kode || '';
-    document.getElementById('modalJenisUjian').classList.remove('hidden');
+    const elId = document.getElementById('jenisUjianId');
+    const elNama = document.getElementById('inputNamaJenisUjian');
+    const elKode = document.getElementById('inputKodeJenisUjian');
+    const modal = document.getElementById('modalJenisUjian');
+
+    if (elId) elId.value = ujian.id;
+    if (elNama) elNama.value = ujian.nama || '';
+    if (elKode) elKode.value = ujian.kode || '';
+
+    if (modal) modal.classList.remove('hidden');
+};
+
+// ==========================================
+// 3. SIMPAN JENIS UJIAN
+// ==========================================
+window.simpanJenisUjian = async () => {
+    try {
+        const idUjian = document.getElementById('jenisUjianId')?.value || '';
+        const nama = document.getElementById('inputNamaJenisUjian')?.value.trim();
+        const kode = document.getElementById('inputKodeJenisUjian')?.value.trim();
+
+        if (!nama) {
+            alert('Gagal: Nama Jenis Ujian wajib diisi!');
+            return;
+        }
+
+        const btnSimpan = document.querySelector('#modalJenisUjian button[onclick="simpanJenisUjian()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳...';
+            btnSimpan.disabled = true;
+        }
+
+        const payload = {
+            nama: nama.toUpperCase(),
+            kode: (kode || '').toUpperCase()
+        };
+
+        if (idUjian) {
+            await updateDoc(doc(db, 'master_jenis_ujian', idUjian), payload);
+        } else {
+            await addDoc(collection(db, 'master_jenis_ujian'), payload);
+        }
+
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        window.closeModal('modalJenisUjian');
+        
+        if (typeof window.loadJenisUjian === 'function') {
+            window.loadJenisUjian();
+        }
+
+        // Bersihkan input
+        if (document.getElementById('jenisUjianId')) document.getElementById('jenisUjianId').value = '';
+        if (document.getElementById('inputNamaJenisUjian')) document.getElementById('inputNamaJenisUjian').value = '';
+        if (document.getElementById('inputKodeJenisUjian')) document.getElementById('inputKodeJenisUjian').value = '';
+
+    } catch (error) {
+        console.error("Gagal menyimpan:", error);
+        alert('Terjadi kesalahan: ' + error.message);
+        const btnSimpan = document.querySelector('#modalJenisUjian button[onclick="simpanJenisUjian()"]');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan';
+            btnSimpan.disabled = false;
+        }
+    }
 };
 
 window.hapusJenisUjian = async (id) => {
@@ -5106,62 +5207,6 @@ window.exportTemplateSiswa = () => {
 
 window.triggerImportSiswa = () => { document.getElementById('importSiswaFile').click(); };
 
-window.importSiswa = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
-            if (jsonData.length === 0) return alert("File Excel kosong atau format tidak sesuai!");
-            if (!confirm(`Ditemukan ${jsonData.length} baris data siswa. Lanjutkan import ke database?`)) return;
-
-            alert("Proses import sedang berjalan. Jangan tutup browser...");
-
-            const promises = [];
-            jsonData.forEach(row => {
-                const nisn = (row["NISN"] || '').toString().trim();
-                const nama = (row["Nama Lengkap"] || '').toString().trim().toUpperCase();
-                if (!nama) return;
-
-                const siswaData = {
-                    nisn: nisn,
-                    nis: (row["NIS"] || '').toString().trim(),
-                    nama: nama,
-                    jk: (row["Jenis Kelamin (L/P)"] || 'L').toString().trim().toUpperCase(),
-                    kelas: (row["Kelas"] || '').toString().trim().toUpperCase(),
-                    username: (row["Username"] || nisn || nama.replace(/\s/g,'').toLowerCase()).toString().trim().toLowerCase(),
-                    password: (row["Password"] || nisn || '123456').toString().trim(),
-                    isActive: true
-                };
-
-                // Cek jika siswa sudah ada (berdasarkan NISN)
-                let existingSiswa = nisn ? state.masterSiswa.find(s => s.nisn === nisn) : null;
-
-                if (existingSiswa) {
-                    promises.push(updateDoc(doc(db, 'master_siswa', existingSiswa.id), siswaData));
-                } else {
-                    promises.push(addDoc(collection(db, 'master_siswa'), siswaData));
-                }
-            });
-
-            await Promise.all(promises);
-            alert("Import Data Siswa Berhasil!");
-            window.loadSiswa();
-        } catch (err) {
-            console.error("Gagal Import Siswa:", err);
-            alert("Gagal membaca file Excel. Pastikan header tabel tidak diubah.");
-        } finally {
-            event.target.value = '';
-        }
-    };
-    reader.readAsArrayBuffer(file);
-};
 
 // ==========================================
 // FITUR GAMBAR & LIVE PREVIEW MATEMATIKA
