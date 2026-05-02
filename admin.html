@@ -285,25 +285,39 @@
                     </div>
                 </section>
 
-                <section id="viewKelas" class="hidden view-section">
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse border border-slate-200">
-                                <thead class="bg-teal-600 text-white text-sm">
-                                    <tr>
-                                        <th class="p-3 text-center w-12">No.</th>
-                                        <th class="p-3">Nama Kelas</th>
-                                        <th class="p-3">Kode Kelas</th>
-                                        <th class="p-3">Wali Kelas</th>
-                                        <th class="p-3 text-center">Jumlah Siswa</th>
-                                        <th class="p-3 text-center w-32">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tableKelasBody" class="divide-y divide-slate-100 text-sm"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
+                <!-- SECTION: KELAS / ROMBEL -->
+<section id="viewKelas" class="hidden view-section">
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        
+        <!-- BAGIAN HEADER YANG HILANG (KINI SUDAH KEMBALI) -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <h3 class="font-bold text-lg text-slate-800">Data Kelas / Rombel</h3>
+            <button onclick="openModalKelas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+                + Tambah Kelas
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse border border-slate-200">
+                <thead class="bg-teal-600 text-white text-sm">
+                    <tr>
+                        <th class="p-3 text-center w-12">No.</th>
+                        <th class="p-3 border-l border-teal-500">Nama Kelas</th>
+                        <th class="p-3 text-center border-l border-teal-500">Kode Kelas</th>
+                        <th class="p-3 border-l border-teal-500">Wali Kelas</th>
+                        <th class="p-3 text-center border-l border-teal-500">Jumlah Siswa</th>
+                        <th class="p-3 text-center w-40 border-l border-teal-500">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableKelasBody" class="divide-y divide-slate-100 text-sm">
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
 
                 <!-- SECTION: DATA EKSTRAKURIKULER -->
                 <section id="viewEkskul" class="hidden view-section">
