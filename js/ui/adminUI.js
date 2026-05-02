@@ -155,6 +155,34 @@ window.loadDashboard = async () => {
             window.loadPengumuman(true);
         }
 
+// Update Widget Aktivitas Terkini
+const dashActivity = document.getElementById('dashActivity');
+if (dashActivity) {
+    let activityHtml = '';
+    
+    // 1. Cek Siswa yang sedang login / mengerjakan ujian
+    const siswaOnline = snapSiswa.docs.filter(d => d.data().isOnline === true).length;
+    if (siswaOnline > 0) {
+        activityHtml += `
+            <div class="p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-800 flex items-center gap-3 shadow-sm">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                </span> 
+                <b>${siswaOnline} Siswa</b> sedang online / mengerjakan ujian.
+            </div>`;
+    }
+    
+    // 2. Cek jumlah jadwal yang sedang berstatus AKTIF
+    const jadwalAktif = snapJadwal.docs.filter(d => d.data().isActive === true).length;
+    activityHtml += `
+        <div class="p-3 bg-emerald-50 border border-emerald-100 rounded text-sm text-emerald-800 shadow-sm flex items-center gap-2">
+            ✅ Terdapat <b>${jadwalAktif} Jadwal</b> penilaian yang sedang aktif dibuka.
+        </div>`;
+        
+    dashActivity.innerHTML = activityHtml || '<div class="text-sm text-slate-500 italic p-4 text-center">Sistem berjalan normal. Tidak ada aktivitas khusus saat ini.</div>';
+}
+
     } catch (e) { 
         console.error("Error load dashboard:", e); 
     }
@@ -3680,6 +3708,61 @@ window.hapusRiwayatBackup = async (id) => {
         await deleteDoc(doc(db, 'backup_history', id));
         window.loadBackup();
     }
+};
+
+// ==========================================
+// FITUR TAMBAHAN: KATROL & EKSPOR ANALISA
+// ==========================================
+
+// Fungsi Katrol Nilai
+window.katrolNilaiMassal = async () => {
+    const kelasVal = document.getElementById('filterHasilKelas').value;
+    const jadwalVal = document.getElementById('filterHasilJadwal').value;
+    
+    if (!kelasVal || !jadwalVal) return alert("Pilih Kelas dan Jadwal terlebih dahulu!");
+    
+    const filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal);
+    if (filteredResults.length === 0) return alert("Tidak ada data nilai untuk dikatrol pada jadwal ini.");
+
+    const tambahPoin = prompt(`Ditemukan ${filteredResults.length} nilai siswa.\nMasukkan jumlah poin tambahan untuk semua siswa ini (contoh: 10):`, "0");
+    
+    if (!tambahPoin || isNaN(tambahPoin) || parseInt(tambahPoin) === 0) return;
+
+    const poin = parseInt(tambahPoin);
+    if (!confirm(`Anda akan menambahkan ${poin} poin ke ${filteredResults.length} siswa. Nilai maksimal dibatasi 100. Lanjutkan?`)) return;
+
+    const btn = document.querySelector('button[onclick="katrolNilaiMassal()"]');
+    if (btn) { btn.disabled = true; btn.innerText = "Memproses..."; }
+
+    try {
+        const promises = [];
+        filteredResults.forEach(r => {
+            let skorBaru = (r.skor || 0) + poin;
+            if (skorBaru > 100) skorBaru = 100; // Batasi nilai mentok di 100
+            if (skorBaru < 0) skorBaru = 0;
+            
+            promises.push(updateDoc(doc(db, 'exam_results', r.id), { skor: skorBaru }));
+        });
+        await Promise.all(promises);
+        alert("Katrol nilai berhasil diterapkan!");
+        loadHasilUjian(); // Refresh tabel nilai
+    } catch (e) {
+        console.error("Gagal katrol nilai:", e);
+        alert("Gagal memproses penambahan nilai.");
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "⚖️ Katrol"; }
+    }
+};
+
+// Fungsi Ekspor Analisa ke Excel
+window.eksporAnalisaExcel = () => {
+    const tb = document.getElementById('tableBodyAnalisa');
+    if(!tb || tb.innerHTML.includes('Belum ada')) return alert("Tidak ada data analisa untuk diekspor!");
+    
+    // Ambil elemen tabel HTML dan langsung ubah jadi Excel
+    const table = tb.closest('table');
+    const workbook = XLSX.utils.table_to_book(table, {sheet: "Analisa Soal"});
+    XLSX.writeFile(workbook, `Analisa_Butir_Soal_CBT.xlsx`);
 };
 
 // Injection otomatis untuk menghubungkan tombol HTML dengan fungsi JavaScript
