@@ -663,25 +663,31 @@ window.loadEkskul = async () => {
 
 window.renderTableEkskul = () => {
     const tb = document.getElementById('tableEkskulBody');
+
+    // 🛡️ PENGAMAN: Jika tabel tidak ada, jangan paksa isi innerHTML
+    if (!tb) {
+        console.warn("Peringatan: ID 'tableEkskulBody' tidak ditemukan di admin.html.");
+        return; 
+    }
+
     tb.innerHTML = '';
-    
+
     if (!state.masterEkskul || state.masterEkskul.length === 0) {
-        tb.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500 italic">Belum ada data Ekstrakurikuler.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-500 italic">Belum ada data Ekstrakurikuler.</td></tr>';
         return;
     }
-    
+
     state.masterEkskul.forEach((e, i) => {
         tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-4 text-center border-r text-slate-500 font-bold">${i+1}</td>
-                <td class="p-4 border-r font-bold text-slate-800 uppercase">${e.nama || '-'}</td>
-                <td class="p-4 border-r text-center font-mono font-bold text-slate-600">${e.kode || '-'}</td>
+            <tr class="hover:bg-slate-50 transition">
+                <td class="p-4 text-center border-r text-slate-400 font-bold">${i+1}</td>
+                <td class="p-4 border-r font-bold text-slate-700 uppercase">${e.nama}</td>
+                <td class="p-4 border-r text-center font-mono font-bold text-blue-600">${e.kode}</td>
                 <td class="p-4 text-center space-x-1">
-                    <button onclick="editEkskul('${e.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
-                    <button onclick="hapusEkskul('${e.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
+                    <button onclick="editEkskul('${e.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
+                    <button onclick="hapusEkskul('${e.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded shadow-sm text-xs transition">🗑️</button>
                 </td>
-            </tr>
-        `;
+            </tr>`;
     });
 };
 
@@ -1573,8 +1579,23 @@ window.hapusRuangUjian = async (id) => {
 // ATUR RUANG & SESI SISWA
 // ==========================================
 window.loadAturRuangSesi = async () => {
+    // 1. Ambil Referensi Elemen & Lakukan Proteksi (Guard Clause)
+    const tb = document.getElementById('tableAturRuangSesiBody');
+    const filterKelas = document.getElementById('filterKelasAtur');
+    const bulkRuang = document.getElementById('bulkRuang');
+    const bulkSesi = document.getElementById('bulkSesi');
+
+    // Jika salah satu elemen kunci tidak ditemukan, hentikan fungsi sebelum error muncul
+    if (!tb || !filterKelas || !bulkRuang || !bulkSesi) {
+        console.warn("Peringatan: Beberapa elemen UI Atur Ruang Sesi tidak ditemukan di HTML (Cek ID: tableAturRuangSesiBody, filterKelasAtur, bulkRuang, atau bulkSesi).");
+        return; 
+    }
+
+    // Tampilkan status memuat di tabel
+    tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>';
+
     try {
-        // 1. Load Data Kelas
+        // 2. Load Data Master (Hanya jika memori state kosong)
         if (!state.masterKelas || state.masterKelas.length === 0) {
             const snapKelas = await getDocs(collection(db, 'master_kelas'));
             state.masterKelas = [];
@@ -1582,7 +1603,6 @@ window.loadAturRuangSesi = async () => {
             state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
         }
 
-        // 2. Load Data Ruang
         if (!state.masterRuangUjian || state.masterRuangUjian.length === 0) {
             const snapRuang = await getDocs(collection(db, 'master_ruang_ujian'));
             state.masterRuangUjian = [];
@@ -1590,7 +1610,6 @@ window.loadAturRuangSesi = async () => {
             state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
         }
 
-        // 3. Load Data Sesi
         if (!state.masterSesiUjian || state.masterSesiUjian.length === 0) {
             const snapSesi = await getDocs(collection(db, 'master_sesi_ujian'));
             state.masterSesiUjian = [];
@@ -1598,39 +1617,39 @@ window.loadAturRuangSesi = async () => {
             state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
         }
 
-        // 4. Load Data Siswa
+        // 3. Load Data Siswa
         const snapSiswa = await getDocs(collection(db, 'master_siswa'));
         state.masterSiswa = [];
         snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
 
-        // 5. Render Dropdown Filter Kelas
-        const filterKelas = document.getElementById('filterKelasAtur');
+        // 4. Render Dropdown Filter Kelas
         filterKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
         state.masterKelas.forEach(k => {
             filterKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`;
         });
 
-        // 6. Render Dropdown Bulk Action (Ruang & Sesi)
-        const bulkRuang = document.getElementById('bulkRuang');
+        // 5. Render Dropdown Bulk Action (Ruang & Sesi)
         bulkRuang.innerHTML = '<option value="">Pilih ruang</option>';
         state.masterRuangUjian.forEach(r => {
             bulkRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`;
         });
 
-        const bulkSesi = document.getElementById('bulkSesi');
         bulkSesi.innerHTML = '<option value="">Pilih sesi</option>';
         state.masterSesiUjian.forEach(s => {
             bulkSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
         });
 
         // Otomatis pilih kelas pertama jika ada
-        if(state.masterKelas.length > 0) {
+        if(state.masterKelas.length > 0 && !filterKelas.value) {
             filterKelas.value = state.masterKelas[0].nama;
         }
 
+        // Jalankan render tabel utama
         window.renderTableAturRuangSesi();
+
     } catch(e) {
         console.error("Error load atur ruang sesi:", e);
+        tb.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 font-bold">Gagal memuat data: ${e.message}</td></tr>`;
     }
 };
 
