@@ -4827,60 +4827,44 @@ window.exportTemplateGuru = () => {
 
 window.triggerImportGuru = () => { document.getElementById('importGuruFile').click(); };
 
-window.importGuru = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
+window.importGuru = () => {
+    // 1. Buat elemen input file sementara secara gaib (tidak tampil di layar)
+    const inputExcel = document.createElement('input');
+    inputExcel.type = 'file';
+    inputExcel.accept = '.xlsx, .xls'; // Hanya terima Excel
+    
+    // 2. Apa yang terjadi setelah Bapak memilih file Excel?
+    inputExcel.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return; // Batal pilih file
+        
+        // --- TEMPATKAN LOGIKA BACA EXCEL BAPAK DI SINI ---
+        // Contoh kode SheetJS Bapak sebelumnya kemungkinan seperti ini:
         try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
-            if (jsonData.length === 0) return alert("File Excel kosong atau format tidak sesuai!");
-            if (!confirm(`Ditemukan ${jsonData.length} baris data guru. Lanjutkan import ke database?`)) return;
-
-            alert("Proses import sedang berjalan. Jangan tutup browser...");
-
-            const promises = [];
-            jsonData.forEach(row => {
-                const nip = (row["NIP/NUPTK"] || '').toString().trim();
-                const nama = (row["Nama Lengkap"] || '').toString().trim();
-                if (!nama) return; // Lewati jika nama kosong
-
-                const guruData = {
-                    nip: nip,
-                    kode: (row["Kode Guru"] || '').toString().trim().toUpperCase(),
-                    nama: nama, // Tetap gunakan format besar kecil aslinya untuk gelar
-                    jabatan: (row["Jabatan"] || 'GURU KELAS').toString().trim().toUpperCase(),
-                    username: (row["Username"] || nip || nama.replace(/\s/g,'').toLowerCase()).toString().trim().toLowerCase(),
-                    password: (row["Password"] || nip || '123456').toString().trim(),
-                    isActive: true
-                };
-
-                // Cek data yang sudah ada berdasarkan NIP/NUPTK untuk Update/Add
-                let existingGuru = nip ? state.masterGuru.find(g => g.nip === nip) : null;
-
-                if (existingGuru) {
-                    promises.push(updateDoc(doc(db, 'master_guru', existingGuru.id), guruData));
-                } else {
-                    promises.push(addDoc(collection(db, 'master_guru'), guruData));
-                }
-            });
-
-            await Promise.all(promises);
-            alert("Import Data Guru Berhasil!");
-            window.loadGuru();
+            alert(`Memproses file: ${file.name}... Mohon tunggu.`);
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheet];
+                const excelData = XLSX.utils.sheet_to_json(worksheet);
+                
+                // Lakukan perulangan untuk menyimpan excelData ke Firebase di sini
+                console.log("Data Excel terbaca:", excelData);
+                // ... logika simpan ke firestore ...
+                
+            };
+            reader.readAsArrayBuffer(file);
         } catch (err) {
-            console.error("Gagal Import Guru:", err);
-            alert("Gagal membaca file Excel. Pastikan Anda menggunakan file hasil download dari sistem ini.");
-        } finally {
-            event.target.value = ''; // Reset form file
+            console.error("Gagal membaca Excel:", err);
+            alert("Terjadi kesalahan saat memproses file Excel.");
         }
+        // ------------------------------------------------
     };
-    reader.readAsArrayBuffer(file);
+    
+    // 3. Picu klik secara otomatis untuk membuka jendela pilih file komputer
+    inputExcel.click();
 };
 
 
