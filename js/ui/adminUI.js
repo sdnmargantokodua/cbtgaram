@@ -2172,60 +2172,104 @@ window.renderTableRuangUjian = () => {
     });
 };
 
-window.openModalRuangUjian = () => {
-    document.getElementById('ruangUjianId').value = '';
-    document.getElementById('inputNamaRuang').value = '';
-    document.getElementById('inputKodeRuang').value = '';
-    document.getElementById('inputJumSesi').value = '1';
-    document.getElementById('modalRuangUjian').classList.remove('hidden');
-};
+// ==========================================
+// 1. BUKA MODAL RUANG UJIAN (TAMBAH)
+// ==========================================
+window.openModalRuangUjian = (id = '', nama = '', kode = '') => {
+    const elId = document.getElementById('ruangUjianId');
+    const elNama = document.getElementById('inputNamaRuang');
+    const elKode = document.getElementById('inputKodeRuang');
+    const modal = document.getElementById('modalRuangUjian');
 
-window.simpanRuangUjian = async () => {
-    const id = document.getElementById('ruangUjianId').value;
-    const nama = document.getElementById('inputNamaRuang').value.trim();
-    const kode = document.getElementById('inputKodeRuang').value.trim().toUpperCase();
-    const jumSesi = parseInt(document.getElementById('inputJumSesi').value) || 1;
+    // 🛡️ Guard Clause pengaman
+    if (elId) elId.value = id;
+    if (elNama) elNama.value = nama;
+    if (elKode) elKode.value = kode;
 
-    if(!nama || !kode) {
-        return alert("Nama dan Kode Ruang wajib diisi!");
-    }
-
-    const btn = document.querySelector("#modalRuangUjian button.bg-blue-600");
-    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
-
-    const data = { 
-        nama, 
-        kode, 
-        jumSesi,
-        noUrut: id ? (state.masterRuangUjian.find(x => x.id === id)?.noUrut || state.masterRuangUjian.length + 1) : state.masterRuangUjian.length + 1 
-    };
-
-    try {
-        if(id) {
-            await updateDoc(doc(db, 'master_ruang_ujian', id), data);
-        } else {
-            await addDoc(collection(db, 'master_ruang_ujian'), data);
-        }
-        closeModal('modalRuangUjian');
-        alert("Data Ruang Ujian berhasil disimpan!");
-        loadRuangUjian(); // Muat ulang tabel
-    } catch(e) {
-        console.error(e);
-        alert("Gagal menyimpan data.");
-    } finally {
-        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalRuangUjian' tidak ditemukan di HTML.");
     }
 };
 
+// ==========================================
+// 2. BUKA MODAL RUANG UJIAN (EDIT)
+// ==========================================
 window.editRuangUjian = (id) => {
-    const r = state.masterRuangUjian.find(x => x.id === id);
-    if(!r) return;
+    const ruang = state.masterRuangUjian ? state.masterRuangUjian.find(r => r.id === id) : null;
+    if (!ruang) return;
 
-    document.getElementById('ruangUjianId').value = r.id;
-    document.getElementById('inputNamaRuang').value = r.nama || '';
-    document.getElementById('inputKodeRuang').value = r.kode || '';
-    document.getElementById('inputJumSesi').value = r.jumSesi || 1;
-    document.getElementById('modalRuangUjian').classList.remove('hidden');
+    const elId = document.getElementById('ruangUjianId');
+    const elNama = document.getElementById('inputNamaRuang');
+    const elKode = document.getElementById('inputKodeRuang');
+    const modal = document.getElementById('modalRuangUjian');
+
+    if (elId) elId.value = ruang.id;
+    if (elNama) elNama.value = ruang.nama || '';
+    if (elKode) elKode.value = ruang.kode || '';
+
+    if (modal) modal.classList.remove('hidden');
+};
+
+// ==========================================
+// 3. SIMPAN RUANG UJIAN
+// ==========================================
+window.simpanRuangUjian = async () => {
+    try {
+        const idRuang = document.getElementById('ruangUjianId')?.value || '';
+        const nama = document.getElementById('inputNamaRuang')?.value.trim();
+        const kode = document.getElementById('inputKodeRuang')?.value.trim();
+
+        if (!nama) {
+            alert('Gagal: Nama Ruang wajib diisi!');
+            return;
+        }
+
+        const btnSimpan = document.querySelector('#modalRuangUjian button[onclick="simpanRuangUjian()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳...';
+            btnSimpan.disabled = true;
+        }
+
+        const payload = {
+            nama: nama.toUpperCase(),
+            kode: (kode || '').toUpperCase()
+        };
+
+        if (idRuang) {
+            await updateDoc(doc(db, 'master_ruang_ujian', idRuang), payload);
+        } else {
+            await addDoc(collection(db, 'master_ruang_ujian'), payload);
+        }
+
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        window.closeModal('modalRuangUjian');
+        
+        if (typeof window.loadRuangUjian === 'function') {
+            window.loadRuangUjian();
+        }
+
+        // Bersihkan form
+        if (document.getElementById('ruangUjianId')) document.getElementById('ruangUjianId').value = '';
+        if (document.getElementById('inputNamaRuang')) document.getElementById('inputNamaRuang').value = '';
+        if (document.getElementById('inputKodeRuang')) document.getElementById('inputKodeRuang').value = '';
+
+    } catch (error) {
+        console.error("Gagal menyimpan Ruang Ujian:", error);
+        alert('Terjadi kesalahan: ' + error.message);
+        
+        const btnSimpan = document.querySelector('#modalRuangUjian button[onclick="simpanRuangUjian()"]');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan';
+            btnSimpan.disabled = false;
+        }
+    }
 };
 
 window.hapusRuangUjian = async (id) => {
