@@ -2602,40 +2602,110 @@ window.renderTablePengawas = () => {
     }, 50);
 };
 
+// ==========================================
+// 1. BUKA MODAL PENGAWAS (TAMBAH)
+// ==========================================
+window.openModalPengawas = (id = '', nama = '', nip = '', user = '', pass = '') => {
+    const elId = document.getElementById('pengawasId');
+    const elNama = document.getElementById('inputNamaPengawas');
+    const elNip = document.getElementById('inputNipPengawas');
+    const elUser = document.getElementById('inputUserPengawas');
+    const elPass = document.getElementById('inputPassPengawas');
+    const modal = document.getElementById('modalPengawas');
+
+    // Pengaman
+    if (elId) elId.value = id;
+    if (elNama) elNama.value = nama;
+    if (elNip) elNip.value = nip;
+    if (elUser) elUser.value = user;
+    if (elPass) elPass.value = pass;
+
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalPengawas' tidak ditemukan di HTML.");
+    }
+};
+
+// ==========================================
+// 2. BUKA MODAL PENGAWAS (EDIT)
+// ==========================================
+window.editPengawas = (id) => {
+    const pengawas = state.masterPengawas ? state.masterPengawas.find(p => p.id === id) : null;
+    if (!pengawas) return;
+
+    const elId = document.getElementById('pengawasId');
+    const elNama = document.getElementById('inputNamaPengawas');
+    const elNip = document.getElementById('inputNipPengawas');
+    const elUser = document.getElementById('inputUserPengawas');
+    const elPass = document.getElementById('inputPassPengawas');
+    const modal = document.getElementById('modalPengawas');
+
+    if (elId) elId.value = pengawas.id;
+    if (elNama) elNama.value = pengawas.nama || '';
+    if (elNip) elNip.value = pengawas.nip || '';
+    if (elUser) elUser.value = pengawas.username || '';
+    if (elPass) elPass.value = pengawas.password || '';
+
+    if (modal) modal.classList.remove('hidden');
+};
+
+// ==========================================
+// 3. SIMPAN PENGAWAS
+// ==========================================
 window.simpanPengawas = async () => {
-    const jenisVal = document.getElementById('filterPengawasJenis').value;
-    if (!jenisVal) return alert("Pilih Jenis Penilaian terlebih dahulu!");
-
-    const btn = document.getElementById('btnSimpanPengawas');
-    if (btn) { btn.disabled = true; btn.innerHTML = "Menyimpan..."; }
-
-    const tb = document.getElementById('tablePengawasBody');
-    const rows = tb.querySelectorAll('tr[data-key]');
-    
-    // Inisialisasi object untuk jenis ujian ini jika belum ada
-    if (!state.pengawasUjian) state.pengawasUjian = {};
-    if (!state.pengawasUjian[jenisVal]) state.pengawasUjian[jenisVal] = {};
-
-    rows.forEach(row => {
-        const key = row.getAttribute('data-key');
-        const guru = row.querySelector('.select-guru').value;
-        
-        if (guru) {
-            state.pengawasUjian[jenisVal][key] = guru;
-        } else {
-            // Hapus jika opsi dikosongkan
-            delete state.pengawasUjian[jenisVal][key];
-        }
-    });
-
     try {
-        await setDoc(doc(db, 'settings', 'pengawas_ujian'), state.pengawasUjian);
-        alert(`Alokasi Pengawas untuk "${jenisVal}" berhasil disimpan!`);
-    } catch (e) {
-        console.error("Gagal menyimpan pengawas:", e);
-        alert("Gagal menyimpan data ke server.");
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = "💾 Simpan"; }
+        const idPengawas = document.getElementById('pengawasId')?.value || '';
+        const nama = document.getElementById('inputNamaPengawas')?.value.trim();
+        const nip = document.getElementById('inputNipPengawas')?.value.trim();
+        const user = document.getElementById('inputUserPengawas')?.value.trim();
+        const pass = document.getElementById('inputPassPengawas')?.value;
+
+        if (!nama) {
+            alert('Gagal: Nama Pengawas wajib diisi!');
+            return;
+        }
+
+        const btnSimpan = document.querySelector('#modalPengawas button[onclick="simpanPengawas()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳...';
+            btnSimpan.disabled = true;
+        }
+
+        const payload = {
+            nama: nama.toUpperCase(),
+            nip: (nip || '').toUpperCase(),
+            username: (user || '').toLowerCase(),
+            password: pass || ''
+        };
+
+        if (idPengawas) {
+            await updateDoc(doc(db, 'master_pengawas', idPengawas), payload);
+        } else {
+            await addDoc(collection(db, 'master_pengawas'), payload);
+        }
+
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        window.closeModal('modalPengawas');
+        
+        if (typeof window.loadPengawas === 'function') {
+            window.loadPengawas();
+        }
+
+    } catch (error) {
+        console.error("Gagal menyimpan Pengawas:", error);
+        alert('Terjadi kesalahan: ' + error.message);
+        
+        const btnSimpan = document.querySelector('#modalPengawas button[onclick="simpanPengawas()"]');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan';
+            btnSimpan.disabled = false;
+        }
     }
 };
 
