@@ -404,12 +404,30 @@ window.renderTableMapel = () => {
     });
 };
 
-window.openModalMapel = () => {
-    document.getElementById('mapelId').value = '';
-    document.getElementById('inputNamaMapel').value = '';
-    document.getElementById('inputKodeMapel').value = '';
-    document.getElementById('inputStatusMapel').checked = true;
-    document.getElementById('modalMataPelajaran').classList.remove('hidden');
+window.openModalMapel = (id = '', kode = '', nama = '', kelompok = 'Kelompok A (Wajib)', status = true) => {
+    // 1. Ambil elemen berdasarkan ID yang ADA di HTML Bapak
+    const elId = document.getElementById('mapelId');
+    const elKode = document.getElementById('inputKodeMapel');
+    const elNama = document.getElementById('inputNamaMapel');
+    const elKelompok = document.getElementById('inputKelompokMapel');
+    const elStatus = document.getElementById('inputStatusMapel');
+    const modal = document.getElementById('modalMataPelajaran');
+
+    // 2. 🛡️ PENGAMAN: Hanya isi value jika elemennya ditemukan
+    if (elId) elId.value = id;
+    if (elKode) elKode.value = kode;
+    if (elNama) elNama.value = nama;
+    if (elKelompok) elKelompok.value = kelompok;
+    
+    // Checkbox menggunakan .checked, bukan .value
+    if (elStatus) elStatus.checked = status; 
+
+    // 3. Tampilkan modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalMataPelajaran' tidak ditemukan di HTML.");
+    }
 };
 
 window.simpanMapel = async () => {
@@ -430,14 +448,33 @@ window.simpanMapel = async () => {
 };
 
 window.editMapel = (id) => {
-    const m = state.masterSubjects.find(x => x.id === id);
-    if(!m) return;
-    document.getElementById('mapelId').value = m.id;
-    document.getElementById('inputNamaMapel').value = m.nama;
-    document.getElementById('inputKodeMapel').value = m.kode;
-    document.getElementById('inputKelompokMapel').value = m.kelompok;
-    document.getElementById('inputStatusMapel').checked = m.isActive !== false;
-    document.getElementById('modalMataPelajaran').classList.remove('hidden');
+    // 1. Cari data mapel dari state berdasarkan ID
+    const mapel = state.masterMapel ? state.masterMapel.find(m => m.id === id) : null;
+    
+    if (!mapel) {
+        console.error("Data mapel tidak ditemukan di memori!");
+        return;
+    }
+
+    // 2. Ambil elemen HTML
+    const elId = document.getElementById('mapelId');
+    const elKode = document.getElementById('inputKodeMapel');
+    const elNama = document.getElementById('inputNamaMapel');
+    const elKelompok = document.getElementById('inputKelompokMapel');
+    const elStatus = document.getElementById('inputStatusMapel');
+    const modal = document.getElementById('modalMataPelajaran');
+
+    // 3. 🛡️ PENGAMAN: Set data ke dalam form modal
+    if (elId) elId.value = mapel.id;
+    if (elKode) elKode.value = mapel.kode || '';
+    if (elNama) elNama.value = mapel.nama || '';
+    if (elKelompok) elKelompok.value = mapel.kelompok || 'Kelompok A (Wajib)';
+    if (elStatus) elStatus.checked = mapel.aktif !== false; // Default true jika tidak ada properti aktif
+
+    // 4. Buka modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 };
 
 window.hapusMapel = async (id) => {
