@@ -1556,43 +1556,153 @@ window.importSiswa = () => {
     inputExcel.click();
 };
 
+// ==========================================
+// 1. FUNGSI SIMPAN SISWA (ANTI-ERROR CHECKED)
+// ==========================================
 window.simpanSiswa = async () => {
-    const id = document.getElementById('siswaId').value;
-    const nisn = document.getElementById('siswaNisn').value.trim();
-    const nama = document.getElementById('siswaNama').value.trim().toUpperCase();
-    
-    if(!nisn || !nama) return alert("NISN dan Nama Lengkap wajib diisi!");
-    
-    const btn = document.querySelector("#modalSiswa button.bg-blue-600");
-    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
-
-    const data = { 
-        nisn, 
-        nis: document.getElementById('siswaNis').value.trim(), 
-        nama, 
-        jk: document.getElementById('siswaJk').value, 
-        kelas: document.getElementById('siswaKelas').value.trim().toUpperCase(), 
-        // Jika username/password kosong, gunakan NISN sebagai default
-        username: document.getElementById('siswaUsername').value.trim() || nisn, 
-        password: document.getElementById('siswaPassword').value.trim() || nisn, 
-        isActive: document.getElementById('siswaStatus').checked 
-    };
-
     try {
-        if(id) {
-            await updateDoc(doc(db, 'master_siswa', id), data);
-        } else {
-            await addDoc(collection(db, 'master_siswa'), data);
+        const idSiswa = document.getElementById('siswaId')?.value || '';
+        const nisn = document.getElementById('siswaNisn')?.value.trim();
+        const nis = document.getElementById('siswaNis')?.value.trim();
+        const nama = document.getElementById('siswaNama')?.value.trim();
+        const jk = document.getElementById('siswaJk')?.value;
+        const kelas = document.getElementById('siswaKelas')?.value.trim();
+        const username = document.getElementById('siswaUsername')?.value.trim();
+        const password = document.getElementById('siswaPassword')?.value;
+        
+        // 🛡️ PENGAMAN: Gunakan ?.checked dan berikan nilai default true (Aktif) jika elemen tidak ada di HTML
+        const statusAktif = document.getElementById('siswaStatus')?.checked ?? true;
+
+        if (!nama) {
+            alert('Gagal: Nama Lengkap Siswa wajib diisi!');
+            return;
         }
-        closeModal('modalSiswa');
-        alert("Data Siswa berhasil disimpan!");
-        loadSiswa(); // Muat ulang tabel
-    } catch(e) {
-        alert("Gagal menyimpan data siswa.");
-        console.error(e);
-    } finally {
-        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+
+        const btnSimpan = document.querySelector('#modalSiswa button[onclick="simpanSiswa()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳ Menyimpan...';
+            btnSimpan.disabled = true;
+        }
+
+        const payload = {
+            nisn: nisn || '',
+            nis: nis || '',
+            nama: nama.toUpperCase(),
+            jk: jk,
+            kelas: kelas.toUpperCase(),
+            username: (username || '').toLowerCase(),
+            password: password || '',
+            isActive: statusAktif
+        };
+
+        if (idSiswa) {
+            await updateDoc(doc(db, 'master_siswa', idSiswa), payload);
+        } else {
+            await addDoc(collection(db, 'master_siswa'), payload);
+        }
+
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        window.closeModal('modalSiswa');
+        
+        if (typeof window.loadSiswa === 'function') {
+            window.loadSiswa();
+        }
+
+        // Bersihkan form
+        ['siswaId', 'siswaNisn', 'siswaNis', 'siswaNama', 'siswaKelas', 'siswaUsername', 'siswaPassword'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        if (document.getElementById('siswaJk')) document.getElementById('siswaJk').value = 'L';
+        if (document.getElementById('siswaStatus')) document.getElementById('siswaStatus').checked = true;
+
+    } catch (error) {
+        console.error("Gagal menyimpan Siswa:", error);
+        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
+        const btnSimpan = document.querySelector('#modalSiswa button[onclick="simpanSiswa()"]');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan';
+            btnSimpan.disabled = false;
+        }
     }
+};
+
+// ==========================================
+// 2. FUNGSI IMPORT SISWA (GANTI TOTAL)
+// ==========================================
+window.importSiswa = () => {
+    // 1. Buat elemen input file sementara secara gaib
+    const inputExcel = document.createElement('input');
+    inputExcel.type = 'file';
+    inputExcel.accept = '.xlsx, .xls'; 
+    
+    // 2. Saat file Excel dipilih
+    inputExcel.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return; 
+        
+        // 3. Mesin pembaca Excel
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                if (jsonData.length === 0) return alert("File Excel kosong atau format tidak sesuai!");
+                if (!confirm(`Ditemukan ${jsonData.length} baris data siswa. Lanjutkan import ke database?`)) return;
+
+                alert("Proses import sedang berjalan. Jangan tutup browser...");
+
+                const promises = [];
+                jsonData.forEach(row => {
+                    const nisn = (row["NISN"] || '').toString().trim();
+                    const nama = (row["NAMA_LENGKAP"] || row["Nama Lengkap"] || '').toString().trim().toUpperCase();
+                    if (!nama) return; 
+
+                    const siswaData = {
+                        nisn: nisn,
+                        nis: (row["NIS"] || '').toString().trim(),
+                        nama: nama,
+                        jk: (row["JENIS_KELAMIN"] || row["Jenis Kelamin (L/P)"] || 'L').toString().trim().toUpperCase(),
+                        kelas: (row["KELAS"] || row["Kelas"] || '').toString().trim().toUpperCase(),
+                        username: (row["USERNAME"] || row["Username"] || nisn || nama.replace(/\s/g,'').toLowerCase()).toString().trim().toLowerCase(),
+                        password: (row["PASSWORD"] || row["Password"] || nisn || '123456').toString().trim(),
+                        isActive: true
+                    };
+
+                    let existingSiswa = nisn ? state.masterSiswa.find(s => s.nisn === nisn) : null;
+
+                    if (existingSiswa) {
+                        promises.push(updateDoc(doc(db, 'master_siswa', existingSiswa.id), siswaData));
+                    } else {
+                        promises.push(addDoc(collection(db, 'master_siswa'), siswaData));
+                    }
+                });
+
+                await Promise.all(promises);
+                alert("Import Data Siswa Berhasil!");
+                
+                if (typeof window.loadSiswa === 'function') {
+                    window.loadSiswa();
+                }
+
+            } catch (err) {
+                console.error("Gagal Import Siswa:", err);
+                alert("Gagal membaca file Excel. Pastikan format tabel sesuai.");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+    
+    // Picu klik otomatis
+    inputExcel.click();
 };
 
 window.hapusSiswa = async (id) => {
