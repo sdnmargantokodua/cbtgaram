@@ -5460,3 +5460,95 @@ window.exportSiswa = () => {
         alert("Gagal mengunduh Excel. Pastikan library SheetJS berhasil dimuat.");
     }
 };
+
+// ==========================================
+// 1. FUNGSI ATUR MASSAL (TERAPKAN)
+// ==========================================
+window.terapkanAturMassal = () => {
+    const valRuang = document.getElementById('bulkRuang')?.value;
+    const valSesi = document.getElementById('bulkSesi')?.value;
+
+    if (!valRuang && !valSesi) {
+        alert("Peringatan: Silakan pilih Ruang atau Sesi terlebih dahulu untuk diterapkan secara massal.");
+        return;
+    }
+
+    // Ambil semua baris data siswa yang sedang tampil di tabel
+    const rows = document.querySelectorAll('#tableAturRuangSesiBody tr');
+    let count = 0;
+
+    rows.forEach(row => {
+        // Ambil semua elemen dropdown <select> di dalam baris tabel tersebut
+        const selects = row.querySelectorAll('select');
+        
+        // selects[0] adalah dropdown Ruang, selects[1] adalah dropdown Sesi
+        if (selects.length >= 2) {
+            if (valRuang) selects[0].value = valRuang;
+            if (valSesi) selects[1].value = valSesi;
+            count++;
+        }
+    });
+
+    if (count > 0) {
+        alert(`Berhasil menerapkan pilihan ke ${count} siswa di layar. Jangan lupa klik tombol "💾 Simpan Perubahan" agar tersimpan ke database!`);
+    } else {
+        alert("Belum ada data siswa yang ditampilkan. Silakan pilih Filter Kelas terlebih dahulu.");
+    }
+};
+
+
+// ==========================================
+// 2. FUNGSI GENERATE OTOMATIS (DISTRIBUSI MERATA)
+// ==========================================
+window.generateRuangSesiOtomatis = () => {
+    const rows = document.querySelectorAll('#tableAturRuangSesiBody tr');
+    
+    if (rows.length === 0) {
+        alert("Belum ada data siswa di tabel. Silakan pilih kelas terlebih dahulu.");
+        return;
+    }
+
+    // Cek ketersediaan opsi ruang dan sesi dari baris pertama
+    const firstRowSelects = rows[0].querySelectorAll('select');
+    if (firstRowSelects.length < 2) return;
+
+    // Ambil daftar kode/ID ruang dan sesi yang tersedia (abaikan opsi kosong "")
+    const opsiRuang = Array.from(firstRowSelects[0].options).map(opt => opt.value).filter(val => val !== "");
+    const opsiSesi = Array.from(firstRowSelects[1].options).map(opt => opt.value).filter(val => val !== "");
+
+    if (opsiRuang.length === 0 || opsiSesi.length === 0) {
+        alert("Data Master Ruang atau Sesi masih kosong! Pastikan Bapak sudah menambahkannya di menu Ruang & Sesi.");
+        return;
+    }
+
+    // Logika distribusi pembagian siswa: 
+    // Mengasumsikan batas 20 siswa per ruangan
+    let ruangIndex = 0;
+    let sesiIndex = 0;
+    const kapasitasPerRuang = 20; 
+
+    rows.forEach((row, index) => {
+        const selects = row.querySelectorAll('select');
+        if (selects.length >= 2) {
+            // Pasang siswa ke ruang dan sesi saat ini
+            selects[0].value = opsiRuang[ruangIndex];
+            selects[1].value = opsiSesi[sesiIndex];
+
+            // Pindah ke ruang/sesi berikutnya setiap kali mencapai kapasitas
+            if ((index + 1) % kapasitasPerRuang === 0) {
+                ruangIndex++;
+                // Jika semua ruang sudah penuh di sesi ini, pindah ke sesi berikutnya
+                if (ruangIndex >= opsiRuang.length) {
+                    ruangIndex = 0;
+                    sesiIndex++;
+                    // Jika semua sesi juga sudah terisi, ulangi lagi dari sesi pertama
+                    if (sesiIndex >= opsiSesi.length) {
+                        sesiIndex = 0; 
+                    }
+                }
+            }
+        }
+    });
+
+    alert("✨ Siswa berhasil didistribusikan secara otomatis (Asumsi max. 20 anak per ruangan). Jangan lupa klik '💾 Simpan Perubahan' ya, Pak!");
+};
