@@ -117,21 +117,38 @@ window.closeModal = (id) => {
 };
 
 // Fungsi perpindahan Tab yang sudah disesuaikan dengan HTML admin.html Anda
-window.switchTab = (id, title) => { 
-    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden')); 
-    document.querySelectorAll('.menu-btn').forEach(btn => btn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"); 
-    
-    document.getElementById(id).classList.remove('hidden'); 
-    const activeBtn = document.getElementById('btn-' + id);
-    if(activeBtn) activeBtn.className = "menu-btn w-full flex items-center gap-3 p-3 rounded-lg bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/50"; 
-    
-    document.getElementById('pageTitle').innerText = title; 
-    
-    // Tutup sidebar otomatis jika di layar kecil
-    if (window.innerWidth < 768) toggleSidebar(); 
+window.switchTab = (viewId, title) => {
+    // 1. Ambil elemen target
+    const targetView = document.getElementById(viewId);
+    const targetBtn = document.getElementById('btn-' + viewId);
 
-    // Tambahkan baris ini di dalam fungsi window.switchTab Anda
-if(id === 'viewCetak') window.loadCetak();
+    // 2. PROTEKSI: Jika elemen section tidak ditemukan, jangan teruskan (agar tidak error)
+    if (!targetView) {
+        console.warn(`Peringatan: Section dengan ID ${viewId} tidak ditemukan!`);
+        return; 
+    }
+
+    // Sembunyikan semua section
+    document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
+    
+    // Tampilkan yang dipilih (Baris 124 yang tadinya error)
+    targetView.classList.remove('hidden');
+
+    // Update Judul Page
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.innerText = title;
+
+    // Kelola warna tombol aktif di sidebar
+    document.querySelectorAll('.menu-btn').forEach(b => {
+        b.classList.remove('bg-slate-800', 'text-blue-400');
+        b.classList.add('text-slate-300');
+    });
+
+    // PROTEKSI: Jika tombol sidebar ditemukan, berikan warna aktif
+    if (targetBtn) {
+        targetBtn.classList.add('bg-slate-800', 'text-blue-400');
+        targetBtn.classList.remove('text-slate-300');
+    }
 };
 
 // ==========================================
