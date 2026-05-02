@@ -120,18 +120,37 @@ if(id === 'viewCetak') window.loadCetak();
 // ==========================================
 window.loadDashboard = async () => {
     try {
+        // Ambil Data Master Umum
         const snapSiswa = await getDocs(collection(db, 'master_siswa'));
         const snapMapel = await getDocs(collection(db, 'master_subjects'));
         const snapKelas = await getDocs(collection(db, 'master_kelas'));
         const snapGuru = await getDocs(collection(db, 'master_guru'));
 
-        // Update ID sesuai dengan admin.html
+        // Update ID Master
         if(document.getElementById('dashSiswa')) document.getElementById('dashSiswa').innerText = snapSiswa.size;
         if(document.getElementById('dashRombel')) document.getElementById('dashRombel').innerText = snapKelas.size;
         if(document.getElementById('dashGuru')) document.getElementById('dashGuru').innerText = snapGuru.size;
         if(document.getElementById('dashMapel')) document.getElementById('dashMapel').innerText = snapMapel.size;
 
-        // TAMBAHKAN BARIS INI: Panggil pengumuman khusus untuk mode Dashboard (true)
+        // Ambil Data Statistik Penilaian
+        const snapRuang = await getDocs(collection(db, 'master_ruang_ujian'));
+        const snapSesi = await getDocs(collection(db, 'master_sesi_ujian'));
+        const snapBankSoal = await getDocs(collection(db, 'master_bank_soal'));
+        const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
+        const snapToken = await getDoc(doc(db, 'settings', 'token_ujian'));
+
+        // Update ID Penilaian
+        if(document.getElementById('dashRuang')) document.getElementById('dashRuang').innerText = snapRuang.size;
+        if(document.getElementById('dashSesi')) document.getElementById('dashSesi').innerText = snapSesi.size;
+        if(document.getElementById('dashBankSoal')) document.getElementById('dashBankSoal').innerText = snapBankSoal.size;
+        if(document.getElementById('dashJadwal')) document.getElementById('dashJadwal').innerText = snapJadwal.size;
+        
+        // Menampilkan Token yang Sedang Aktif
+        if(document.getElementById('dashToken') && snapToken.exists()) {
+            document.getElementById('dashToken').innerText = snapToken.data().currentToken || '-';
+        }
+
+        // Tampilkan teks pengumuman ke widget dashboard
         if (typeof window.loadPengumuman === 'function') {
             window.loadPengumuman(true);
         }
@@ -2695,9 +2714,77 @@ window.lihatDetailNilai = (resultId) => {
     const res = state.allResults.find(x => x.id === resultId);
     if (!res) return;
     
-    // Fungsi ini akan menampilkan popup detail jawaban siswa
-    alert(`Menampilkan detail pengerjaan untuk: ${res.nama}\nSkor: ${res.skor}\nBenar: ${res.benar}\nSalah: ${res.salah}`);
-    // Pak Yoyon bisa mengembangkan ini untuk membuka modal modalDetailNilai yang ada di HTML
+    const modal = document.getElementById('modalDetailNilai');
+    const container = modal.querySelector('.bg-white'); // Ambil kotak putih dalam modal
+    
+    // Generate tabel detail jawaban HTML
+    let detailHtml = '<div class="max-h-60 overflow-y-auto mb-4 border border-slate-200 rounded p-0 text-sm">';
+    if (res.detailJawaban && Object.keys(res.detailJawaban).length > 0) {
+        detailHtml += '<table class="w-full text-left border-collapse"><thead class="bg-slate-100"><tr><th class="p-2 border-b text-center">No</th><th class="p-2 border-b text-center">Jawaban Siswa</th><th class="p-2 border-b text-center">Status</th></tr></thead><tbody>';
+        for (const [no, ans] of Object.entries(res.detailJawaban)) {
+            const status = ans.isCorrect ? '✅ Benar' : '❌ Salah';
+            const color = ans.isCorrect ? 'text-green-600' : 'text-red-600';
+            const bgClass = ans.isCorrect ? 'bg-white' : 'bg-red-50';
+            detailHtml += `<tr class="${bgClass}"><td class="p-2 border-b text-center">${no}</td><td class="p-2 border-b text-center font-bold">${ans.answer || '-'}</td><td class="p-2 border-b text-center ${color} font-bold">${status}</td></tr>`;
+        }
+        detailHtml += '</tbody></table>';
+    } else {
+        detailHtml += '<p class="text-center text-slate-500 italic p-4">Siswa belum memiliki rincian jawaban di database.</p>';
+    }
+    detailHtml += '</div>';
+
+    // Suntikkan desain ke dalam modal
+    container.innerHTML = `
+        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-lg text-slate-800">Detail Ujian: <span class="text-blue-600 uppercase">${res.nama}</span></h3>
+            <button onclick="closeModal('modalDetailNilai')" class="text-slate-400 hover:text-red-500 font-bold text-xl">✖</button>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mb-4 text-center">
+            <div class="bg-blue-50 border border-blue-200 p-2 rounded"><p class="text-[10px] uppercase font-bold text-blue-600">Skor Akhir</p><h4 class="text-2xl font-black text-blue-700">${res.skor || 0}</h4></div>
+            <div class="bg-green-50 border border-green-200 p-2 rounded"><p class="text-[10px] uppercase font-bold text-green-600">Jml Benar</p><h4 class="text-2xl font-black text-green-700">${res.benar || 0}</h4></div>
+            <div class="bg-red-50 border border-red-200 p-2 rounded"><p class="text-[10px] uppercase font-bold text-red-600">Jml Salah</p><h4 class="text-2xl font-black text-red-700">${res.salah || 0}</h4></div>
+        </div>
+        <p class="font-bold text-sm text-slate-700 mb-2">Rincian Jawaban:</p>
+        ${detailHtml}
+        <div class="flex justify-end mt-4">
+            <button onclick="closeModal('modalDetailNilai')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2 rounded-lg font-bold shadow-sm transition">Tutup</button>
+        </div>
+    `;
+    
+    // Tampilkan modal
+    modal.classList.remove('hidden');
+};
+
+window.eksporHasilExcel = () => {
+    const kelasVal = document.getElementById('filterHasilKelas').value;
+    const jadwalVal = document.getElementById('filterHasilJadwal').value;
+    
+    if (!kelasVal || !jadwalVal) {
+        return alert("Harap filter Kelas dan Jadwal terlebih dahulu sebelum mengekspor data ke Excel.");
+    }
+
+    const filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal);
+    if (filteredResults.length === 0) return alert("Tidak ada data nilai untuk diekspor pada filter ini.");
+
+    // Format data agar cantik saat masuk ke Excel
+    const dataToExport = filteredResults.map((r, index) => ({
+        "No": index + 1,
+        "NIS/NISN": r.nis || r.nisn || "-",
+        "Nama Peserta": r.nama,
+        "Kelas": r.kelas,
+        "Jumlah Benar": r.benar || 0,
+        "Jumlah Salah": r.salah || 0,
+        "NILAI AKHIR": r.skor || 0
+    }));
+
+    // Membuat WorkBook Excel (menggunakan library XLSX SheetJS)
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Nilai");
+
+    // Unduh File
+    const fileName = `Rekap_Nilai_${kelasVal}_Jadwal_${jadwalVal}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
 };
 
 // ==========================================
