@@ -586,6 +586,65 @@
     </div>
 </section>
 
+<!-- SECTION: TOKEN UJIAN -->
+<section id="viewToken" class="hidden view-section">
+    <h2 class="text-2xl font-bold text-slate-800 mb-4">Token Ujian</h2>
+
+    <div class="bg-white rounded-lg shadow-sm border border-slate-200">
+        <!-- Header Bar -->
+        <div class="flex justify-between items-center p-4 border-b border-slate-200">
+            <span class="font-semibold text-slate-700">Token</span>
+            <button onclick="generateToken()" class="bg-[#28a745] hover:bg-[#218838] text-white px-4 py-2 rounded font-bold text-sm shadow transition tracking-wide">
+                GENERATE NEW TOKEN
+            </button>
+        </div>
+
+        <div class="p-4 space-y-4">
+            <!-- Kotak Informasi -->
+            <div class="bg-[#e8f5e9] border border-[#c3e6cb] text-[#155724] p-4 rounded">
+                <ul class="list-disc pl-5 space-y-1 text-sm">
+                    <li>Jika mengklik <span class="bg-[#28a745] text-white px-1.5 py-0.5 rounded text-[10px] font-bold">GENERATE NEW TOKEN</span> segera beritahukan guru/admin lain yang sedang login agar merefresh token untuk mendapatkan token terbaru.</li>
+                    <li>Token akan digenerate otomatis jika pilihan <b>Otomatis: YA</b> dan ada jadwal ujian pada hari ini.</li>
+                    <li>Jika token otomatis maka guru yang sedang login harus merefresh token untuk melihat token terbaru</li>
+                </ul>
+            </div>
+
+            <!-- Grid Pengaturan & Display Token -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                
+                <!-- Kotak Pengaturan Kiri -->
+                <div class="border border-slate-200 p-5 rounded-lg flex flex-col justify-between">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-800 mb-2">Otomatis ?</label>
+                            <select id="settingTokenOtomatis" class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 text-sm">
+                                <option value="YA">YA</option>
+                                <option value="TIDAK">TIDAK</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-800 mb-2">Interval (menit)</label>
+                            <input type="number" id="settingTokenInterval" value="60" class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="flex justify-end mt-auto">
+                        <button onclick="simpanPengaturanToken()" class="bg-[#17a2b8] hover:bg-[#138496] text-white px-6 py-2 rounded font-bold text-sm shadow transition">
+                            Simpan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kotak Tampilan Token Kanan -->
+                <div class="border border-slate-200 p-8 rounded-lg flex flex-col items-center justify-center text-center min-h-[150px]">
+                    <span class="text-slate-700 text-sm font-semibold uppercase tracking-wider mb-3">TOKEN SAAT INI</span>
+                    <h1 id="displayTokenAktif" class="text-5xl font-sans text-slate-800 tracking-widest">------</h1>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
     <!-- SEMUA MODALS TETAP DI SINI... -->
 	<!-- MODAL TAHUN PELAJARAN -->
 <div id="modalTahunPelajaran" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
