@@ -316,11 +316,24 @@ window.renderTahunPelajaran = () => {
     });
 };
 
-window.openModalTahun = () => {
-    document.getElementById('tahunId').value = '';
-    document.getElementById('inputNamaTahun').value = '';
-    document.getElementById('inputNamaTahun').placeholder = 'Contoh: 2026/2027';
-    document.getElementById('modalTahunPelajaran').classList.remove('hidden');
+window.openModalTahun = (id = '', nama = '', status = 'Aktif') => {
+    // 1. Ambil elemen
+    const elId = document.getElementById('tahunId');
+    const elNama = document.getElementById('inputNamaTahun');
+    const elStatus = document.getElementById('inputStatusTahun');
+    const modal = document.getElementById('modalTahunPelajaran');
+
+    // 2. 🛡️ PENGAMAN: Hanya atur value jika elemennya benar-benar ada di HTML
+    if (elId) elId.value = id;
+    if (elNama) elNama.value = nama;
+    if (elStatus) elStatus.value = status;
+
+    // 3. Tampilkan modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalTahunPelajaran' tidak ditemukan di HTML.");
+    }
 };
 
 window.simpanTahunPelajaran = async () => {
