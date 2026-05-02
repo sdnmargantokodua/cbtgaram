@@ -2764,11 +2764,10 @@ window.renderAnalisaSoal = async () => {
         return;
     }
 
-    // Tampilkan indikator proses perhitungan
     container.innerHTML = '<div class="p-12 text-center"><p class="text-blue-600 font-bold animate-pulse">Sedang menghitung statistik butir soal...</p></div>';
 
     try {
-        // Ambil data jawaban siswa dari collection exam_results
+        // 1. Ambil data hasil ujian
         const snapResults = await getDocs(collection(db, 'exam_results'));
         const results = [];
         snapResults.forEach(d => {
@@ -2777,17 +2776,55 @@ window.renderAnalisaSoal = async () => {
         });
 
         if (results.length === 0) {
-            container.innerHTML = '<div class="p-8 text-center text-red-500 italic bg-slate-50 rounded border border-slate-100">Belum ada data pengerjaan untuk jadwal ini. Analisa tidak dapat dilakukan.</div>';
+            container.innerHTML = '<div class="p-8 text-center text-red-500 italic bg-slate-50 rounded border border-slate-100">Belum ada data pengerjaan untuk jadwal ini.</div>';
             return;
         }
 
-        // Struktur Tabel Analisa (Template sesuai adminUI.js sebelumnya)
+        // 2. Identifikasi Jumlah Soal (berdasarkan data jawaban di salah satu siswa)
+        const sampleAnswers = results[0].detailJawaban || {};
+        const totalSoal = Object.keys(sampleAnswers).length;
+
+        // 3. Kelompokkan Siswa untuk Daya Pembeda (27% Atas & 27% Bawah)
+        results.sort((a, b) => b.skor - a.skor);
+        const nKlp = Math.max(1, Math.round(results.length * 0.27));
+        const klpAtas = results.slice(0, nKlp);
+        const klpBawah = results.slice(-nKlp);
+
+        let tableRows = '';
+
+        // 4. Hitung Statistik per Butir Soal
+        for (let i = 1; i <= totalSoal; i++) {
+            const indexSoal = i.toString();
+            
+            // Hitung Benar Seluruh, Atas, dan Bawah
+            const benarTotal = results.filter(r => r.detailJawaban[indexSoal]?.isCorrect).length;
+            const benarAtas = klpAtas.filter(r => r.detailJawaban[indexSoal]?.isCorrect).length;
+            const benarBawah = klpBawah.filter(r => r.detailJawaban[indexSoal]?.isCorrect).length;
+
+            // Rumus Tingkat Kesukaran (P)
+            const tkValue = benarTotal / results.length;
+            let tkLabel = tkValue > 0.7 ? "Mudah" : tkValue > 0.3 ? "Sedang" : "Sukar";
+
+            // Rumus Daya Pembeda (D)
+            const dpValue = (benarAtas / nKlp) - (benarBawah / nKlp);
+            let dpLabel = dpValue >= 0.4 ? "Sangat Baik" : dpValue >= 0.3 ? "Baik" : dpValue >= 0.2 ? "Cukup" : "Buruk";
+            
+            let status = dpValue >= 0.2 ? 
+                '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold">DITERIMA</span>' : 
+                '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold">REVISI</span>';
+
+            tableRows += `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3 text-center border-r font-bold">${i}</td>
+                    <td class="p-3 text-center border-r">${tkValue.toFixed(2)} (${tkLabel})</td>
+                    <td class="p-3 text-center border-r">${dpValue.toFixed(2)} (${dpLabel})</td>
+                    <td class="p-3 text-center">${status}</td>
+                </tr>`;
+        }
+
         container.innerHTML = `
             <div class="flex justify-between items-center mb-4">
                 <h4 class="font-bold text-slate-800">Analisa Butir Soal (${results.length} Peserta)</h4>
-                <button onclick="alert('Fitur Ekspor Analisa sedang dipersiapkan.')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-bold shadow transition flex items-center gap-1">
-                    📄 Ekspor Excel
-                </button>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse border border-slate-200">
@@ -2799,30 +2836,13 @@ window.renderAnalisaSoal = async () => {
                             <th class="p-3 text-center">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBodyAnalisa" class="divide-y divide-slate-100 text-sm bg-white">
-                        <!-- Data simulasi analisa -->
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="p-3 text-center border-r font-bold">1</td>
-                            <td class="p-3 text-center border-r">0.75 (Mudah)</td>
-                            <td class="p-3 text-center border-r">0.45 (Sangat Baik)</td>
-                            <td class="p-3 text-center"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Diterima</span></td>
-                        </tr>
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="p-3 text-center border-r font-bold">2</td>
-                            <td class="p-3 text-center border-r">0.20 (Sukar)</td>
-                            <td class="p-3 text-center border-r">0.15 (Buruk)</td>
-                            <td class="p-3 text-center"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Direvisi</span></td>
-                        </tr>
-                        <tr>
-                            <td colspan="4" class="p-4 text-center text-slate-400 italic bg-slate-50">Statistik lengkap setiap butir soal otomatis dihitung berdasarkan perbandingan kelompok atas dan kelompok bawah hasil ujian.</td>
-                        </tr>
-                    </tbody>
+                    <tbody class="divide-y divide-slate-100 text-sm bg-white">${tableRows}</tbody>
                 </table>
-            </div>
-        `;
+            </div>`;
+            
     } catch (e) {
-        console.error("Gagal merender analisa:", e);
-        container.innerHTML = '<div class="p-8 text-center text-red-600">Gagal memuat data analisa dari server.</div>';
+        console.error(e);
+        container.innerHTML = '<div class="p-8 text-center text-red-600">Gagal menghitung analisa.</div>';
     }
 };
 
@@ -3106,6 +3126,99 @@ window.cetakBeritaAcara = () => {
         </body></html>
     `;
     printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+};
+
+window.cetakPesertaUjian = () => {
+    if (state.masterSiswa.length === 0) return alert("Data siswa belum dimuat!");
+
+    const printWindow = window.open('', '_blank');
+    let rows = '';
+    
+    // Urutkan berdasarkan Ruang, lalu Sesi, lalu Nama
+    const sortedSiswa = [...state.masterSiswa].sort((a, b) => {
+        if (a.ruang !== b.ruang) return (a.ruang || '').localeCompare(b.ruang || '');
+        if (a.sesi !== b.sesi) return (a.sesi || '').localeCompare(b.sesi || '');
+        return (a.nama || '').localeCompare(b.nama || '');
+    });
+
+    sortedSiswa.forEach((s, i) => {
+        rows += `
+            <tr>
+                <td style="border:1px solid black; padding:5px; text-align:center;">${i + 1}</td>
+                <td style="border:1px solid black; padding:5px; text-align:center;">${s.nis || s.nisn}</td>
+                <td style="border:1px solid black; padding:5px;">${s.nama}</td>
+                <td style="border:1px solid black; padding:5px; text-align:center;">${s.kelas}</td>
+                <td style="border:1px solid black; padding:5px; text-align:center;">${s.ruang || '-'}</td>
+                <td style="border:1px solid black; padding:5px; text-align:center;">${s.sesi || '-'}</td>
+            </tr>`;
+    });
+
+    printWindow.document.write(`
+        <html><head><title>Daftar Peserta Ujian</title><style>body{font-family:Arial; padding:20px;} table{width:100%; border-collapse:collapse; font-size:10pt;}</style></head>
+        <body>
+            ${generateKopHTML()}
+            <h3 style="text-align:center;">DAFTAR PESERTA UJIAN</h3>
+            <table>
+                <thead>
+                    <tr style="background:#eee;">
+                        <th style="border:1px solid black; padding:5px;">No</th>
+                        <th style="border:1px solid black; padding:5px;">No Peserta</th>
+                        <th style="border:1px solid black; padding:5px;">Nama Siswa</th>
+                        <th style="border:1px solid black; padding:5px;">Kelas</th>
+                        <th style="border:1px solid black; padding:5px;">Ruang</th>
+                        <th style="border:1px solid black; padding:5px;">Sesi</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </body></html>`);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 500);
+};
+
+window.cetakJadwalPengawas = async () => {
+    // Ambil data penempatan pengawas dari settings
+    const snap = await getDoc(doc(db, 'settings', 'pengawas_ujian'));
+    if (!snap.exists()) return alert("Data alokasi pengawas belum diatur!");
+    
+    const pengawasData = snap.data();
+    const printWindow = window.open('', '_blank');
+    let contentHtml = '';
+
+    // Loop per Jenis Ujian (PH, PTS, PAS, dll)
+    for (const jenisUjian in pengawasData) {
+        let rows = '';
+        const alokasi = pengawasData[jenisUjian];
+        
+        for (const key in alokasi) {
+            const [ruang, sesi] = key.split('_');
+            rows += `
+                <tr>
+                    <td style="border:1px solid black; padding:8px;">${ruang}</td>
+                    <td style="border:1px solid black; padding:8px; text-align:center;">${sesi}</td>
+                    <td style="border:1px solid black; padding:8px; font-weight:bold;">${alokasi[key]}</td>
+                </tr>`;
+        }
+
+        contentHtml += `
+            <div style="margin-bottom:40px;">
+                <h4 style="border-bottom:1px solid #ccc; padding-bottom:5px;">JENIS PENILAIAN: ${jenisUjian.toUpperCase()}</h4>
+                <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+                    <thead><tr style="background:#f0f0f0;"><th style="border:1px solid black; padding:8px;">Ruang</th><th style="border:1px solid black; padding:8px;">Sesi</th><th style="border:1px solid black; padding:8px;">Nama Pengawas</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+    }
+
+    printWindow.document.write(`
+        <html><head><title>Jadwal Pengawas</title><style>body{font-family:Arial; padding:20px;}</style></head>
+        <body>
+            ${generateKopHTML()}
+            <h3 style="text-align:center;">JADWAL PENGAWAS UJIAN</h3>
+            ${contentHtml}
+        </body></html>`);
     printWindow.document.close();
     setTimeout(() => printWindow.print(), 500);
 };
