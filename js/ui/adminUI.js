@@ -1160,15 +1160,59 @@ window.renderGridGuru = () => {
     });
 };
 
-window.openModalGuru = () => {
-    document.getElementById('guruId').value = '';
-    document.getElementById('guruNip').value = '';
-    document.getElementById('guruKode').value = '';
-    document.getElementById('guruNama').value = '';
-    document.getElementById('guruUsername').value = '';
-    document.getElementById('guruPassword').value = '';
-    document.getElementById('guruStatus').checked = true;
-    document.getElementById('modalGuru').classList.remove('hidden');
+window.openModalGuru = (id = '', nip = '', kode = '', nama = '', username = '', password = '', status = true) => {
+    // 1. Sesuaikan ID dengan yang ada di admin.html
+    const elId = document.getElementById('guruId');
+    const elNip = document.getElementById('guruNip');
+    const elKode = document.getElementById('guruKode');
+    const elNama = document.getElementById('guruNama');
+    const elUsername = document.getElementById('guruUsername');
+    const elPassword = document.getElementById('guruPassword');
+    const elStatus = document.getElementById('guruStatus');
+    const modal = document.getElementById('modalGuru');
+
+    // 2. 🛡️ PENGAMAN
+    if (elId) elId.value = id;
+    if (elNip) elNip.value = nip;
+    if (elKode) elKode.value = kode;
+    if (elNama) elNama.value = nama;
+    if (elUsername) elUsername.value = username;
+    if (elPassword) elPassword.value = password;
+    if (elStatus) elStatus.checked = status;
+
+    // 3. Buka Modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalGuru' tidak ditemukan di HTML.");
+    }
+};
+
+window.editGuru = (id) => {
+    const guru = state.masterGuru ? state.masterGuru.find(g => g.id === id) : null;
+    if (!guru) {
+        console.error("Data guru tidak ditemukan di memori!");
+        return;
+    }
+
+    const elId = document.getElementById('guruId');
+    const elNip = document.getElementById('guruNip');
+    const elKode = document.getElementById('guruKode');
+    const elNama = document.getElementById('guruNama');
+    const elUsername = document.getElementById('guruUsername');
+    const elPassword = document.getElementById('guruPassword');
+    const elStatus = document.getElementById('guruStatus');
+    const modal = document.getElementById('modalGuru');
+
+    if (elId) elId.value = guru.id;
+    if (elNip) elNip.value = guru.nip || '';
+    if (elKode) elKode.value = guru.kode || '';
+    if (elNama) elNama.value = guru.nama || '';
+    if (elUsername) elUsername.value = guru.username || '';
+    if (elPassword) elPassword.value = guru.password || '';
+    if (elStatus) elStatus.checked = guru.aktif !== false;
+
+    if (modal) modal.classList.remove('hidden');
 };
 
 window.simpanGuru = async () => {
@@ -1212,19 +1256,6 @@ window.simpanGuru = async () => {
     }
 };
 
-window.editGuru = (id) => {
-    const g = state.masterGuru.find(x => x.id === id);
-    if(!g) return;
-    
-    document.getElementById('guruId').value = g.id;
-    document.getElementById('guruNip').value = g.nip || '';
-    document.getElementById('guruKode').value = g.kode || '';
-    document.getElementById('guruNama').value = g.nama || '';
-    document.getElementById('guruUsername').value = g.username || '';
-    document.getElementById('guruPassword').value = g.password || '';
-    document.getElementById('guruStatus').checked = g.isActive !== false;
-    document.getElementById('modalGuru').classList.remove('hidden');
-};
 
 window.hapusGuru = async (id) => {
     if(confirm("Yakin ingin menghapus data guru ini? Data yang terhapus tidak dapat dikembalikan.")) {
