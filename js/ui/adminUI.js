@@ -1216,43 +1216,76 @@ window.editGuru = (id) => {
 };
 
 window.simpanGuru = async () => {
-    const id = document.getElementById('guruId').value;
-    const nip = document.getElementById('guruNip').value.trim();
-    const nama = document.getElementById('guruNama').value.trim();
-    
-    if(!nip || !nama) return alert("NIP/NUPTK dan Nama Lengkap wajib diisi!");
-    
-    // Terapkan indikator tombol loading
-    const btn = document.querySelector("#modalGuru button.bg-blue-600");
-    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
-
-    const data = { 
-        nip, 
-        kode: document.getElementById('guruKode').value.trim().toUpperCase(), 
-        nama, 
-        // Jika username/password tidak diisi, gunakan NIP sebagai bawaan
-        username: document.getElementById('guruUsername').value.trim().toLowerCase() || nip, 
-        password: document.getElementById('guruPassword').value.trim() || nip, 
-        isActive: document.getElementById('guruStatus').checked 
-    };
-
     try {
-        if(id) {
-            await updateDoc(doc(db, 'master_guru', id), data);
-        } else {
-            // Default jabatan untuk guru baru
-            data.jabatan = 'GURU KELAS';
-            await addDoc(collection(db, 'master_guru'), data);
+        // 1. Ambil nilai dengan pengaman (Safe Navigation ?.) sesuai ID di HTML
+        const idGuru = document.getElementById('guruId')?.value || '';
+        const nip = document.getElementById('guruNip')?.value.trim();
+        const kode = document.getElementById('guruKode')?.value.trim();
+        const nama = document.getElementById('guruNama')?.value.trim();
+        const username = document.getElementById('guruUsername')?.value.trim();
+        const password = document.getElementById('guruPassword')?.value;
+        const aktif = document.getElementById('guruStatus')?.checked;
+
+        // 2. Validasi Data Kosong (Minimal Nama wajib diisi)
+        if (!nama) {
+            alert('Gagal: Nama Lengkap Guru wajib diisi!');
+            return;
         }
+
+        // 3. Efek loading di tombol agar terlihat profesional
+        const btnSimpan = document.querySelector('#modalGuru button[onclick="simpanGuru()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳ Menyimpan...';
+            btnSimpan.disabled = true;
+        }
+
+        // 4. Format data yang akan dilempar ke Firebase
+        const payload = {
+            nip: nip || '',
+            kode: (kode || '').toUpperCase(), // Paksa huruf besar
+            nama: nama.toUpperCase(),         // Paksa huruf besar
+            username: (username || '').toLowerCase(), // Username huruf kecil
+            password: password || '',
+            aktif: aktif !== false // Default nilainya true jika kosong
+        };
+
+        // 5. Eksekusi ke Firebase (Update jika punya ID, Add jika ID kosong)
+        if (idGuru) {
+            await updateDoc(doc(db, 'master_guru', idGuru), payload);
+        } else {
+            await addDoc(collection(db, 'master_guru'), payload);
+        }
+
+        // 6. Kembalikan kondisi tombol
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        // 7. Tutup pop-up dan segarkan tabel otomatis
+        window.closeModal('modalGuru');
+        if (typeof window.loadGuru === 'function') {
+            window.loadGuru();
+        }
+
+        // 8. Bersihkan form untuk pengisian berikutnya
+        ['guruId', 'guruNip', 'guruKode', 'guruNama', 'guruUsername', 'guruPassword'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        if (document.getElementById('guruStatus')) document.getElementById('guruStatus').checked = true;
+
+    } catch (error) {
+        console.error("Gagal menyimpan Guru:", error);
+        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
         
-        closeModal('modalGuru');
-        alert("Data Guru berhasil disimpan!");
-        loadGuru(); // Muat ulang grid
-    } catch(e) {
-        alert("Gagal menyimpan data guru.");
-        console.error(e);
-    } finally {
-        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+        // Pulihkan tombol jika terjadi error
+        const btnSimpan = document.querySelector('#modalGuru button[onclick="simpanGuru()"]');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan';
+            btnSimpan.disabled = false;
+        }
     }
 };
 
