@@ -1654,33 +1654,51 @@ window.loadAturRuangSesi = async () => {
 };
 
 window.renderTableAturRuangSesi = () => {
-    const kelasVal = document.getElementById('filterKelasAtur').value;
+    // 1. Ambil referensi elemen
+    const elFilter = document.getElementById('filterKelasAtur');
     const tb = document.getElementById('tableAturRuangSesiBody');
     const lbl = document.getElementById('labelBulkAction');
     
-    tb.innerHTML = '';
-    lbl.innerText = `Gabungkan siswa ${kelasVal ? kelasVal : ''} ke ruang dan sesi:`;
+    // 🛡️ PENGAMAN UTAMA: Jangan lanjutkan jika tabel atau filter tidak ada
+    if (!tb || !elFilter) {
+        console.warn("Peringatan: Elemen 'tableAturRuangSesiBody' atau 'filterKelasAtur' tidak ditemukan.");
+        return;
+    }
+
+    const kelasVal = elFilter.value;
     
+    // 2. Bersihkan tabel
+    tb.innerHTML = '';
+
+    // 🛡️ PENGAMAN LABEL: Hanya isi teks jika elemen labelBulkAction ditemukan
+    if (lbl) {
+        lbl.innerText = `Gabungkan siswa ${kelasVal ? kelasVal : ''} ke ruang dan sesi:`;
+    }
+    
+    // 3. Validasi pilihan kelas
     if (!kelasVal) {
         tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Silakan pilih kelas terlebih dahulu.</td></tr>';
         return;
     }
 
-    const filteredSiswa = state.masterSiswa.filter(s => s.kelas === kelasVal).sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
+    // 4. Filter data siswa berdasarkan kelas
+    const filteredSiswa = (state.masterSiswa || [])
+        .filter(s => s.kelas === kelasVal)
+        .sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
     
     if (filteredSiswa.length === 0) {
         tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa yang terdaftar di kelas ini.</td></tr>';
         return;
     }
 
-    // Siapkan element option HTML untuk Ruang dan Sesi
+    // 5. Siapkan elemen option HTML untuk Ruang dan Sesi
     let optRuang = '<option value="">Pilih ruang</option>';
-    state.masterRuangUjian.forEach(r => { optRuang += `<option value="${r.nama}">${r.nama}</option>`; });
+    (state.masterRuangUjian || []).forEach(r => { optRuang += `<option value="${r.nama}">${r.nama}</option>`; });
     
     let optSesi = '<option value="">Pilih sesi</option>';
-    state.masterSesiUjian.forEach(s => { optSesi += `<option value="${s.nama}">${s.nama}</option>`; });
+    (state.masterSesiUjian || []).forEach(s => { optSesi += `<option value="${s.nama}">${s.nama}</option>`; });
 
-    // Render baris tabel untuk setiap siswa
+    // 6. Render baris tabel
     filteredSiswa.forEach((s, i) => {
         tb.innerHTML += `
             <tr class="hover:bg-blue-50 transition border-b border-slate-100" data-id="${s.id}">
@@ -1688,23 +1706,29 @@ window.renderTableAturRuangSesi = () => {
                 <td class="p-3 border-r font-bold uppercase text-slate-800">${s.nama}</td>
                 <td class="p-3 border-r text-center font-bold text-slate-600">${s.kelas}</td>
                 <td class="p-2 border-r bg-slate-50">
-                    <select class="w-full p-2 border border-slate-300 rounded outline-none select-ruang text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">${optRuang}</select>
+                    <select class="w-full p-2 border border-slate-300 rounded outline-none select-ruang text-sm bg-white focus:border-blue-500">${optRuang}</select>
                 </td>
                 <td class="p-2 border-r bg-slate-50">
-                    <select class="w-full p-2 border border-slate-300 rounded outline-none select-sesi text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">${optSesi}</select>
+                    <select class="w-full p-2 border border-slate-300 rounded outline-none select-sesi text-sm bg-white focus:border-blue-500">${optSesi}</select>
                 </td>
             </tr>
         `;
     });
 
-    // Timeout kecil untuk memastikan elemen select sudah di-render ke DOM, lalu atur value (selected) sesuai data siswa
+    // 7. Atur nilai terpilih (selected) sesuai data di database
     setTimeout(() => {
         tb.querySelectorAll('tr[data-id]').forEach(row => {
             const id = row.getAttribute('data-id');
             const s = filteredSiswa.find(x => x.id === id);
             if(s) {
-                if(s.ruang) row.querySelector('.select-ruang').value = s.ruang;
-                if(s.sesi) row.querySelector('.select-sesi').value = s.sesi;
+                if(s.ruang) {
+                    const selRuang = row.querySelector('.select-ruang');
+                    if(selRuang) selRuang.value = s.ruang;
+                }
+                if(s.sesi) {
+                    const selSesi = row.querySelector('.select-sesi');
+                    if(selSesi) selSesi.value = s.sesi;
+                }
             }
         });
     }, 50);
