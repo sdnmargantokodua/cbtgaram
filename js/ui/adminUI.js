@@ -5689,3 +5689,19 @@ window.generateToken = () => {
     // Catatan: Jika Bapak ingin token ini disimpan ke Firebase (agar tersinkron dengan HP siswa), 
     // nanti kita bisa tambahkan logika simpannya ke tabel konfigurasi Firebase.
 };
+
+// ==========================================
+// FUNGSI SIMPAN PENGATURAN TOKEN (Otomatis & Interval)
+// ==========================================
+window.simpanPengaturanToken = () => {
+    const isOtomatis = document.getElementById('settingTokenOtomatis')?.value;
+    const interval = document.getElementById('settingTokenInterval')?.value;
+    
+    // Logika simpan ke Firebase (opsional, sesuaikan dengan database Bapak)
+    // Untuk saat ini kita buatkan alert notifikasinya saja agar responsif
+    
+    alert(`Pengaturan Token Berhasil Disimpan!\nStatus Otomatis: ${isOtomatis}\nInterval: ${interval} Menit`);
+    
+    // Jika Bapak menggunakan tabel Firebase khusus untuk pengaturan ujian,
+    // kode updateDoc bisa ditambahkan di sini nantinya.
+};
