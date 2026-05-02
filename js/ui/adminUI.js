@@ -530,13 +530,26 @@ window.loadKelas = async () => {
 
 window.renderTableKelas = () => {
     const tb = document.getElementById('tableKelasBody');
+
+    // ==========================================
+    // 🛡️ PENGAMAN (ASURANSI KODE)
+    // ==========================================
+    if (!tb) {
+        console.warn("Peringatan: Elemen 'tableKelasBody' tidak ditemukan. Pastikan ID ini ada di admin.html pada bagian Section Kelas.");
+        return; 
+    }
+
     tb.innerHTML = '';
+
     if (!state.masterKelas || state.masterKelas.length === 0) {
         tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada data Kelas / Rombel.</td></tr>';
         return;
     }
+
     state.masterKelas.forEach((k, i) => {
+        // Menghitung jumlah siswa yang memiliki nama kelas yang sama
         const jml = state.masterSiswa ? state.masterSiswa.filter(s => s.kelas === k.nama).length : 0;
+        
         tb.innerHTML += `
             <tr class="border-b transition hover:bg-slate-50 border-slate-100 border-teal-100">
                 <td class="p-3 text-center border-r border-teal-100 text-slate-500 font-bold">${i+1}</td>
