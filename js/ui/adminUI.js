@@ -3675,3 +3675,60 @@ setTimeout(() => {
         btnMenuBersihkan.addEventListener('click', () => { window.loadBersihkan(); });
     }
 }, 1000);
+
+window.hapusSeluruhDatabase = async () => {
+    // 1. Verifikasi Keamanan Berlapis
+    const confirm1 = confirm("PERINGATAN TINGKAT TINGGI!\n\nAnda akan menghapus SELURUH DATA aplikasi CBT GARAM.\nData Siswa, Guru, Bank Soal, Jadwal, dan Nilai akan hilang selamanya.\n\nApakah Anda benar-benar yakin?");
+    if (!confirm1) return;
+
+    const confirm2 = confirm("Peringatan Terakhir!\n\nPastikan Anda sudah melakukan BACKUP DATA terlebih dahulu.\n\nKlik OK jika Anda sudah siap melakukan Reset Total.");
+    if (!confirm2) return;
+
+    // Tambahkan verifikasi teks untuk mencegah kesalahan klik
+    const verifyText = prompt("Ketik kata 'HAPUS' untuk mengonfirmasi penghapusan massal ini:");
+    if (verifyText !== "HAPUS") {
+        alert("Konfirmasi gagal. Data batal dihapus.");
+        return;
+    }
+
+    // 2. Daftar Koleksi yang akan Dihapus (KECUALI master_admin)
+    const collectionsToWipe = [
+        'master_siswa', 'master_guru', 'master_kelas', 'master_subjects', 
+        'master_jurusan', 'master_ekskul', 'master_jenis_ujian', 
+        'master_sesi_ujian', 'master_ruang_ujian', 'master_bank_soal', 
+        'master_jadwal_ujian', 'exam_results', 'backup_history', 'settings'
+    ];
+
+    alert("Proses penghapusan dimulai. Mohon tunggu sampai selesai...");
+
+    try {
+        for (const colName of collectionsToWipe) {
+            const snap = await getDocs(collection(db, colName));
+            const promises = [];
+
+            snap.forEach(docItem => {
+                // Hapus dokumen utama
+                promises.push(deleteDoc(doc(db, colName, docItem.id)));
+
+                // Logika khusus untuk sub-koleksi bank soal
+                if (colName === 'master_bank_soal') {
+                    getDocs(collection(db, `master_bank_soal/${docItem.id}/butir_soal`)).then(subSnap => {
+                        subSnap.forEach(subDoc => {
+                            deleteDoc(doc(db, `master_bank_soal/${docItem.id}/butir_soal`, subDoc.id));
+                        });
+                    });
+                }
+            });
+
+            await Promise.all(promises);
+            console.log(`Koleksi [${colName}] berhasil dibersihkan.`);
+        }
+
+        alert("DATABASE BERHASIL DIRESET TOTAL!\n\nKecuali akses login Admin. Sistem akan dimuat ulang untuk menyegarkan tampilan.");
+        location.reload();
+
+    } catch (error) {
+        console.error("Gagal melakukan reset database:", error);
+        alert("Terjadi kesalahan sistem saat menghapus data. Periksa koneksi internet Anda.");
+    }
+};
