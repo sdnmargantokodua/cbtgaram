@@ -371,36 +371,64 @@ window.hapusTahun = async (nama) => {
 // ==========================================
 // MATA PELAJARAN
 // ==========================================
+// 1. FUNGSI UNTUK MENGAMBIL DATA DARI FIREBASE
 window.loadMataPelajaran = async () => {
+    const tb = document.getElementById('tableMapelBody');
+    if (!tb) return;
+
+    tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>';
+    
     try {
-        const snap = await getDocs(collection(db, 'master_subjects'));
-        state.masterSubjects = [];
-        snap.forEach(d => state.masterSubjects.push({id: d.id, ...d.data()}));
-        state.masterSubjects.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        // Tarik data dari koleksi 'master_mapel'
+        const snap = await getDocs(collection(db, 'master_mapel'));
+        
+        // Simpan ke dalam memori state
+        state.masterMapel = [];
+        snap.forEach(d => state.masterMapel.push({id: d.id, ...d.data()}));
+        
+        // Urutkan berdasarkan nama
+        state.masterMapel.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
+        
         window.renderTableMapel();
-    } catch(e) { console.error(e); }
+    } catch(e) {
+        console.error("Error load mapel:", e);
+        tb.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 font-bold">Gagal memuat data: ${e.message}</td></tr>`;
+    }
 };
 
+// 2. FUNGSI UNTUK MENAMPILKAN KE TABEL HTML
 window.renderTableMapel = () => {
     const tb = document.getElementById('tableMapelBody');
+    if (!tb) return;
+    
     tb.innerHTML = '';
-    if (state.masterSubjects.length === 0) {
-        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data.</td></tr>';
+    
+    // Jika memori kosong atau belum ada data di Firebase
+    if (!state.masterMapel || state.masterMapel.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data Mata Pelajaran.</td></tr>';
         return;
     }
-    state.masterSubjects.forEach((m) => {
-        const badge = m.isActive !== false ? '<span class="bg-green-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Aktif</span>' : '<span class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold">Nonaktif</span>';
+
+    state.masterMapel.forEach((m, i) => {
+        // Tentukan label status aktif/nonaktif
+        const isAktif = m.aktif !== false;
+        const statusBadge = isAktif 
+            ? '<span class="px-2 py-1 rounded text-[10px] font-bold bg-green-100 text-green-700">AKTIF</span>' 
+            : '<span class="px-2 py-1 rounded text-[10px] font-bold bg-red-100 text-red-700">NONAKTIF</span>';
+
         tb.innerHTML += `
-            <tr class="border-b hover:bg-slate-50 transition border-slate-100">
-                <td class="p-3 text-center font-mono font-bold text-slate-600">${m.kode || '-'}</td>
-                <td class="p-3 font-bold uppercase text-slate-800">${m.nama || '-'}</td>
-                <td class="p-3 text-center text-sm text-slate-600">${m.kelompok || '-'}</td>
-                <td class="p-3 text-center">${badge}</td>
-                <td class="p-3 text-center space-x-2">
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r font-mono font-bold text-slate-600">${m.kode || '-'}</td>
+                <td class="p-3 border-r font-bold uppercase text-slate-800">${m.nama || '-'}</td>
+                <td class="p-3 text-center border-r text-slate-600 text-sm">${m.kelompok || '-'}</td>
+                <td class="p-3 text-center border-r">${statusBadge}</td>
+                <td class="p-3 text-center space-x-1">
+                    <!-- Mempassing m.id ke fungsi editMapel yang kita perbaiki sebelumnya -->
                     <button onclick="editMapel('${m.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
                     <button onclick="hapusMapel('${m.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
                 </td>
-            </tr>`;
+            </tr>
+        `;
     });
 };
 
