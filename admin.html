@@ -752,6 +752,66 @@
     </div>
 </div>
 
+<!-- MODAL DATA MASTER SISWA -->
+<div id="modalSiswa" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+            <h3 class="font-bold text-lg text-slate-800">Form Data Master Siswa</h3>
+            <button onclick="closeModal('modalSiswa')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+        </div>
+        
+        <!-- ID PENTING untuk JavaScript -->
+        <input type="hidden" id="siswaId">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">NISN</label>
+                <input type="text" id="siswaNisn" class="w-full p-2 border border-slate-300 rounded-lg outline-none font-mono tracking-wider focus:border-blue-500" placeholder="Nomor Induk Siswa Nasional">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">NIS</label>
+                <input type="text" id="siswaNis" class="w-full p-2 border border-slate-300 rounded-lg outline-none font-mono tracking-wider focus:border-blue-500" placeholder="Nomor Induk Sekolah">
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Siswa</label>
+            <input type="text" id="siswaNama" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: AHMAD MAULANA">
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Kelamin</label>
+                <select id="siswaJk" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
+                    <option value="L">Laki-laki (L)</option>
+                    <option value="P">Perempuan (P)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Kelas</label>
+                <!-- Opsi kelas ini bisa dibuat dinamis nanti, sementara manual dulu -->
+                <input type="text" id="siswaKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: VI-A">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Username Login</label>
+                <input type="text" id="siswaUsername" class="w-full p-2 border border-slate-300 rounded-lg outline-none lowercase focus:border-blue-500" placeholder="Contoh: siswa01">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Password Login</label>
+                <input type="text" id="siswaPassword" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="••••••••">
+            </div>
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+            <button onclick="closeModal('modalSiswa')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+            <button onclick="simpanSiswa()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+        </div>
+    </div>
+</div>
+
     <script type="module" src="./js/ui/adminUI.js"></script>
     <script>
         // Update live clock
