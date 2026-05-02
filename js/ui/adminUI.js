@@ -547,11 +547,24 @@ window.renderTableJurusan = () => {
     });
 };
 
-window.openModalJurusan = () => {
-    document.getElementById('jurusanId').value = '';
-    document.getElementById('inputKodeJurusan').value = '';
-    document.getElementById('inputNamaJurusan').value = '';
-    document.getElementById('modalJurusan').classList.remove('hidden');
+window.openModalJurusan = (id = '', kode = '', nama = '') => {
+    // 1. Sesuaikan ID dengan yang ada di admin.html
+    const elId = document.getElementById('jurusanId');
+    const elKode = document.getElementById('inputKodeJurusan');
+    const elNama = document.getElementById('inputNamaJurusan');
+    const modal = document.getElementById('modalJurusan');
+
+    // 2. 🛡️ PENGAMAN: Hanya isi nilai jika elemennya benar-benar ada di layar
+    if (elId) elId.value = id;
+    if (elKode) elKode.value = kode;
+    if (elNama) elNama.value = nama;
+
+    // 3. Tampilkan modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal dengan ID 'modalJurusan' tidak ditemukan di HTML.");
+    }
 };
 
 window.simpanJurusan = async () => {
@@ -570,12 +583,29 @@ window.simpanJurusan = async () => {
 };
 
 window.editJurusan = (id) => {
-    const j = state.masterJurusan.find(x => x.id === id);
-    if(!j) return;
-    document.getElementById('jurusanId').value = j.id;
-    document.getElementById('inputKodeJurusan').value = j.kode;
-    document.getElementById('inputNamaJurusan').value = j.nama;
-    document.getElementById('modalJurusan').classList.remove('hidden');
+    // 1. Cari data dari memori (state)
+    const jurusan = state.masterJurusan ? state.masterJurusan.find(j => j.id === id) : null;
+    
+    if (!jurusan) {
+        console.error("Data jurusan tidak ditemukan di memori!");
+        return;
+    }
+
+    // 2. Ambil elemen form modal
+    const elId = document.getElementById('jurusanId');
+    const elKode = document.getElementById('inputKodeJurusan');
+    const elNama = document.getElementById('inputNamaJurusan');
+    const modal = document.getElementById('modalJurusan');
+
+    // 3. 🛡️ PENGAMAN: Lempar data ke form hanya jika elemennya ada
+    if (elId) elId.value = jurusan.id;
+    if (elKode) elKode.value = jurusan.kode || '';
+    if (elNama) elNama.value = jurusan.nama || '';
+
+    // 4. Buka modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 };
 
 window.hapusJurusan = async (id) => {
