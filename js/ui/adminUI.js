@@ -722,12 +722,26 @@ window.renderTableKelas = () => {
     });
 };
 
-window.openModalKelas = () => {
-    document.getElementById('kelasId').value = '';
-    document.getElementById('inputNamaKelas').value = '';
-    document.getElementById('inputKodeKelas').value = '';
-    document.getElementById('inputWaliKelas').value = '';
-    document.getElementById('modalKelas').classList.remove('hidden');
+window.openModalKelas = (id = '', nama = '', kode = '', wali = '') => {
+    // 1. Ambil elemen sesuai dengan ID yang ada di admin.html
+    const elId = document.getElementById('kelasId');
+    const elNama = document.getElementById('inputNamaKelas');
+    const elKode = document.getElementById('inputKodeKelas');
+    const elWali = document.getElementById('inputWaliKelas');
+    const modal = document.getElementById('modalKelas');
+
+    // 2. 🛡️ PENGAMAN: Hanya isi nilai jika elemen formnya ditemukan
+    if (elId) elId.value = id;
+    if (elNama) elNama.value = nama;
+    if (elKode) elKode.value = kode;
+    if (elWali) elWali.value = wali;
+
+    // 3. Tampilkan modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalKelas' tidak ditemukan di HTML.");
+    }
 };
 
 window.simpanKelas = async () => {
@@ -763,13 +777,31 @@ window.simpanKelas = async () => {
 };
 
 window.editKelas = (id) => {
-    const k = state.masterKelas.find(x => x.id === id);
-    if(!k) return;
-    document.getElementById('kelasId').value = k.id;
-    document.getElementById('inputNamaKelas').value = k.nama;
-    document.getElementById('inputKodeKelas').value = k.kode;
-    document.getElementById('inputWaliKelas').value = k.waliKelas || '';
-    document.getElementById('modalKelas').classList.remove('hidden');
+    // 1. Cari data kelas dari memori (state) berdasarkan ID
+    const kelas = state.masterKelas ? state.masterKelas.find(k => k.id === id) : null;
+    
+    if (!kelas) {
+        console.error("Data kelas tidak ditemukan di memori!");
+        return;
+    }
+
+    // 2. Ambil elemen form modal
+    const elId = document.getElementById('kelasId');
+    const elNama = document.getElementById('inputNamaKelas');
+    const elKode = document.getElementById('inputKodeKelas');
+    const elWali = document.getElementById('inputWaliKelas');
+    const modal = document.getElementById('modalKelas');
+
+    // 3. 🛡️ PENGAMAN: Lempar data dari state ke dalam form
+    if (elId) elId.value = kelas.id;
+    if (elNama) elNama.value = kelas.nama || '';
+    if (elKode) elKode.value = kelas.kode || '';
+    if (elWali) elWali.value = kelas.wali || '';
+
+    // 4. Buka modal
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 };
 
 window.hapusKelas = async (id) => {
