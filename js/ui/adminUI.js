@@ -1,6 +1,8 @@
 import { state } from '../services/store.js';
 import { db, doc, collection, addDoc, updateDoc, deleteDoc, setDoc, initFirebase } from '../services/api.js';
 import { getDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// Tambahkan baris impor ini untuk memanggil Firebase Auth
+import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // ==========================================
 // SESSION & UI NAVIGATION (SIDEBAR FIXED)
@@ -23,10 +25,10 @@ window.handleLogin = async (e) => {
     e.preventDefault(); 
     
     // Sembunyikan pesan error jika sebelumnya muncul
-    document.getElementById('loginError').classList.add('hidden');
+    document.getElementById('loginError').classList.add('hidden'); 
     
     // Ambil data yang diketik
-    const inputUser = document.getElementById('adminUsername').value.trim();
+    let inputUser = document.getElementById('adminUsername').value.trim();
     const inputPass = document.getElementById('adminPassword').value.trim();
     const btnMasuk = document.getElementById('btnMasukAdmin');
 
@@ -34,32 +36,41 @@ window.handleLogin = async (e) => {
         return alert("Username dan Sandi tidak boleh kosong!");
     }
 
+    // Trik Cerdas: Jika user mengetik 'admin', kita ubah otomatis jadi 'admin@cbt.local'
+    // agar diterima oleh standar keamanan Firebase Auth
+    if (!inputUser.includes('@')) {
+        inputUser = inputUser + '@cbt.local';
+    }
+
     // Beri efek loading pada tombol
     const originalText = btnMasuk.innerText;
-    btnMasuk.innerText = "Memeriksa...";
+    btnMasuk.innerText = "Memeriksa Keamanan...";
     btnMasuk.disabled = true;
 
     try {
-        // Melakukan pencarian ke koleksi 'master_admin' di Firestore
-        const q = query(
-            collection(db, 'master_admin'), 
-            where('username', '==', inputUser),
-            where('password', '==', inputPass)
-        );
+        const auth = getAuth();
         
-        const querySnapshot = await getDocs(q);
+        // Memanggil fungsi verifikasi bawaan Firebase Auth
+        await signInWithEmailAndPassword(auth, inputUser, inputPass);
 
-        if (!querySnapshot.empty) {
-            // Sesi sukses! Masuk ke Dashboard
-            localStorage.setItem('admin_logged_in', 'true');
-            checkAdminSession(); 
-        } else {
-            // Tampilkan tulisan merah di bawah inputan password
-            document.getElementById('loginError').classList.remove('hidden'); 
-        }
+        // Jika baris di atas berhasil lolos tanpa error, berarti login valid!
+        localStorage.setItem('admin_logged_in', 'true');
+        checkAdminSession(); 
     } catch (error) {
-        console.error("Gagal melakukan login:", error);
-        alert("Terjadi kesalahan sistem saat menghubungi database Firebase. Pastikan koneksi internet stabil.");
+        console.error("Gagal login:", error.code);
+        
+        // Tampilkan tulisan merah di bawah inputan password
+        const errElement = document.getElementById('loginError');
+        errElement.classList.remove('hidden'); 
+        
+        // Custom pesan error berdasarkan penolakan Firebase
+        if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+            errElement.innerText = "Username atau Sandi Salah/Tidak Terdaftar!";
+        } else if (error.code === 'auth/too-many-requests') {
+            errElement.innerText = "Terlalu banyak percobaan gagal. Coba lagi nanti.";
+        } else {
+            errElement.innerText = "Gagal menghubungi server otentikasi.";
+        }
     } finally {
         // Kembalikan tombol seperti semula
         btnMasuk.innerText = originalText;
@@ -67,9 +78,16 @@ window.handleLogin = async (e) => {
     }
 };
 
-window.logoutAdmin = () => {
-    localStorage.removeItem('admin_logged_in');
-    location.reload();
+window.logoutAdmin = async () => {
+    try {
+        const auth = getAuth();
+        await signOut(auth); // Putuskan sesi aman di server Firebase
+        localStorage.removeItem('admin_logged_in');
+        location.reload();
+    } catch (e) {
+        console.error("Logout gagal:", e);
+        alert("Terjadi kesalahan saat logout.");
+    }
 };
 
 // Fungsi ini wajib ada agar dropdown sidebar bisa diklik
