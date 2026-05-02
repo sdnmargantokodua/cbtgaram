@@ -3499,6 +3499,13 @@ window.loadUserManagement = async () => {
         state.masterSiswa.sort((a,b) => {
             if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
             return (a.kelas || '').localeCompare(b.kelas || '');
+			
+			// --- TAMBAHKAN BARIS INI ---
+        await loadAdmin();
+
+        // 1. Load Data Guru
+        const snapGuru = await getDocs(collection(db, 'master_guru'));
+        // ... kode yang sudah ada tetap dibiarkan ...
         });
 
         window.renderTableUserGuru();
@@ -4154,5 +4161,132 @@ window.hapusSeluruhDatabase = async () => {
     } catch (error) {
         console.error("Gagal melakukan reset database:", error);
         alert("Terjadi kesalahan sistem saat menghapus data. Periksa koneksi internet Anda.");
+    }
+};
+
+// ==========================================
+// MANAJEMEN ADMIN PANITIA
+// ==========================================
+window.loadAdmin = async () => {
+    try {
+        const snap = await getDocs(collection(db, 'master_admin'));
+        state.masterAdmin = [];
+        snap.forEach(d => state.masterAdmin.push({id: d.id, ...d.data()}));
+        window.renderTableUserAdmin();
+    } catch(e) { console.error("Error load admin:", e); }
+};
+
+window.renderTableUserAdmin = () => {
+    const tb = document.getElementById('tableUserAdminBody');
+    if(!tb) return;
+    tb.innerHTML = '';
+    
+    if(state.masterAdmin.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Data Admin Kosong.</td></tr>';
+        return;
+    }
+    
+    state.masterAdmin.forEach((a, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r text-slate-500">${i+1}</td>
+                <td class="p-3 border-r font-bold text-slate-800 uppercase" colspan="2">${a.nama || 'ADMINISTRATOR'}</td>
+                <td class="p-3 border-r text-center font-bold text-blue-700">${a.username}</td>
+                <td class="p-3 border-r text-center text-slate-600 font-mono text-sm">${a.password}</td>
+                <td class="p-3 border-r text-center font-bold text-slate-800"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold">SUPER ADMIN</span></td>
+                <td class="p-3 border-r text-center text-slate-500">-</td>
+                <td class="p-3 text-center"><span class="bg-green-500 text-white px-2 py-1 rounded text-[10px] font-bold">AKTIF</span></td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick="editAdmin('${a.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-2 py-1.5 rounded shadow-sm text-xs font-bold transition">✏️</button>
+                    <button onclick="hapusAdmin('${a.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1.5 rounded shadow-sm text-xs transition">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+window.openModalAdmin = () => {
+    document.getElementById('adminId').value = '';
+    document.getElementById('inputNamaAdmin').value = '';
+    document.getElementById('inputUsernameAdmin').value = '';
+    document.getElementById('inputPasswordAdmin').value = '';
+    document.getElementById('modalAdmin').classList.remove('hidden');
+};
+
+window.simpanAdmin = async () => {
+    const id = document.getElementById('adminId').value;
+    const data = {
+        nama: document.getElementById('inputNamaAdmin').value.trim().toUpperCase(),
+        username: document.getElementById('inputUsernameAdmin').value.trim(),
+        password: document.getElementById('inputPasswordAdmin').value.trim()
+    };
+    
+    if(!data.username || !data.password) return alert("Username dan Password wajib diisi!");
+    
+    try {
+        if(id) await updateDoc(doc(db, 'master_admin', id), data);
+        else await addDoc(collection(db, 'master_admin'), data);
+        closeModal('modalAdmin');
+        alert("Data Admin berhasil disimpan!");
+        loadAdmin();
+    } catch(e) { 
+        console.error(e); 
+        alert("Gagal menyimpan data admin."); 
+    }
+};
+
+window.editAdmin = (id) => {
+    const a = state.masterAdmin.find(x => x.id === id);
+    if(!a) return;
+    document.getElementById('adminId').value = a.id;
+    document.getElementById('inputNamaAdmin').value = a.nama || '';
+    document.getElementById('inputUsernameAdmin').value = a.username || '';
+    document.getElementById('inputPasswordAdmin').value = a.password || '';
+    document.getElementById('modalAdmin').classList.remove('hidden');
+};
+
+window.hapusAdmin = async (id) => {
+    if(state.masterAdmin.length <= 1) {
+        return alert("PERINGATAN DITOLAK: Anda tidak boleh menghapus admin satu-satunya, nanti Anda tidak bisa login!");
+    }
+    if(confirm("Yakin ingin menghapus akses admin ini?")) {
+        await deleteDoc(doc(db, 'master_admin', id));
+        loadAdmin();
+    }
+};
+
+// ==========================================
+// FITUR OTOMATISASI: KENAIKAN KELAS
+// ==========================================
+window.kenaikanKelas = async () => {
+    if(!confirm("⚠️ PERINGATAN!\n\nFitur ini akan menaikkan kelas semua siswa secara otomatis (contoh: Siswa kelas 1 menjadi kelas 2).\nSiswa kelas tertinggi (Kelas 6) akan otomatis ditandai sebagai ALUMNI/LULUS.\n\nPastikan data nilai tahun ini sudah di-backup. Lanjutkan?")) return;
+    
+    try {
+        const promises = [];
+        state.masterSiswa.forEach(s => {
+            let kelasBaru = s.kelas;
+            // Ambil angka dari teks kelas (misal "1A" jadi 1, "6" jadi 6)
+            let num = parseInt(s.kelas);
+            if(!isNaN(num)) {
+                if(num >= 6) {
+                    kelasBaru = "ALUMNI";
+                } else {
+                    // Naikkan angkanya (misal 1A -> 2A)
+                    kelasBaru = (num + 1).toString() + s.kelas.replace(num, "");
+                }
+            }
+            
+            // Jika ada perubahan, push ke antrean update Firebase
+            if(kelasBaru !== s.kelas) {
+                promises.push(updateDoc(doc(db, 'master_siswa', s.id), { kelas: kelasBaru }));
+            }
+        });
+        
+        await Promise.all(promises);
+        alert("Proses Kenaikan Kelas Massal Berhasil! Data siswa telah diperbarui.");
+        loadSiswa(); // Refresh tabel siswa
+    } catch(e) {
+        console.error(e); 
+        alert("Gagal memproses kenaikan kelas.");
     }
 };
