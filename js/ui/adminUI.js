@@ -3505,30 +3505,26 @@ window.cetakJadwalPengawas = async () => {
 // ==========================================
 window.loadUserManagement = async () => {
     try {
-        // 1. Load Data Guru
+        // 1. Load Data Admin (Ini posisi yang benar!)
+        await loadAdmin();
+
+        // 2. Load Data Guru
         const snapGuru = await getDocs(collection(db, 'master_guru'));
         state.masterGuru = [];
         snapGuru.forEach(d => state.masterGuru.push({id: d.id, ...d.data()}));
-        state.masterGuru.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
-
-        // 2. Load Data Siswa
+        
+        // 3. Load Data Siswa
         const snapSiswa = await getDocs(collection(db, 'master_siswa'));
         state.masterSiswa = [];
         snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
-        
-        // Urutkan siswa berdasarkan Kelas, lalu Nama
+
+        // 4. Urutkan siswa berdasarkan Kelas, lalu Nama
         state.masterSiswa.sort((a,b) => {
             if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
             return (a.kelas || '').localeCompare(b.kelas || '');
-			
-			// --- TAMBAHKAN BARIS INI ---
-        await loadAdmin();
-
-        // 1. Load Data Guru
-        const snapGuru = await getDocs(collection(db, 'master_guru'));
-        // ... kode yang sudah ada tetap dibiarkan ...
         });
 
+        // 5. Render semua tabel
         window.renderTableUserGuru();
         window.renderTableUserSiswa();
     } catch(e) {
