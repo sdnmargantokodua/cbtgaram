@@ -4290,3 +4290,194 @@ window.kenaikanKelas = async () => {
         alert("Gagal memproses kenaikan kelas.");
     }
 };
+
+// ==========================================
+// IMPORT & EXPORT EXCEL (GURU & SISWA)
+// ==========================================
+
+// ---------------- 1. DATA GURU ----------------
+window.exportTemplateGuru = () => {
+    let dataToExport = [];
+    
+    // Jika data sudah ada, export data tersebut. Jika kosong, buat template.
+    if (state.masterGuru && state.masterGuru.length > 0) {
+        dataToExport = state.masterGuru.map((g, i) => ({
+            "No": i + 1,
+            "NIP/NUPTK": g.nip || '',
+            "Kode Guru": g.kode || '',
+            "Nama Lengkap": g.nama || '',
+            "Jabatan": g.jabatan || 'GURU KELAS',
+            "Username": g.username || '',
+            "Password": g.password || ''
+        }));
+    } else {
+        dataToExport = [{
+            "No": 1,
+            "NIP/NUPTK": "198505052010011015", 
+            "Kode Guru": "G01",
+            "Nama Lengkap": "NAMA GURU CONTOH",
+            "Jabatan": "GURU KELAS ATAU PENGAWAS",
+            "Username": "guru01",
+            "Password": "password123"
+        }];
+        alert("Karena data masih kosong, sistem men-download Template Format Excel.\nSilakan isi mulai dari baris ke-2 (hapus data contoh).");
+    }
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data Guru");
+    XLSX.writeFile(wb, "Data_Guru_CBT.xlsx");
+};
+
+window.triggerImportGuru = () => { document.getElementById('importGuruFile').click(); };
+
+window.importGuru = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+            if (jsonData.length === 0) return alert("File Excel kosong atau format tidak sesuai!");
+            if (!confirm(`Ditemukan ${jsonData.length} baris data guru. Lanjutkan import ke database?`)) return;
+
+            alert("Proses import sedang berjalan. Jangan tutup browser...");
+
+            const promises = [];
+            jsonData.forEach(row => {
+                const nip = (row["NIP/NUPTK"] || '').toString().trim();
+                const nama = (row["Nama Lengkap"] || '').toString().trim();
+                if (!nama) return; // Lewati jika nama kosong
+
+                const guruData = {
+                    nip: nip,
+                    kode: (row["Kode Guru"] || '').toString().trim().toUpperCase(),
+                    nama: nama, // Tetap gunakan format besar kecil aslinya untuk gelar
+                    jabatan: (row["Jabatan"] || 'GURU KELAS').toString().trim().toUpperCase(),
+                    username: (row["Username"] || nip || nama.replace(/\s/g,'').toLowerCase()).toString().trim().toLowerCase(),
+                    password: (row["Password"] || nip || '123456').toString().trim(),
+                    isActive: true
+                };
+
+                // Cek data yang sudah ada berdasarkan NIP/NUPTK untuk Update/Add
+                let existingGuru = nip ? state.masterGuru.find(g => g.nip === nip) : null;
+
+                if (existingGuru) {
+                    promises.push(updateDoc(doc(db, 'master_guru', existingGuru.id), guruData));
+                } else {
+                    promises.push(addDoc(collection(db, 'master_guru'), guruData));
+                }
+            });
+
+            await Promise.all(promises);
+            alert("Import Data Guru Berhasil!");
+            window.loadGuru();
+        } catch (err) {
+            console.error("Gagal Import Guru:", err);
+            alert("Gagal membaca file Excel. Pastikan Anda menggunakan file hasil download dari sistem ini.");
+        } finally {
+            event.target.value = ''; // Reset form file
+        }
+    };
+    reader.readAsArrayBuffer(file);
+};
+
+
+// ---------------- 2. DATA SISWA ----------------
+window.exportTemplateSiswa = () => {
+    let dataToExport = [];
+    
+    if (state.masterSiswa && state.masterSiswa.length > 0) {
+        dataToExport = state.masterSiswa.map((s, i) => ({
+            "No": i + 1,
+            "NISN": s.nisn || '',
+            "NIS": s.nis || '',
+            "Nama Lengkap": s.nama || '',
+            "Jenis Kelamin (L/P)": s.jk || 'L',
+            "Kelas": s.kelas || '',
+            "Username": s.username || '',
+            "Password": s.password || ''
+        }));
+    } else {
+        dataToExport = [{
+            "No": 1,
+            "NISN": "0012345678",
+            "NIS": "1234",
+            "Nama Lengkap": "NAMA SISWA CONTOH",
+            "Jenis Kelamin (L/P)": "L",
+            "Kelas": "6",
+            "Username": "0012345678",
+            "Password": "password123"
+        }];
+        alert("Karena data masih kosong, sistem men-download Template Format Excel.\nSilakan isi mulai dari baris ke-2 (hapus data contoh).");
+    }
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
+    XLSX.writeFile(wb, "Data_Siswa_CBT.xlsx");
+};
+
+window.triggerImportSiswa = () => { document.getElementById('importSiswaFile').click(); };
+
+window.importSiswa = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+            if (jsonData.length === 0) return alert("File Excel kosong atau format tidak sesuai!");
+            if (!confirm(`Ditemukan ${jsonData.length} baris data siswa. Lanjutkan import ke database?`)) return;
+
+            alert("Proses import sedang berjalan. Jangan tutup browser...");
+
+            const promises = [];
+            jsonData.forEach(row => {
+                const nisn = (row["NISN"] || '').toString().trim();
+                const nama = (row["Nama Lengkap"] || '').toString().trim().toUpperCase();
+                if (!nama) return;
+
+                const siswaData = {
+                    nisn: nisn,
+                    nis: (row["NIS"] || '').toString().trim(),
+                    nama: nama,
+                    jk: (row["Jenis Kelamin (L/P)"] || 'L').toString().trim().toUpperCase(),
+                    kelas: (row["Kelas"] || '').toString().trim().toUpperCase(),
+                    username: (row["Username"] || nisn || nama.replace(/\s/g,'').toLowerCase()).toString().trim().toLowerCase(),
+                    password: (row["Password"] || nisn || '123456').toString().trim(),
+                    isActive: true
+                };
+
+                // Cek jika siswa sudah ada (berdasarkan NISN)
+                let existingSiswa = nisn ? state.masterSiswa.find(s => s.nisn === nisn) : null;
+
+                if (existingSiswa) {
+                    promises.push(updateDoc(doc(db, 'master_siswa', existingSiswa.id), siswaData));
+                } else {
+                    promises.push(addDoc(collection(db, 'master_siswa'), siswaData));
+                }
+            });
+
+            await Promise.all(promises);
+            alert("Import Data Siswa Berhasil!");
+            window.loadSiswa();
+        } catch (err) {
+            console.error("Gagal Import Siswa:", err);
+            alert("Gagal membaca file Excel. Pastikan header tabel tidak diubah.");
+        } finally {
+            event.target.value = '';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+};
