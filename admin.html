@@ -492,22 +492,59 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <h3 class="font-bold text-lg text-slate-800">Pengaturan Ruang & Sesi Per Siswa</h3>
             <div class="flex gap-2">
-                <button onclick="generateRuangSesiOtomatis()" class="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow">Generate Otomatis</button>
-                <button onclick="simpanAturRuangSesi()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow">💾 Simpan Perubahan</button>
+                <button onclick="generateRuangSesiOtomatis()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">✨ Generate Otomatis</button>
+                <button onclick="simpanAturRuangSesi()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">💾 Simpan Perubahan</button>
             </div>
         </div>
+
+        <!-- 🛡️ BAGIAN YANG DITUNGGU JAVASCRIPT (FILTER & BULK ACTION) -->
+        <div class="flex flex-wrap gap-4 mb-6 p-4 bg-slate-50 rounded-lg border border-slate-100">
+            <!-- 1. Filter Kelas -->
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Filter Kelas</label>
+                <select id="filterKelasAtur" onchange="renderTableAturRuangSesi()" class="w-full p-2 border border-slate-300 rounded outline-none text-sm bg-white focus:border-blue-500">
+                    <option value="">-- Pilih Kelas --</option>
+                </select>
+            </div>
+
+            <!-- 2. Atur Massal Ruang -->
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Set Ruang (Massal)</label>
+                <select id="bulkRuang" class="w-full p-2 border border-slate-300 rounded outline-none text-sm bg-white focus:border-amber-500">
+                    <option value="">Pilih ruang</option>
+                </select>
+            </div>
+
+            <!-- 3. Atur Massal Sesi -->
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Set Sesi (Massal)</label>
+                <select id="bulkSesi" class="w-full p-2 border border-slate-300 rounded outline-none text-sm bg-white focus:border-amber-500">
+                    <option value="">Pilih sesi</option>
+                </select>
+            </div>
+
+            <div class="flex items-end">
+                <button onclick="terapkanAturMassal()" class="bg-slate-800 text-white px-4 py-2 rounded font-bold text-xs hover:bg-black transition h-[38px]">TERAPKAN</button>
+            </div>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full border-collapse">
                 <thead class="bg-slate-800 text-white text-xs uppercase">
                     <tr>
-                        <th class="p-3 text-center">No</th>
+                        <th class="p-3 text-center w-12">No</th>
                         <th class="p-3">Nama Siswa</th>
                         <th class="p-3 text-center">Kelas</th>
                         <th class="p-3 text-center">Pilih Ruang</th>
                         <th class="p-3 text-center">Pilih Sesi</th>
                     </tr>
                 </thead>
-                <tbody id="tableAturRuangSesiBody" class="divide-y text-sm"></tbody>
+                <!-- 4. Table Body -->
+                <tbody id="tableAturRuangSesiBody" class="divide-y text-sm">
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-400 italic">Memuat data...</td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>
