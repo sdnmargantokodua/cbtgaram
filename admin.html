@@ -308,6 +308,61 @@
     </div>
 </section>
 
+<!-- SECTION: DATA EKSTRAKURIKULER -->
+<section id="viewEkskul" class="hidden view-section">
+    <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex gap-2">
+            <button onclick="openModalEkskul()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow transition">
+                + Tambah Ekskul
+            </button>
+            <button onclick="loadEkskul()" class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold py-2 px-4 rounded-lg shadow-sm transition">
+                🔄 Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <!-- Tabel Master Ekskul (Kiri) -->
+        <div class="xl:col-span-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 border-b bg-slate-50">
+                <h4 class="font-bold text-slate-800 uppercase text-xs tracking-widest">Daftar Ekstrakurikuler</h4>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 text-slate-700 text-sm border-b">
+                        <tr>
+                            <th class="p-4 text-center w-12 border-r">No.</th>
+                            <th class="p-4 border-r">Ekstrakurikuler</th>
+                            <th class="p-4 border-r text-center">Kode</th>
+                            <th class="p-4 text-center w-32">Aksi</th>
+                        </tr>
+                    </thead>
+                    <!-- ID PENTING: Untuk merender tabel via JavaScript -->
+                    <tbody id="tableEkskulBody" class="text-sm divide-y divide-slate-100">
+                        <tr>
+                            <td colspan="4" class="p-8 text-center text-slate-400 italic">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Penempatan Kelas Ekskul (Kanan) -->
+        <div class="xl:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 h-fit">
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                <h4 class="font-bold text-slate-800 uppercase text-xs tracking-widest">Tentukan Kelas Ekskul</h4>
+                <button onclick="simpanPenempatanEkskul()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded font-bold text-sm shadow transition">
+                    💾 Simpan
+                </button>
+            </div>
+            <!-- ID PENTING: Untuk merender checkbox kelas via JavaScript -->
+            <div class="p-4 space-y-3" id="containerPenempatanEkskul">
+                <p class="text-center text-slate-400 text-xs italic">Pilih salah satu Ekskul di tabel kiri untuk mengatur kelas.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
                 <!-- SECTION LAINNYA DIVISI MINIFIED -->
                 <section id="viewEditorSoal" class="hidden view-section">
     <div class="flex justify-between items-center mb-4">
