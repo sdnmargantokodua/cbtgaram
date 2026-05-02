@@ -1217,22 +1217,19 @@ window.editGuru = (id) => {
 
 window.simpanGuru = async () => {
     try {
-        // 1. Ambil nilai dengan pengaman (Safe Navigation ?.) sesuai ID di HTML
         const idGuru = document.getElementById('guruId')?.value || '';
         const nip = document.getElementById('guruNip')?.value.trim();
         const kode = document.getElementById('guruKode')?.value.trim();
         const nama = document.getElementById('guruNama')?.value.trim();
         const username = document.getElementById('guruUsername')?.value.trim();
         const password = document.getElementById('guruPassword')?.value;
-        const aktif = document.getElementById('guruStatus')?.checked;
+        const statusAktif = document.getElementById('guruStatus')?.checked;
 
-        // 2. Validasi Data Kosong (Minimal Nama wajib diisi)
         if (!nama) {
             alert('Gagal: Nama Lengkap Guru wajib diisi!');
             return;
         }
 
-        // 3. Efek loading di tombol agar terlihat profesional
         const btnSimpan = document.querySelector('#modalGuru button[onclick="simpanGuru()"]');
         const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
         if (btnSimpan) {
@@ -1240,36 +1237,34 @@ window.simpanGuru = async () => {
             btnSimpan.disabled = true;
         }
 
-        // 4. Format data yang akan dilempar ke Firebase
+        // FORMAT DATA disesuaikan dengan kebutuhan Grid Bapak
         const payload = {
             nip: nip || '',
-            kode: (kode || '').toUpperCase(), // Paksa huruf besar
-            nama: nama.toUpperCase(),         // Paksa huruf besar
-            username: (username || '').toLowerCase(), // Username huruf kecil
+            kode: (kode || '').toUpperCase(),
+            nama: nama.toUpperCase(),
+            username: (username || '').toLowerCase(),
             password: password || '',
-            aktif: aktif !== false // Default nilainya true jika kosong
+            isActive: statusAktif !== false // Menggunakan isActive agar sesuai dengan renderGridGuru
         };
 
-        // 5. Eksekusi ke Firebase (Update jika punya ID, Add jika ID kosong)
         if (idGuru) {
             await updateDoc(doc(db, 'master_guru', idGuru), payload);
         } else {
             await addDoc(collection(db, 'master_guru'), payload);
         }
 
-        // 6. Kembalikan kondisi tombol
         if (btnSimpan) {
             btnSimpan.innerHTML = teksAsli;
             btnSimpan.disabled = false;
         }
 
-        // 7. Tutup pop-up dan segarkan tabel otomatis
         window.closeModal('modalGuru');
+        
+        // Panggil fungsi loadGuru versi asli Bapak untuk me-refresh Grid
         if (typeof window.loadGuru === 'function') {
             window.loadGuru();
         }
 
-        // 8. Bersihkan form untuk pengisian berikutnya
         ['guruId', 'guruNip', 'guruKode', 'guruNama', 'guruUsername', 'guruPassword'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
@@ -1280,7 +1275,6 @@ window.simpanGuru = async () => {
         console.error("Gagal menyimpan Guru:", error);
         alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
         
-        // Pulihkan tombol jika terjadi error
         const btnSimpan = document.querySelector('#modalGuru button[onclick="simpanGuru()"]');
         if (btnSimpan) {
             btnSimpan.innerHTML = 'Simpan';
