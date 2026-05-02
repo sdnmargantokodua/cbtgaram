@@ -2000,64 +2000,106 @@ window.renderTableSesiUjian = () => {
     });
 };
 
-window.openModalSesiUjian = () => {
-    document.getElementById('sesiUjianId').value = '';
-    document.getElementById('inputNamaSesi').value = '';
-    document.getElementById('inputKodeSesi').value = '';
-    document.getElementById('inputWaktuMulai').value = '07:30:00';
-    document.getElementById('inputWaktuSelesai').value = '09:30:00';
-    document.getElementById('modalSesiUjian').classList.remove('hidden');
-};
+// ==========================================
+// 1. BUKA MODAL SESI UJIAN (TAMBAH)
+// ==========================================
+window.openModalSesiUjian = (id = '', nama = '', waktu = '') => {
+    const elId = document.getElementById('sesiUjianId');
+    const elNama = document.getElementById('inputNamaSesi');
+    const elWaktu = document.getElementById('inputWaktuSesi');
+    const modal = document.getElementById('modalSesiUjian');
 
-window.simpanSesiUjian = async () => {
-    const id = document.getElementById('sesiUjianId').value;
-    const nama = document.getElementById('inputNamaSesi').value.trim();
-    const kode = document.getElementById('inputKodeSesi').value.trim().toUpperCase();
-    const waktuMulai = document.getElementById('inputWaktuMulai').value;
-    const waktuSelesai = document.getElementById('inputWaktuSelesai').value;
+    // 🛡️ Guard Clause pengaman
+    if (elId) elId.value = id;
+    if (elNama) elNama.value = nama;
+    if (elWaktu) elWaktu.value = waktu;
 
-    if(!nama || !kode) {
-        return alert("Nama dan Kode Sesi wajib diisi!");
-    }
-
-    const btn = document.querySelector("#modalSesiUjian button.bg-blue-600");
-    if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
-
-    const data = { 
-        nama, 
-        kode, 
-        waktuMulai,
-        waktuSelesai,
-        noUrut: id ? (state.masterSesiUjian.find(x => x.id === id)?.noUrut || state.masterSesiUjian.length + 1) : state.masterSesiUjian.length + 1 
-    };
-
-    try {
-        if(id) {
-            await updateDoc(doc(db, 'master_sesi_ujian', id), data);
-        } else {
-            await addDoc(collection(db, 'master_sesi_ujian'), data);
-        }
-        closeModal('modalSesiUjian');
-        alert("Data Sesi Ujian berhasil disimpan!");
-        loadSesiUjian(); // Muat ulang tabel
-    } catch(e) {
-        console.error(e);
-        alert("Gagal menyimpan data.");
-    } finally {
-        if(btn) { btn.innerText = "Simpan"; btn.disabled = false; }
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.warn("Peringatan: Modal 'modalSesiUjian' tidak ditemukan di HTML.");
     }
 };
 
+// ==========================================
+// 2. BUKA MODAL SESI UJIAN (EDIT)
+// ==========================================
 window.editSesiUjian = (id) => {
-    const s = state.masterSesiUjian.find(x => x.id === id);
-    if(!s) return;
+    // Cari data di memori
+    const sesi = state.masterSesiUjian ? state.masterSesiUjian.find(s => s.id === id) : null;
+    if (!sesi) return;
 
-    document.getElementById('sesiUjianId').value = s.id;
-    document.getElementById('inputNamaSesi').value = s.nama || '';
-    document.getElementById('inputKodeSesi').value = s.kode || '';
-    document.getElementById('inputWaktuMulai').value = s.waktuMulai || '';
-    document.getElementById('inputWaktuSelesai').value = s.waktuSelesai || '';
-    document.getElementById('modalSesiUjian').classList.remove('hidden');
+    const elId = document.getElementById('sesiUjianId');
+    const elNama = document.getElementById('inputNamaSesi');
+    const elWaktu = document.getElementById('inputWaktuSesi');
+    const modal = document.getElementById('modalSesiUjian');
+
+    if (elId) elId.value = sesi.id;
+    if (elNama) elNama.value = sesi.nama || '';
+    if (elWaktu) elWaktu.value = sesi.waktu || '';
+
+    if (modal) modal.classList.remove('hidden');
+};
+
+// ==========================================
+// 3. SIMPAN SESI UJIAN
+// ==========================================
+window.simpanSesiUjian = async () => {
+    try {
+        const idSesi = document.getElementById('sesiUjianId')?.value || '';
+        const nama = document.getElementById('inputNamaSesi')?.value.trim();
+        const waktu = document.getElementById('inputWaktuSesi')?.value.trim();
+
+        if (!nama) {
+            alert('Gagal: Nama Sesi wajib diisi!');
+            return;
+        }
+
+        const btnSimpan = document.querySelector('#modalSesiUjian button[onclick="simpanSesiUjian()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳...';
+            btnSimpan.disabled = true;
+        }
+
+        const payload = {
+            nama: nama.toUpperCase(),
+            waktu: waktu || ''
+        };
+
+        if (idSesi) {
+            await updateDoc(doc(db, 'master_sesi_ujian', idSesi), payload);
+        } else {
+            await addDoc(collection(db, 'master_sesi_ujian'), payload);
+        }
+
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        window.closeModal('modalSesiUjian');
+        
+        // Refresh tabel
+        if (typeof window.loadSesiUjian === 'function') {
+            window.loadSesiUjian();
+        }
+
+        // Bersihkan isian form
+        if (document.getElementById('sesiUjianId')) document.getElementById('sesiUjianId').value = '';
+        if (document.getElementById('inputNamaSesi')) document.getElementById('inputNamaSesi').value = '';
+        if (document.getElementById('inputWaktuSesi')) document.getElementById('inputWaktuSesi').value = '';
+
+    } catch (error) {
+        console.error("Gagal menyimpan Sesi Ujian:", error);
+        alert('Terjadi kesalahan: ' + error.message);
+        
+        const btnSimpan = document.querySelector('#modalSesiUjian button[onclick="simpanSesiUjian()"]');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan';
+            btnSimpan.disabled = false;
+        }
+    }
 };
 
 window.hapusSesiUjian = async (id) => {
