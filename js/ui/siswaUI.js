@@ -1,15 +1,21 @@
-import { db, doc, collection, getDocs, getDoc, addDoc, updateDoc } from '../services/api.js';
+import { db, doc, collection, getDocs, getDoc, addDoc, updateDoc, setDoc } from '../services/api.js';
+// Tambahkan serverTimestamp pada import Firestore
+import { query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const state = {
     siswa: null,
     jadwalAktif: null,
+    sesiId: null, // Menyimpan ID sesi yang aktif
     bankSoal: [],
-    jawabanSiswa: {}, // { indexSoal: "A" }
+    jawabanSiswa: {}, 
     currentIndex: 0,
     timerInterval: null,
-    endTime: null
+    endTimeServer: 0 // Menyimpan waktu target selesai absolut dalam hitungan milidetik
 };
 
+// ==========================================
+// LOGIN & CARI JADWAL
+// ==========================================
 document.getElementById('formLoginSiswa').addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = document.getElementById('inUser').value.trim();
@@ -18,7 +24,6 @@ document.getElementById('formLoginSiswa').addEventListener('submit', async (e) =
     btn.innerText = 'MEMERIKSA...';
 
     try {
-        // Mockup Verifikasi: Cari siswa dari Firestore
         const snap = await getDocs(collection(db, 'master_siswa'));
         let found = null;
         snap.forEach(d => {
@@ -51,13 +56,12 @@ const bukaKonfirmasi = async () => {
     document.getElementById('confNama').innerText = state.siswa.nama;
     document.getElementById('confKelas').innerText = state.siswa.kelas;
 
-    // Cari jadwal aktif untuk kelas ini
     document.getElementById('confMapel').innerText = "Mencari jadwal...";
     try {
         const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
         let targetJadwal = null;
         
-        // Asumsi sederhana: Cari jadwal aktif pertama (di sistem nyata, difilter berdasarkan jamKe dan relasi kelas)
+        // Cari jadwal aktif pertama (Sederhana)
         snapJadwal.forEach(d => {
             const jdw = d.data();
             if(jdw.isActive) targetJadwal = { id: d.id, ...jdw };
@@ -75,6 +79,9 @@ const bukaKonfirmasi = async () => {
 
 document.getElementById('btnSiswaLogout').onclick = () => location.reload();
 
+// ==========================================
+// MULAI UJIAN & TIMER ANTI-CHEAT
+// ==========================================
 document.getElementById('btnMulaiUjian').onclick = async () => {
     // Validasi Token
     const inToken = document.getElementById('inToken').value.trim().toUpperCase();
@@ -87,30 +94,65 @@ document.getElementById('btnMulaiUjian').onclick = async () => {
 
     document.getElementById('confirmScreen').classList.add('hidden');
     document.getElementById('confirmScreen').classList.remove('flex');
-    mulaiUjian();
+    
+    // Panggil Logika Mulai Ujian Baru
+    inisialisasiUjianKeServer();
 };
 
-const mulaiUjian = async () => {
+// Modifikasi Logika Mulai Ujian untuk mencatat Sesi ke Firebase (Agar muncul di Radar Admin)
+const inisialisasiUjianKeServer = async () => {
     document.getElementById('examScreen').classList.remove('hidden');
     document.getElementById('examScreen').classList.add('flex');
     
     document.getElementById('examTitleInfo').innerText = state.jadwalAktif.mapel;
     document.getElementById('examSiswaInfo').innerText = `${state.siswa.nama} - ${state.siswa.kelas}`;
 
-    // Load Soal dari Bank Soal yg terhubung dengan Jadwal
+    state.sesiId = `${state.jadwalAktif.id}_${state.siswa.id}`;
+    const durasiMenit = state.jadwalAktif.durasi || 90;
+    
     try {
+        // CEK APAKAH SISWA SUDAH PERNAH MEMULAI UJIAN INI SEBELUMNYA (Jika terputus)
+        const sesiRef = doc(db, 'cbt_sesi_siswa', state.sesiId);
+        const sesiSnap = await getDoc(sesiRef);
+
+        if (sesiSnap.exists()) {
+            // JIKA TERPUTUS: Ambil sisa waktu dan jawaban dari database
+            const dataSesi = sesiSnap.data();
+            state.endTimeServer = dataSesi.waktu_selesai_target; 
+            state.jawabanSiswa = dataSesi.jawaban || {};
+            console.log("Melanjutkan sesi ujian sebelumnya...");
+        } else {
+            // JIKA BARU PERTAMA KALI: Hitung target waktu selesai dan buat sesi baru
+            state.endTimeServer = Date.now() + (durasiMenit * 60 * 1000); // Batas Waktu Absolut
+            
+            await setDoc(sesiRef, {
+                jadwal_id: state.jadwalAktif.id,
+                siswa_id: state.siswa.id,
+                nama: state.siswa.nama,
+                kelas: state.siswa.kelas,
+                status: "MENGERJAKAN",
+                waktu_mulai: serverTimestamp(), 
+                waktu_selesai_target: state.endTimeServer, // Catat agar jika mati lampu timer tidak keriset
+                jawaban: {},
+                last_ping: serverTimestamp()
+            });
+            console.log("Sesi ujian baru dimulai.");
+        }
+
+        // --- Load Soal ---
         const snapSoal = await getDocs(collection(db, `master_bank_soal/${state.jadwalAktif.bankSoalId}/butir_soal`));
         state.bankSoal = [];
         snapSoal.forEach(d => state.bankSoal.push({ id: d.id, ...d.data() }));
 
-        // Acak Soal jika diizinkan
         if(state.jadwalAktif.acakSoal) {
             state.bankSoal = state.bankSoal.sort(() => Math.random() - 0.5);
         }
 
         renderGridNavigasi();
         tampilkanSoal(0);
-        mulaiTimer();
+        
+        // Panggil fungsi timer yang sudah dirombak
+        mulaiTimerAntiCheat(); 
 
         // Load Running Text
         const rSnap = await getDoc(doc(db, 'settings', 'pengumuman_config'));
@@ -118,9 +160,16 @@ const mulaiUjian = async () => {
             const conf = rSnap.data();
             document.getElementById('runningTextDisplay').innerText = `${conf.r1 || ''} *** ${conf.r2 || ''} *** ${conf.r3 || ''}`;
         }
-    } catch(e) { console.error(e); alert("Gagal memuat soal."); }
+
+    } catch(e) { 
+        console.error(e); 
+        alert("Gagal menginisialisasi ujian ke server."); 
+    }
 };
 
+// ==========================================
+// RENDER SOAL & NAVIGASI
+// ==========================================
 const tampilkanSoal = (index) => {
     state.currentIndex = index;
     const soal = state.bankSoal[index];
@@ -129,7 +178,6 @@ const tampilkanSoal = (index) => {
     document.getElementById('labelTipeSoal').innerText = soal.tipe === 'PG' ? 'Pilihan Ganda' : soal.tipe;
     document.getElementById('teksPertanyaan').innerHTML = soal.pertanyaan || '';
     
-    // Render MathJax secara dinamis setelah insert HTML
     if(window.MathJax) MathJax.typesetPromise([document.getElementById('teksPertanyaan')]);
 
     const areaOpsi = document.getElementById('areaOpsiJawaban');
@@ -154,7 +202,6 @@ const tampilkanSoal = (index) => {
             }
         });
     } else {
-        // Tipe Essai / Isian
         const val = state.jawabanSiswa[index] || '';
         areaOpsi.innerHTML = `
             <textarea oninput="simpanJawabanLokal(${index}, this.value)" class="w-full p-4 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 h-40 text-lg" placeholder="Ketik jawaban Anda di sini...">${val}</textarea>
@@ -165,10 +212,21 @@ const tampilkanSoal = (index) => {
     highlightNavAktif();
 };
 
-window.simpanJawabanLokal = (index, val) => {
+window.simpanJawabanLokal = async (index, val) => {
     state.jawabanSiswa[index] = val;
-    renderGridNavigasi(); // Update warna tombol nav (hijau jika sudah dijawab)
+    renderGridNavigasi(); 
     highlightNavAktif();
+
+    // PILAR 3: AUTO SAVE KE FIREBASE 
+    // Mencegah data hilang jika mati lampu, dan agar admin tahu siswa sedang aktif
+    try {
+        await updateDoc(doc(db, 'cbt_sesi_siswa', state.sesiId), {
+            [`jawaban.${index}`]: val,
+            last_ping: serverTimestamp() 
+        });
+    } catch(e) {
+        console.error("Auto-save terputus:", e);
+    }
 };
 
 const renderGridNavigasi = () => {
@@ -182,12 +240,12 @@ const renderGridNavigasi = () => {
 };
 
 const highlightNavAktif = () => {
-    // Reset outline
     for(let i=0; i<state.bankSoal.length; i++) {
-        document.getElementById(`navBtn_${i}`).classList.remove('ring-4', 'ring-blue-300');
+        const btn = document.getElementById(`navBtn_${i}`);
+        if(btn) btn.classList.remove('ring-4', 'ring-blue-300');
     }
-    // Highlight aktif
-    document.getElementById(`navBtn_${state.currentIndex}`).classList.add('ring-4', 'ring-blue-300');
+    const activeBtn = document.getElementById(`navBtn_${state.currentIndex}`);
+    if(activeBtn) activeBtn.classList.add('ring-4', 'ring-blue-300');
 };
 
 const updateTombolNav = () => {
@@ -199,33 +257,38 @@ const updateTombolNav = () => {
 };
 
 // ==========================
-// TIMER & SUBMIT
+// EKSEKUSI TIMER ANTI-CHEAT
 // ==========================
-const mulaiTimer = () => {
-    const durasiMenit = state.jadwalAktif.durasi || 90;
-    state.endTime = new Date().getTime() + (durasiMenit * 60000);
+const mulaiTimerAntiCheat = () => {
+    const timerDisplay = document.getElementById('timerDisplay');
     
     state.timerInterval = setInterval(() => {
-        const now = new Date().getTime();
-        const diff = state.endTime - now;
+        // Hitung jarak antara WAKTU TARGET SERVER dikurangi WAKTU SEKARANG
+        const sisaWaktuMs = state.endTimeServer - Date.now();
 
-        if (diff <= 0) {
+        if (sisaWaktuMs <= 0) {
             clearInterval(state.timerInterval);
-            document.getElementById('timerDisplay').innerText = "WAKTU HABIS";
-            alert("Waktu habis! Ujian akan disubmit otomatis.");
+            timerDisplay.innerText = "WAKTU HABIS!";
+            timerDisplay.classList.add('text-red-600', 'animate-pulse');
+            
+            alert("Waktu ujian telah habis. Sistem akan otomatis mengirimkan jawaban Anda.");
             selesaiDanSubmit();
         } else {
-            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((diff % (1000 * 60)) / 1000);
-            document.getElementById('timerDisplay').innerText = 
-                `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            const h = Math.floor((sisaWaktuMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((sisaWaktuMs % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((sisaWaktuMs % (1000 * 60)) / 1000);
+            
+            timerDisplay.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+
+            // Warnai merah kalau sisa waktu < 5 Menit
+            if(sisaWaktuMs < (5 * 60 * 1000)) {
+                 timerDisplay.classList.add('text-red-500');
+            }
         }
     }, 1000);
 };
 
 document.getElementById('btnSelesaiUjian').onclick = () => {
-    // Cek soal yang belum dijawab
     let belumDijawab = 0;
     state.bankSoal.forEach((_, i) => {
         if(!state.jawabanSiswa[i] || state.jawabanSiswa[i].trim() === '') belumDijawab++;
@@ -241,6 +304,9 @@ document.getElementById('btnSelesaiUjian').onclick = () => {
     }
 };
 
+// ==========================
+// SUBMIT NILAI
+// ==========================
 const selesaiDanSubmit = async () => {
     document.getElementById('btnSelesaiUjian').innerText = "Menyimpan...";
     document.getElementById('btnSelesaiUjian').disabled = true;
@@ -255,28 +321,39 @@ const selesaiDanSubmit = async () => {
     });
 
     const maxSoal = state.bankSoal.filter(s => s.tipe==='PG').length || 1;
-    const skor = Math.round((benar / maxSoal) * 100);
+    let skor = (benar / maxSoal) * 100;
+    skor = Math.round(skor * 100) / 100; // Pembulatan
 
     const hasil = {
         siswaId: state.siswa.id,
-        nis: state.siswa.nis,
+        nis: state.siswa.nis || state.siswa.nisn,
         nama: state.siswa.nama,
         kelas: state.siswa.kelas,
         jadwalId: state.jadwalAktif.id,
         jawaban: state.jawabanSiswa,
         benar, salah, skor,
-        timestamp: new Date().toISOString()
+        timestamp: serverTimestamp()
     };
 
     try {
+        // 1. Kirim Nilai ke Database Permanen
         await addDoc(collection(db, 'exam_results'), hasil);
+        
+        // 2. Ubah Status di Radar Sesi Admin Menjadi 'SELESAI'
+        if(state.sesiId) {
+             await updateDoc(doc(db, 'cbt_sesi_siswa', state.sesiId), {
+                 status: "SELESAI",
+                 isOnline: false,
+                 last_ping: serverTimestamp()
+             });
+        }
+
         alert(`Ujian selesai. Data telah disimpan.\n\nJika diizinkan melihat hasil:\nSkor Anda: ${skor}`);
-        location.reload(); // Kembali ke menu login
+        location.reload(); 
     } catch(e) {
         console.error(e);
         alert("Terjadi kesalahan sistem saat submit nilai. Hubungi Pengawas.");
     }
 };
 
-// Buat function global untuk dipanggil di HTML (onclick attribute)
 window.tampilkanSoal = tampilkanSoal;
