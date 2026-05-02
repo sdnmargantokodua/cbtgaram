@@ -5573,3 +5573,119 @@ window.generateRuangSesiOtomatis = () => {
 
     alert("✨ Siswa berhasil didistribusikan secara otomatis (Asumsi max. 20 anak per ruangan). Jangan lupa klik '💾 Simpan Perubahan' ya, Pak!");
 };
+
+// ==========================================
+// 1. FUNGSI RENDER NOMOR PESERTA (Agar tabelnya nyambung)
+// ==========================================
+window.loadNomorPeserta = () => {
+    const tb = document.getElementById('tableNomorPesertaBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+    
+    if (!state.masterSiswa || state.masterSiswa.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data siswa. Silakan tambahkan siswa terlebih dahulu.</td></tr>';
+        return;
+    }
+    
+    state.masterSiswa.forEach((s, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100" data-id="${s.id}">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i + 1}</td>
+                <td class="p-3 border-r font-bold text-slate-800 uppercase">${s.nama || '-'}</td>
+                <td class="p-3 text-center border-r font-bold text-slate-600">${s.kelas || '-'}</td>
+                <td class="p-3 border-r">
+                    <input type="text" class="input-nomor w-full p-2 border border-slate-300 rounded outline-none font-mono focus:border-blue-500 uppercase tracking-widest text-center" value="${s.nomor_peserta || ''}" placeholder="Ketik nomor...">
+                </td>
+                <td class="p-3 text-center">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tersimpan</span>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+// ==========================================
+// 2. FUNGSI GENERATE NOMOR PESERTA OTOMATIS
+// ==========================================
+window.generateNomorPeserta = () => {
+    const rows = document.querySelectorAll('#tableNomorPesertaBody tr[data-id]');
+    if (rows.length === 0) {
+        alert("Belum ada data siswa di tabel!"); 
+        return;
+    }
+    
+    // Konfirmasi dan logika penomoran
+    let counter = 1;
+    const prefix = "P-"; // Contoh hasil: P-001, P-002, dll.
+    
+    rows.forEach(row => {
+        const input = row.querySelector('.input-nomor');
+        if (input) {
+            input.value = prefix + String(counter).padStart(3, '0');
+            counter++;
+        }
+    });
+    
+    alert("✨ Nomor peserta berhasil digenerate di layar! Jangan lupa klik tombol '💾 Simpan Perubahan' agar data tersimpan di database.");
+};
+
+// ==========================================
+// 3. FUNGSI SIMPAN NOMOR PESERTA KE FIREBASE
+// ==========================================
+window.simpanNomorPeserta = async () => {
+    const rows = document.querySelectorAll('#tableNomorPesertaBody tr[data-id]');
+    let count = 0;
+    let promises = [];
+
+    const btnSimpan = document.querySelector('button[onclick="simpanNomorPeserta()"]');
+    const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan Perubahan';
+    if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
+
+    try {
+        // Ambil setiap inputan dari tabel dan simpan ke database
+        rows.forEach(row => {
+            const idSiswa = row.getAttribute('data-id');
+            const input = row.querySelector('.input-nomor');
+            if (idSiswa && input && input.value.trim() !== '') {
+                promises.push(updateDoc(doc(db, 'master_siswa', idSiswa), { 
+                    nomor_peserta: input.value.trim().toUpperCase() 
+                }));
+                count++;
+            }
+        });
+
+        await Promise.all(promises);
+        alert(`✅ Berhasil menyimpan ${count} nomor peserta ke database!`);
+        
+        // Segarkan data memori siswa
+        if(typeof window.loadSiswa === 'function') window.loadSiswa();
+        
+    } catch (error) {
+        console.error("Gagal simpan:", error);
+        alert("Terjadi kesalahan saat menyimpan: " + error.message);
+    } finally {
+        if (btnSimpan) { btnSimpan.innerHTML = teksAsli; btnSimpan.disabled = false; }
+    }
+};
+
+// ==========================================
+// 4. FUNGSI GENERATE TOKEN UJIAN
+// ==========================================
+window.generateToken = () => {
+    const karakter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let tokenBaru = '';
+    
+    // Buat 6 digit kode acak
+    for (let i = 0; i < 6; i++) {
+        tokenBaru += karakter.charAt(Math.floor(Math.random() * karakter.length));
+    }
+    
+    // Tampilkan di layar
+    const display = document.getElementById('displayTokenAktif');
+    if(display) display.innerText = tokenBaru;
+    
+    alert(`✨ Token ujian berhasil diperbarui: ${tokenBaru}\nSilakan berikan token ini kepada siswa yang akan ujian.`);
+    
+    // Catatan: Jika Bapak ingin token ini disimpan ke Firebase (agar tersinkron dengan HP siswa), 
+    // nanti kita bisa tambahkan logika simpannya ke tabel konfigurasi Firebase.
+};
