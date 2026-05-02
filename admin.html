@@ -499,6 +499,37 @@
                         </div>
                     </div>
                 </section>
+				
+				<!-- SECTION: ATUR PENGAWAS UJIAN -->
+<section id="viewPengawas" class="hidden view-section">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Atur Pengawas Ujian</h3>
+            <div class="flex gap-2">
+                <button onclick="openModalPengawas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+                    + Tambah Pengawas
+                </button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse border border-slate-200">
+                <thead class="bg-slate-800 text-white text-sm border-b">
+                    <tr>
+                        <th class="p-3 text-center w-12 border-r border-slate-700">No.</th>
+                        <th class="p-3 border-r border-slate-700">Nama Pengawas</th>
+                        <th class="p-3 border-r border-slate-700 text-center">NIP / Kode</th>
+                        <th class="p-3 border-r border-slate-700 text-center">Username</th>
+                        <th class="p-3 border-r border-slate-700 text-center">Password</th>
+                        <th class="p-3 text-center w-32">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tablePengawasBody" class="divide-y divide-slate-100 text-sm">
+                    <tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
 
                 <!-- SECTION LAINNYA DIVISI MINIFIED -->
                 <section id="viewEditorSoal" class="hidden view-section">
@@ -898,6 +929,45 @@
         <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
             <button onclick="closeModal('modalRuangUjian')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
             <button onclick="simpanRuangUjian()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DATA PENGAWAS -->
+<div id="modalPengawas" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+            <h3 class="font-bold text-lg text-slate-800">Data Pengawas Ujian</h3>
+            <button onclick="closeModal('modalPengawas')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+        </div>
+        
+        <!-- ID PENTING untuk JS -->
+        <input type="hidden" id="pengawasId">
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Pengawas</label>
+                <input type="text" id="inputNamaPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: BAPAK GURU, S.Pd">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">NIP / Kode Guru</label>
+                <input type="text" id="inputNipPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Kosongkan jika tidak ada">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Username</label>
+                    <input type="text" id="inputUserPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none lowercase focus:border-blue-500" placeholder="pengawas01">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Password</label>
+                    <input type="text" id="inputPassPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="123456">
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+            <button onclick="closeModal('modalPengawas')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+            <button onclick="simpanPengawas()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
         </div>
     </div>
 </div>
