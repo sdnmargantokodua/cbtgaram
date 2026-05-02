@@ -696,6 +696,56 @@
     </div>
 </div>
 
+<!-- MODAL DATA MASTER GURU -->
+<div id="modalGuru" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+            <h3 class="font-bold text-lg text-slate-800">Form Data Master Guru</h3>
+            <button onclick="closeModal('modalGuru')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+        </div>
+        
+        <!-- ID PENTING untuk JavaScript -->
+        <input type="hidden" id="guruId">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">NIP / NUPTK</label>
+                <input type="text" id="guruNip" class="w-full p-2 border border-slate-300 rounded-lg outline-none font-mono tracking-wider focus:border-blue-500" placeholder="Kosongkan jika tidak ada">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Kode Guru</label>
+                <input type="text" id="guruKode" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: GR01">
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Guru</label>
+            <input type="text" id="guruNama" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: NAMA GURU, S.Pd.">
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Username Login</label>
+                <input type="text" id="guruUsername" class="w-full p-2 border border-slate-300 rounded-lg outline-none lowercase focus:border-blue-500" placeholder="Contoh: guru01">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Password Login</label>
+                <input type="text" id="guruPassword" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="••••••••">
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2 mb-2">
+            <input type="checkbox" id="guruStatus" class="w-4 h-4 accent-blue-600" checked>
+            <label for="guruStatus" class="text-sm font-bold text-slate-700 cursor-pointer">Status Guru Aktif</label>
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+            <button onclick="closeModal('modalGuru')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+            <button onclick="simpanGuru()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+        </div>
+    </div>
+</div>
+
     <script type="module" src="./js/ui/adminUI.js"></script>
     <script>
         // Update live clock
