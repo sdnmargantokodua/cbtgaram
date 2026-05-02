@@ -1,7 +1,7 @@
 import { state } from '../services/store.js';
 import { db, doc, collection, addDoc, updateDoc, deleteDoc, setDoc, initFirebase } from '../services/api.js';
 // Baris di bawah ini yang ditambah: orderBy, limit, startAfter
-import { getDoc, getDocs, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getDoc, getDocs, query, where, orderBy, limit, startAfter, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 // Tambahkan baris impor ini untuk memanggil Firebase Auth
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
@@ -912,6 +912,7 @@ window.editJabatanGuru = async (id) => {
 state.siswaLimit = 50;          // Jumlah data yang diload per halaman
 state.siswaLastDoc = null;      // Menyimpan dokumen terakhir sebagai titik mulai halaman berikutnya
 state.siswaHasMore = true;      // Penanda apakah masih ada sisa data di database
+state.unsubscribeStatus = null; // Memori untuk mematikan Radar Live sebelumnya
 
 // --- TIMPA FUNGSI loadSiswa LAMA DENGAN INI ---
 window.loadSiswa = async (isLoadMore = false) => {
@@ -2690,49 +2691,113 @@ window.loadStatusSiswa = async () => {
     }
 };
 
+// ==========================================
+// RADAR LIVE: STATUS UJIAN SISWA
+// ==========================================
 window.renderTableStatusSiswa = () => {
-    const ruangVal = document.getElementById('filterStatusRuang').value;
-    const sesiVal = document.getElementById('filterStatusSesi').value;
+    const jadwalId = document.getElementById('filterStatusJadwal').value;
+    const ruang = document.getElementById('filterStatusRuang').value;
+    const sesi = document.getElementById('filterStatusSesi').value;
     const tb = document.getElementById('tableStatusSiswaBody');
+
     if (!tb) return;
-    tb.innerHTML = '';
 
-    // Filter siswa berdasarkan Ruang dan Sesi yang dipilih
-    let filteredSiswa = [...state.masterSiswa];
-    if (ruangVal) filteredSiswa = filteredSiswa.filter(s => s.ruang === ruangVal);
-    if (sesiVal) filteredSiswa = filteredSiswa.filter(s => s.sesi === sesiVal);
+    // 1. MATIKAN RADAR LAMA: Jika pengawas mengganti filter, matikan radar yang lama
+    if (state.unsubscribeStatus) {
+        state.unsubscribeStatus();
+        state.unsubscribeStatus = null;
+    }
 
-    // Urutkan berdasarkan nama
-    filteredSiswa.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
-
-    if (filteredSiswa.length === 0) {
-        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa yang terdaftar di ruang/sesi tersebut.</td></tr>';
+    // Jika jadwal belum dipilih, kosongkan tabel
+    if (!jadwalId) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Pilih Jadwal Ujian terlebih dahulu.</td></tr>';
         return;
     }
 
-    filteredSiswa.forEach((s, i) => {
-        // Logika Status: Jika 'isOnline' true di database (diset saat siswa mulai ujian)
-        const isOnline = s.isOnline === true;
-        const statusBadge = isOnline 
-            ? `<span class="bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-sm animate-pulse">Sedang Mengerjakan</span>` 
-            : `<span class="bg-slate-300 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm">Offline / Belum Mulai</span>`;
+    // Efek visual sedang menghubungkan ke server
+    tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-blue-500 font-bold italic animate-pulse">📡 Menghubungkan ke Radar Live...</td></tr>';
 
-        tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-3 text-center border-r font-bold text-slate-500">${i + 1}</td>
-                <td class="p-3 border-r text-center font-mono font-bold text-blue-700 tracking-tighter">${s.nis || s.nisn || '-'}</td>
-                <td class="p-3 border-r font-bold text-slate-800 uppercase text-sm">${s.nama || '-'}</td>
-                <td class="p-3 border-r text-center font-bold text-slate-600">Kelas ${s.kelas || '-'}</td>
-                <td class="p-3 border-r text-center">${statusBadge}</td>
-                <td class="p-3 text-center">
-                    <button onclick="resetLoginSiswa('${s.id}', '${s.nama}')" 
-                        class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded shadow-sm text-[10px] font-black transition w-full uppercase">
-                        Reset Login
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
+    try {
+        // 2. BANGUN KONDISI PENCARIAN (Berdasarkan filter yang dipilih)
+        let conditions = [where('jadwal_id', '==', jadwalId)];
+        
+        // Sesuaikan nama field 'ruang' dan 'sesi' dengan yang ada di database Anda
+        if (ruang) conditions.push(where('ruang', '==', ruang)); 
+        if (sesi) conditions.push(where('sesi', '==', sesi));
+
+        // Asumsi nama tabel Anda adalah 'cbt_sesi_siswa'
+        const q = query(collection(db, 'cbt_sesi_siswa'), ...conditions);
+
+        // 3. AKTIFKAN RADAR ON-SNAPSHOT (Menerima perubahan real-time)
+        state.unsubscribeStatus = onSnapshot(q, (snapshot) => {
+            tb.innerHTML = ''; // Kosongkan tabel segera setelah data masuk
+
+            if (snapshot.empty) {
+                tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada siswa yang login di jadwal/ruang ini.</td></tr>';
+                return;
+            }
+
+            let i = 1;
+            snapshot.forEach((docSnap) => {
+                const s = docSnap.data();
+                const sId = docSnap.id; // ID Dokumen sesi
+                
+                // 4. DETEKSI STATUS & KODE WARNA
+                let statusColor = "bg-slate-500";
+                let statusText = s.status || "BELUM LOGIN";
+                let statusBlinking = ""; // Efek kedip untuk siswa yang sedang ujian
+                
+                const textLower = statusText.toLowerCase();
+                if (textLower.includes('mengerjakan') || textLower.includes('aktif')) {
+                    statusColor = "bg-blue-500";
+                    statusBlinking = "animate-pulse"; // Membuat badgenya berkedip!
+                } else if (textLower.includes('selesai')) {
+                    statusColor = "bg-emerald-500";
+                } else if (textLower.includes('kunci') || textLower.includes('keluar')) {
+                    statusColor = "bg-red-500";
+                }
+
+                tb.innerHTML += `
+                    <tr class="hover:bg-blue-50 transition border-b border-slate-100">
+                        <td class="p-3 text-center border-r text-slate-500 font-bold">${i++}</td>
+                        <td class="p-3 border-r text-center font-mono font-bold text-slate-700">${s.nis || s.no_peserta || '-'}</td>
+                        <td class="p-3 border-r uppercase font-bold text-slate-800">${s.nama || '-'}</td>
+                        <td class="p-3 border-r text-center text-slate-600">${s.kelas || '-'}</td>
+                        <td class="p-3 border-r text-center">
+                            <span class="${statusColor} ${statusBlinking} text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                                ${statusText}
+                            </span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="resetIzinSiswa('${sId}', '${s.nama}')" class="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 px-3 py-1 rounded text-[11px] font-bold transition w-full shadow-sm">Reset Izin</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }, (error) => {
+            console.error("Radar Live Error:", error);
+            tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold">Koneksi Live Terputus. Coba muat ulang.</td></tr>';
+        });
+
+    } catch (e) {
+        console.error("Error setting up live status:", e);
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold">Gagal memuat Radar Live.</td></tr>';
+    }
+};
+
+// Fungsi Opsional: Untuk Mereset Izin Siswa jika terlempar/error dari ujian
+window.resetIzinSiswa = async (sesiId, nama) => {
+    if(!confirm(`Yakin ingin mereset sesi ujian untuk siswa: ${nama}? (Siswa bisa login kembali)`)) return;
+    try {
+        // Hapus dokumen di cbt_sesi_siswa agar siswa dianggap belum ujian, 
+        // atau update statusnya menjadi 'Reset'. Sesuaikan dengan logika aplikasi siswa Anda.
+        await updateDoc(doc(db, 'cbt_sesi_siswa', sesiId), {
+            status: "DIRESET (SILAKAN LOGIN ULANG)"
+        });
+    } catch(e) {
+        alert("Gagal mereset izin.");
+        console.error(e);
+    }
 };
 
 window.resetLoginSiswa = async (id, nama) => {
