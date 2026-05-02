@@ -2131,6 +2131,8 @@ window.tambahButirSoalBaru = () => {
     document.getElementById('editorPertanyaan').value = '';
     ['A','B','C','D','E'].forEach(o => document.getElementById('opsi'+o).value = '');
     document.getElementById('editorKunci').value = '';
+	// Tambahkan baris ini di akhir:
+    if(typeof updatePreviewSoal === 'function') updatePreviewSoal();
 };
 
 window.editButirSoal = (id, noIndex) => {
@@ -2149,6 +2151,7 @@ window.editButirSoal = (id, noIndex) => {
     document.getElementById('editorKunci').value = soal.kunci || '';
     
     window.loadDaftarButirSoal(); // Untuk highlight tombol nomor
+	if(typeof updatePreviewSoal === 'function') updatePreviewSoal();
 };
 
 window.simpanButirSoal = async () => {
@@ -4480,4 +4483,81 @@ window.importSiswa = async (event) => {
         }
     };
     reader.readAsArrayBuffer(file);
+};
+
+// ==========================================
+// FITUR GAMBAR & LIVE PREVIEW MATEMATIKA
+// ==========================================
+
+// Fungsi untuk me-render Live Preview (Rumus & HTML)
+window.updatePreviewSoal = () => {
+    const container = document.getElementById('previewSoalContainer');
+    if (!container) return;
+    
+    // Ambil teks dari editor pertanyaan
+    const teks = document.getElementById('editorPertanyaan').value;
+    container.innerHTML = teks;
+    
+    // Perintahkan MathJax untuk merender ulang rumus matematika di dalam container tersebut
+    if (window.MathJax) {
+        MathJax.typesetPromise([container]).catch(err => console.error("MathJax error:", err));
+    }
+};
+
+// Fungsi cerdas untuk mengompres gambar dan menyisipkannya ke textarea
+window.sisipkanGambar = (targetTextareaId) => {
+    // Buat input file sementara
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Baca file gambar
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                // Proses Kompresi Gambar dengan Canvas (Penting agar Firebase tidak kepenuhan)
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 600; // Lebar maksimal gambar di layar ujian
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Ubah menjadi Base64 (Kualitas 70%)
+                const base64String = canvas.toDataURL('image/jpeg', 0.7);
+                
+                // Buat tag HTML untuk disisipkan
+                const imgTag = `\n<img src="${base64String}" style="max-width:100%; height:auto; margin-top:8px; border-radius:8px;" alt="gambar-soal">\n`;
+                
+                // Sisipkan tepat di posisi kursor pada Textarea
+                const textarea = document.getElementById(targetTextareaId);
+                const cursorPos = textarea.selectionStart;
+                const textBefore = textarea.value.substring(0, cursorPos);
+                const textAfter = textarea.value.substring(cursorPos);
+                
+                textarea.value = textBefore + imgTag + textAfter;
+                
+                // Fokuskan kembali dan update preview (jika itu teks pertanyaan)
+                textarea.focus();
+                if(targetTextareaId === 'editorPertanyaan') updatePreviewSoal();
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    input.click(); // Buka dialog pemilihan file
 };
