@@ -459,20 +459,69 @@ window.openModalMapel = (id = '', kode = '', nama = '', kelompok = 'Kelompok A (
 };
 
 window.simpanMapel = async () => {
-    const id = document.getElementById('mapelId').value;
-    const data = {
-        nama: document.getElementById('inputNamaMapel').value.trim().toUpperCase(),
-        kode: document.getElementById('inputKodeMapel').value.trim().toUpperCase(),
-        kelompok: document.getElementById('inputKelompokMapel').value,
-        isActive: document.getElementById('inputStatusMapel').checked
-    };
-    if(!data.nama || !data.kode) return alert("Nama dan Kode Mapel Wajib diisi!");
     try {
-        if(id) await updateDoc(doc(db, 'master_subjects', id), data);
-        else await addDoc(collection(db, 'master_subjects'), data);
-        closeModal('modalMataPelajaran');
-        loadMataPelajaran();
-    } catch(e) { console.error(e); }
+        // 1. Ambil nilai dari elemen HTML yang sudah kita rapikan sebelumnya
+        const idMapel = document.getElementById('mapelId')?.value || '';
+        const nama = document.getElementById('inputNamaMapel')?.value.trim();
+        const kode = document.getElementById('inputKodeMapel')?.value.trim();
+        const kelompok = document.getElementById('inputKelompokMapel')?.value;
+        const aktif = document.getElementById('inputStatusMapel')?.checked;
+
+        // 2. Validasi Data Kosong
+        if (!nama || !kode) {
+            alert('Gagal: Nama dan Kode Mata Pelajaran wajib diisi!');
+            return;
+        }
+
+        // 3. Tampilkan indikator loading pada tombol (opsional agar terlihat profesional)
+        const btnSimpan = document.querySelector('#modalMataPelajaran button[onclick="simpanMapel()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳ Menyimpan...';
+            btnSimpan.disabled = true;
+        }
+
+        // 4. Siapkan format data yang akan dilempar ke Firebase
+        const payload = {
+            nama: nama.toUpperCase(), // Paksa jadi huruf besar
+            kode: kode.toUpperCase(),
+            kelompok: kelompok || 'Kelompok A (Wajib)',
+            aktif: aktif !== false // Default nilainya true
+        };
+
+        // 5. Eksekusi ke Firebase (Update jika ada ID, Add Doc jika ID kosong)
+        if (idMapel) {
+            const docRef = doc(db, 'master_mapel', idMapel);
+            await updateDoc(docRef, payload);
+        } else {
+            await addDoc(collection(db, 'master_mapel'), payload);
+        }
+
+        // 6. Kembalikan tombol ke kondisi semula
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        // 7. Tutup pop-up dan segarkan (refresh) tabel
+        window.closeModal('modalMataPelajaran');
+        window.loadMataPelajaran();
+
+        // Kosongkan form agar bersih saat dibuka lagi nanti
+        if (document.getElementById('inputNamaMapel')) document.getElementById('inputNamaMapel').value = '';
+        if (document.getElementById('inputKodeMapel')) document.getElementById('inputKodeMapel').value = '';
+
+    } catch (error) {
+        console.error("Gagal menyimpan Mata Pelajaran:", error);
+        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
+        
+        // Pulihkan tombol jika error
+        const btnSimpan = document.querySelector('#modalMataPelajaran button[onclick="simpanMapel()"]');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan';
+            btnSimpan.disabled = false;
+        }
+    }
 };
 
 window.editMapel = (id) => {
