@@ -363,6 +363,156 @@
     </div>
 </section>
 
+<!-- SECTION: DATA MASTER GURU -->
+<section id="viewGuru" class="hidden view-section">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Master Data Guru</h3>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="openModalGuru()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">+ Tambah Guru</button>
+                <button onclick="importGuru()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📥 Import</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse border border-slate-200">
+                <thead class="bg-slate-50 text-slate-700 text-sm border-b">
+                    <tr>
+                        <th class="p-3 text-center w-12 border-r">No.</th>
+                        <th class="p-3 border-r">Nama Guru</th>
+                        <th class="p-3 border-r text-center">NIP/Kode</th>
+                        <th class="p-3 border-r text-center">Username</th>
+                        <th class="p-3 text-center w-32">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableGuruBody" class="divide-y divide-slate-100 text-sm"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- SECTION: DATA MASTER SISWA -->
+<section id="viewSiswa" class="hidden view-section">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Master Data Siswa</h3>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="openModalSiswa()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">+ Tambah Siswa</button>
+                <button onclick="importSiswa()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📥 Import</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse border border-slate-200">
+                <thead class="bg-slate-50 text-slate-700 text-sm border-b">
+                    <tr>
+                        <th class="p-3 text-center w-12 border-r">No.</th>
+                        <th class="p-3 border-r">Identitas Siswa</th>
+                        <th class="p-3 border-r text-center">NIS / NISN</th>
+                        <th class="p-3 border-r text-center">Status</th>
+                        <th class="p-3 text-center w-32">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableSiswaBody" class="divide-y divide-slate-100 text-sm"></tbody>
+            </table>
+        </div>
+        <!-- Tombol Load More untuk Pagination (Sesuai update adminUI.js sebelumnya) -->
+        <div class="mt-6 flex justify-center">
+            <button id="btnLoadMoreSiswa" onclick="loadSiswa(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-8 rounded-full border border-slate-300 transition hidden">
+                ⬇️ Muat Lebih Banyak Siswa
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- SECTION: JENIS UJIAN -->
+<section id="viewJenisUjian" class="hidden view-section">
+    <div class="max-w-2xl bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="font-bold text-lg text-slate-800">Jenis Penilaian / Ujian</h3>
+            <button onclick="openModalJenisUjian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah</button>
+        </div>
+        <table class="w-full border-collapse">
+            <thead class="bg-slate-50 border-b">
+                <tr>
+                    <th class="p-3 text-center w-16">No</th>
+                    <th class="p-3">Nama Jenis Ujian</th>
+                    <th class="p-3 text-center">Kode</th>
+                    <th class="p-3 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tableJenisUjianBody" class="divide-y text-sm"></tbody>
+        </table>
+    </div>
+</section>
+
+<!-- SECTION: SESI UJIAN -->
+<section id="viewSesiUjian" class="hidden view-section">
+    <div class="max-w-3xl bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="font-bold text-lg text-slate-800">Pengaturan Sesi Ujian</h3>
+            <button onclick="openModalSesiUjian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah Sesi</button>
+        </div>
+        <table class="w-full border-collapse">
+            <thead class="bg-slate-50 border-b">
+                <tr>
+                    <th class="p-3 text-center">No</th>
+                    <th class="p-3">Nama Sesi</th>
+                    <th class="p-3 text-center">Waktu</th>
+                    <th class="p-3 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tableSesiUjianBody" class="divide-y text-sm text-center"></tbody>
+        </table>
+    </div>
+</section>
+
+<!-- SECTION: RUANG UJIAN -->
+<section id="viewRuangUjian" class="hidden view-section">
+    <div class="max-w-2xl bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="font-bold text-lg text-slate-800">Daftar Ruang Ujian</h3>
+            <button onclick="openModalRuangUjian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah Ruang</button>
+        </div>
+        <table class="w-full border-collapse text-center">
+            <thead class="bg-slate-50 border-b">
+                <tr>
+                    <th class="p-3">No</th>
+                    <th class="p-3">Nama Ruang</th>
+                    <th class="p-3">Kode</th>
+                    <th class="p-3">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tableRuangUjianBody" class="divide-y text-sm"></tbody>
+        </table>
+    </div>
+</section>
+
+<!-- SECTION: ATUR RUANG & SESI -->
+<section id="viewAturRuangSesi" class="hidden view-section">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <h3 class="font-bold text-lg text-slate-800">Pengaturan Ruang & Sesi Per Siswa</h3>
+            <div class="flex gap-2">
+                <button onclick="generateRuangSesiOtomatis()" class="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow">Generate Otomatis</button>
+                <button onclick="simpanAturRuangSesi()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow">💾 Simpan Perubahan</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead class="bg-slate-800 text-white text-xs uppercase">
+                    <tr>
+                        <th class="p-3 text-center">No</th>
+                        <th class="p-3">Nama Siswa</th>
+                        <th class="p-3 text-center">Kelas</th>
+                        <th class="p-3 text-center">Pilih Ruang</th>
+                        <th class="p-3 text-center">Pilih Sesi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableAturRuangSesiBody" class="divide-y text-sm"></tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
                 <!-- SECTION LAINNYA DIVISI MINIFIED -->
                 <section id="viewEditorSoal" class="hidden view-section">
     <div class="flex justify-between items-center mb-4">
