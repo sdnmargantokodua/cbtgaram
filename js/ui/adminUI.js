@@ -1,6 +1,7 @@
 import { state } from '../services/store.js';
 import { db, doc, collection, addDoc, updateDoc, deleteDoc, setDoc, initFirebase } from '../services/api.js';
-import { getDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// Baris di bawah ini yang ditambah: orderBy, limit, startAfter
+import { getDoc, getDocs, query, where, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 // Tambahkan baris impor ini untuk memanggil Firebase Auth
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
@@ -903,23 +904,103 @@ window.editJabatanGuru = async (id) => {
 // ==========================================
 // DATA MASTER SISWA
 // ==========================================
-window.loadSiswa = async () => {
-    try {
-        const snap = await getDocs(collection(db, 'master_siswa'));
-        state.masterSiswa = [];
-        snap.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+// ==========================================
+// DATA MASTER SISWA
+// ==========================================
 
-        // Urutkan berdasarkan Kelas terlebih dahulu, lalu Nama
+// --- TAMBAHKAN 3 VARIABEL INI ---
+state.siswaLimit = 50;          // Jumlah data yang diload per halaman
+state.siswaLastDoc = null;      // Menyimpan dokumen terakhir sebagai titik mulai halaman berikutnya
+state.siswaHasMore = true;      // Penanda apakah masih ada sisa data di database
+
+// --- TIMPA FUNGSI loadSiswa LAMA DENGAN INI ---
+window.loadSiswa = async (isLoadMore = false) => {
+    const tb = document.getElementById('tableSiswaBody');
+    const btnLoadMore = document.getElementById('btnLoadMoreSiswa');
+    
+    // 1. Reset tabel jika bukan sedang load more (pemanggilan awal)
+    if (!isLoadMore) {
+        state.masterSiswa = [];
+        state.siswaLastDoc = null;
+        state.siswaHasMore = true;
+        if(tb) tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Memuat data siswa...</td></tr>';
+    }
+
+    // 2. Cek apakah masih ada data. Jika habis, hentikan pencarian.
+    if (!state.siswaHasMore) return;
+
+    // 3. Efek visual tombol loading
+    if (btnLoadMore) btnLoadMore.innerText = "Memuat...";
+
+    try {
+        let q;
+        // 4. Bangun Query Firestore
+        if (state.siswaLastDoc) {
+            // Lanjutkan pencarian dari titik dokumen terakhir
+            q = query(
+                collection(db, 'master_siswa'), 
+                orderBy('nama'), 
+                startAfter(state.siswaLastDoc), 
+                limit(state.siswaLimit)
+            );
+        } else {
+            // Pencarian pertama kali (dari halaman pertama)
+            q = query(
+                collection(db, 'master_siswa'), 
+                orderBy('nama'), 
+                limit(state.siswaLimit)
+            );
+        }
+
+        // 5. Tarik data dari Firestore
+        const snap = await getDocs(q);
+        
+        // 6. Tangani jika database kosong saat pemanggilan pertama
+        if (snap.empty && !isLoadMore) {
+            state.siswaHasMore = false;
+            if(tb) tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data siswa di database.</td></tr>';
+            if(btnLoadMore) btnLoadMore.classList.add('hidden');
+            return;
+        }
+
+        // 7. Simpan dokumen terakhir untuk pijakan 'Load More' selanjutnya
+        state.siswaLastDoc = snap.docs[snap.docs.length - 1];
+
+        // 8. Ekstrak data dan masukkan ke memori sementara (state)
+        snap.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
+        
+        // --- MODIFIKASI PENGURUTAN (Karena order dari server hanya nama, kita urutkan ulang di sisi klien agar kelasnya rapi) ---
         state.masterSiswa.sort((a,b) => {
             if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
             return (a.kelas || '').localeCompare(b.kelas || '');
         });
 
-        window.renderTableSiswa();
-    } catch(e) {
+        // 9. Panggil fungsi render tabel
+        window.renderTableSiswa(); 
+
+        // 10. Evaluasi sisa data
+        // Jika data yang ditarik jumlahnya KURANG DARI limit (50), berarti data sudah habis ditarik semua.
+        if (snap.docs.length < state.siswaLimit) {
+            state.siswaHasMore = false;
+            if(btnLoadMore) btnLoadMore.classList.add('hidden');
+        } else {
+            // Jika datanya pas 50, berarti kemungkinan masih ada data ke-51 dst di belakangnya.
+            if(btnLoadMore) {
+                btnLoadMore.classList.remove('hidden');
+                btnLoadMore.innerHTML = "⬇️ Muat Lebih Banyak Siswa";
+            }
+        }
+
+    } catch (e) {
         console.error("Error load siswa:", e);
+        if(tb && !isLoadMore) tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-red-500 font-bold">Gagal memuat data. Periksa Index Firestore Anda.</td></tr>';
+    } finally {
+        // Kembalikan tulisan tombol
+        if(btnLoadMore && state.siswaHasMore) btnLoadMore.innerHTML = "⬇️ Muat Lebih Banyak Siswa";
     }
 };
+
+// ... (kode `window.renderTableSiswa`, `window.openModalSiswa`, dll. biarkan tetap sama) ...
 
 window.renderTableSiswa = () => {
     const tb = document.getElementById('tableSiswaBody');
