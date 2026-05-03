@@ -3048,6 +3048,9 @@ window.loadDaftarButirSoal = async () => {
 // ==========================================
 // 1. FUNGSI TAMBAH BUTIR SOAL BARU
 // ==========================================
+// ==========================================
+// 1. FUNGSI TAMBAH BUTIR SOAL BARU
+// ==========================================
 window.tambahButirSoalBaru = () => {
     // 1. Munculkan panel form soal (yang tadinya tersembunyi)
     const panel = document.getElementById('panelFormSoal');
@@ -3073,6 +3076,73 @@ window.tambahButirSoalBaru = () => {
     // 5. Bersihkan area preview gambar/soal jika ada
     const preview = document.getElementById('previewSoalContainer');
     if (preview) preview.innerHTML = '';
+};
+
+// ==========================================
+// 2. FUNGSI SIMPAN BUTIR SOAL
+// ==========================================
+window.simpanButirSoal = async () => {
+    try {
+        // 🛡️ Gunakan tanda tanya (?.) agar tidak error jika elemen tidak ditemukan di HTML
+        const pertanyaan = document.getElementById('editorPertanyaan')?.value || '';
+        const tipe = document.getElementById('editorTipeSoal')?.value || 'PG';
+        const opsiA = document.getElementById('opsiA')?.value || '';
+        const opsiB = document.getElementById('opsiB')?.value || '';
+        const opsiC = document.getElementById('opsiC')?.value || '';
+        const opsiD = document.getElementById('opsiD')?.value || '';
+        const kunci = document.getElementById('editorKunci')?.value || '';
+
+        // Validasi: Pertanyaan tidak boleh kosong
+        if (!pertanyaan.trim()) {
+            alert('Gagal: Kolom Pertanyaan masih kosong!');
+            return;
+        }
+
+        const btnSimpan = document.getElementById('btnSimpanButir');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan Soal';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳ Menyimpan...';
+            btnSimpan.disabled = true;
+        }
+
+        // Siapkan data yang akan dikirim ke database
+        const payload = {
+            pertanyaan: pertanyaan,
+            tipe: tipe,
+            opsiA: opsiA,
+            opsiB: opsiB,
+            opsiC: opsiC,
+            opsiD: opsiD,
+            kunci: kunci.toUpperCase().trim()
+        };
+
+        // --- DI SINI TEMPAT LOGIKA FIREBASE BAPAK ---
+        // (Contoh: await addDoc(collection(db, ...), payload) )
+        console.log("Data siap disimpan ke database:", payload);
+        // ---------------------------------------------
+
+        alert("✅ Butir soal berhasil disimpan!");
+        
+        // Kembalikan tombol ke keadaan semula
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        // Kosongkan form kembali setelah berhasil simpan agar siap untuk soal berikutnya
+        window.tambahButirSoalBaru();
+
+    } catch (error) {
+        console.error("Gagal simpan butir soal:", error);
+        alert("Terjadi kesalahan: " + error.message);
+        
+        // Kembalikan tombol jika gagal
+        const btnSimpan = document.getElementById('btnSimpanButir');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan Soal';
+            btnSimpan.disabled = false;
+        }
+    }
 };
 
 // ==========================================
