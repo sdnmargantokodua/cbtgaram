@@ -5696,3 +5696,109 @@ window.simpanPengaturanToken = () => {
     // Jika Bapak menggunakan tabel Firebase khusus untuk pengaturan ujian,
     // kode updateDoc bisa ditambahkan di sini nantinya.
 };
+
+// ==========================================
+// 1. FUNGSI RENDER KE TABEL BANK SOAL
+// ==========================================
+window.renderBankSoal = () => {
+    const tb = document.getElementById('tableBankSoalBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+    
+    if (!state.masterSoal || state.masterSoal.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada paket soal. Silakan klik + Buat Paket Soal.</td></tr>';
+        return;
+    }
+    
+    state.masterSoal.forEach((s, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i + 1}</td>
+                <td class="p-3 border-r font-bold text-slate-800 uppercase">${s.mapel || '-'}</td>
+                <td class="p-3 text-center border-r font-bold text-slate-600">${s.kelas || '-'}</td>
+                <td class="p-3 text-center border-r font-bold text-slate-600">${s.jenis_ujian || '-'}</td>
+                <td class="p-3 text-center border-r text-slate-600 uppercase">${s.guru || '-'}</td>
+                <td class="p-3 text-center space-x-1">
+                    <!-- Tombol Edit Atribut Dasar -->
+                    <button onclick="editBankSoal('${s.id}')" class="text-amber-500 hover:text-amber-600 px-1 transition text-lg" title="Edit Info Paket">⚙️</button>
+                    
+                    <!-- Tombol Masuk ke Editor Soal Bapak -->
+                    <button onclick="bukaEditorSoal('${s.id}', '${s.mapel}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded shadow-sm text-xs font-bold transition">📝 Isi Soal</button>
+                </td>
+            </tr>
+        `;
+    });
+};
+
+// ==========================================
+// 2. FUNGSI MANAJEMEN MODAL
+// ==========================================
+window.openModalBankSoal = (id = '', mapel = '', kelas = '', jenis = '', guru = '') => {
+    const elId = document.getElementById('bankSoalId');
+    if (elId) elId.value = id;
+    if (document.getElementById('inputSoalMapel')) document.getElementById('inputSoalMapel').value = mapel;
+    if (document.getElementById('inputSoalKelas')) document.getElementById('inputSoalKelas').value = kelas;
+    if (document.getElementById('inputSoalJenis')) document.getElementById('inputSoalJenis').value = jenis;
+    if (document.getElementById('inputSoalGuru')) document.getElementById('inputSoalGuru').value = guru;
+    
+    const modal = document.getElementById('modalBankSoal');
+    if (modal) modal.classList.remove('hidden');
+};
+
+window.editBankSoal = (id) => {
+    const soal = state.masterSoal.find(s => s.id === id);
+    if (soal) {
+        window.openModalBankSoal(soal.id, soal.mapel, soal.kelas, soal.jenis_ujian, soal.guru);
+    }
+};
+
+window.simpanBankSoal = async () => {
+    try {
+        const id = document.getElementById('bankSoalId')?.value;
+        const mapel = document.getElementById('inputSoalMapel')?.value.trim();
+        const kelas = document.getElementById('inputSoalKelas')?.value.trim();
+        const jenis = document.getElementById('inputSoalJenis')?.value.trim();
+        const guru = document.getElementById('inputSoalGuru')?.value.trim();
+
+        if (!mapel) return alert('Gagal: Mata Pelajaran wajib diisi!');
+
+        const btnSimpan = document.querySelector('#modalBankSoal button[onclick="simpanBankSoal()"]');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan Paket';
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳...'; btnSimpan.disabled = true; }
+
+        const payload = { 
+            mapel: mapel.toUpperCase(), 
+            kelas: kelas.toUpperCase(), 
+            jenis_ujian: jenis.toUpperCase(), 
+            guru: guru.toUpperCase() 
+        };
+
+        if (id) {
+            await updateDoc(doc(db, 'master_soal', id), payload);
+        } else {
+            await addDoc(collection(db, 'master_soal'), payload);
+        }
+
+        window.closeModal('modalBankSoal');
+        if (typeof window.loadBankSoal === 'function') window.loadBankSoal();
+        
+        if (btnSimpan) { btnSimpan.innerHTML = teksAsli; btnSimpan.disabled = false; }
+    } catch (e) {
+        console.error("Gagal simpan bank soal:", e);
+        alert("Gagal menyimpan data: " + e.message);
+    }
+};
+
+// ==========================================
+// 3. JEMBATAN MENUJU EDITOR SOAL
+// ==========================================
+window.bukaEditorSoal = (idPaket, namaMapel) => {
+    // 1. Ganti tampilan ke halaman Editor Soal
+    window.switchTab('viewEditorSoal', 'Editor Soal');
+    
+    // 2. Ubah judul di Editor agar sesuai dengan Mapel yang dipilih
+    const header = document.getElementById('headerEditorSoal');
+    if (header) {
+        header.innerText = `Editor Soal: ${namaMapel || 'Mata Pelajaran'}`;
+    }
+};
