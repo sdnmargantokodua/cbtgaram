@@ -2197,18 +2197,60 @@ window.renderDaftarButirSoal = () => {
     });
 };
 
+window.ubahModeKunci = () => {
+    const tipe = document.getElementById('editorTipeSoal')?.value || 'PG';
+    
+    // 1. Sembunyikan semua jenis input kunci
+    document.querySelectorAll('.kunci-input').forEach(el => el.classList.add('hidden'));
+    
+    const panelOpsi = document.getElementById('panelOpsiJawaban');
+    const barisC = document.getElementById('barisOpsiC');
+    const barisD = document.getElementById('barisOpsiD');
+
+    // 2. Munculkan Input Kunci & Opsi sesuai Tipe Soal
+    if (tipe === 'PG') {
+        document.getElementById('kunciPG').classList.remove('hidden');
+        panelOpsi.classList.remove('hidden');
+        if(barisC) barisC.classList.remove('hidden');
+        if(barisD) barisD.classList.remove('hidden');
+    } 
+    else if (tipe === 'PGK') {
+        document.getElementById('kunciPGK').classList.remove('hidden');
+        panelOpsi.classList.remove('hidden');
+        if(barisC) barisC.classList.remove('hidden');
+        if(barisD) barisD.classList.remove('hidden');
+    } 
+    else if (tipe === 'BS') {
+        document.getElementById('kunciBS').classList.remove('hidden');
+        panelOpsi.classList.remove('hidden');
+        // Benar/Salah cuma butuh Opsi A dan B
+        if(barisC) barisC.classList.add('hidden');
+        if(barisD) barisD.classList.add('hidden');
+    } 
+    else { // ISIAN & URAIAN
+        document.getElementById('kunciTeks').classList.remove('hidden');
+        // Sembunyikan seluruh panel opsi (A,B,C,D) karena Isian/Uraian tidak butuh opsi
+        panelOpsi.classList.add('hidden');
+    }
+};
+
 window.tambahButirSoalBaru = () => {
     const panel = document.getElementById('panelFormSoal');
     if (panel) panel.classList.remove('hidden');
 
-    const listInput = ['editorPertanyaan', 'opsiA', 'opsiB', 'opsiC', 'opsiD', 'editorKunci'];
-    listInput.forEach(id => {
+    // Bersihkan Isian Teks
+    ['editorPertanyaan', 'opsiA', 'opsiB', 'opsiC', 'opsiD', 'kunciPG', 'kunciBS', 'kunciTeks'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+    // Bersihkan Checkbox PGK
+    document.querySelectorAll('#kunciPGK input[type="checkbox"]').forEach(cb => cb.checked = false);
 
     const elTipe = document.getElementById('editorTipeSoal');
-    if (elTipe) elTipe.value = 'PG';
+    if (elTipe) {
+        elTipe.value = 'PG';
+        window.ubahModeKunci(); // Jalankan pengatur layar
+    }
 
     window.state.sedangEditId = null; 
 
@@ -2219,8 +2261,8 @@ window.tambahButirSoalBaru = () => {
     }
 
     const labelNo = document.getElementById('labelNomorSoal');
-    if (window.state.butirSoalAktif) {
-        if (labelNo) labelNo.innerText = `Soal Baru (Nomor ${window.state.butirSoalAktif.length + 1})`;
+    if (window.state.butirSoalAktif && labelNo) {
+        labelNo.innerText = `Soal Baru (Nomor ${window.state.butirSoalAktif.length + 1})`;
     }
 
     const preview = document.getElementById('previewSoalContainer');
@@ -2233,13 +2275,29 @@ window.simpanButirSoal = async () => {
     try {
         const pertanyaan = document.getElementById('editorPertanyaan')?.value || '';
         const tipe = document.getElementById('editorTipeSoal')?.value || 'PG';
-        const opsiA = document.getElementById('opsiA')?.value || '';
-        const opsiB = document.getElementById('opsiB')?.value || '';
-        const opsiC = document.getElementById('opsiC')?.value || '';
-        const opsiD = document.getElementById('opsiD')?.value || '';
-        const kunci = document.getElementById('editorKunci')?.value || '';
+        
+        // Baca Opsi (Ambil data, kosongkan kalau panelnya disembunyikan)
+        const isOpsiHidden = document.getElementById('panelOpsiJawaban').classList.contains('hidden');
+        const opsiA = !isOpsiHidden ? (document.getElementById('opsiA')?.value || '') : '';
+        const opsiB = !isOpsiHidden ? (document.getElementById('opsiB')?.value || '') : '';
+        const opsiC = !isOpsiHidden && tipe !== 'BS' ? (document.getElementById('opsiC')?.value || '') : '';
+        const opsiD = !isOpsiHidden && tipe !== 'BS' ? (document.getElementById('opsiD')?.value || '') : '';
+
+        // TENTUKAN KUNCI JAWABAN DARI INPUT YANG SESUAI
+        let kunciAkhir = '';
+        if (tipe === 'PG') {
+            kunciAkhir = document.getElementById('kunciPG')?.value || '';
+        } else if (tipe === 'PGK') {
+            const cb = document.querySelectorAll('#kunciPGK input[type="checkbox"]:checked');
+            kunciAkhir = Array.from(cb).map(x => x.value).join(','); // Hasilnya misal: "A,C"
+        } else if (tipe === 'BS') {
+            kunciAkhir = document.getElementById('kunciBS')?.value || '';
+        } else { // ISIAN & URAIAN
+            kunciAkhir = document.getElementById('kunciTeks')?.value || '';
+        }
 
         if (!pertanyaan.trim()) return alert('Gagal: Kolom Pertanyaan masih kosong!');
+        if (!kunciAkhir.trim() && tipe !== 'URAIAN') return alert('Gagal: Kunci Jawaban wajib dipilih/diisi!');
 
         const btnSimpan = document.getElementById('btnSimpanButir');
         if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
@@ -2248,7 +2306,7 @@ window.simpanButirSoal = async () => {
             pertanyaan: pertanyaan,
             tipe: tipe,
             opsi: { A: opsiA, B: opsiB, C: opsiC, D: opsiD }, 
-            kunci: kunci.toUpperCase().trim()
+            kunci: kunciAkhir.toUpperCase().trim()
         };
 
         const bankId = window.state.currentBankSoalId;
@@ -2266,7 +2324,6 @@ window.simpanButirSoal = async () => {
             alert("✅ Butir soal baru berhasil disimpan!");
         }
 
-        // Simpan total soal ke tabel depan
         await updateDoc(doc(db, 'master_bank_soal', bankId), { totalSoal: window.state.butirSoalAktif.length });
 
         window.renderDaftarButirSoal();
@@ -2287,14 +2344,33 @@ window.bukaEditButirSoal = window.editButirSoal = (idSoal) => {
 
     window.state.sedangEditId = idSoal;
 
+    const tipeSoal = soal.tipe || 'PG';
+    if (document.getElementById('editorTipeSoal')) {
+        document.getElementById('editorTipeSoal').value = tipeSoal;
+        window.ubahModeKunci(); // Sesuaikan layar saat data diload
+    }
+    
     if (document.getElementById('editorPertanyaan')) document.getElementById('editorPertanyaan').value = soal.pertanyaan || '';
-    if (document.getElementById('editorTipeSoal')) document.getElementById('editorTipeSoal').value = soal.tipe || 'PG';
     
     if (document.getElementById('opsiA')) document.getElementById('opsiA').value = soal.opsi?.A || soal.opsiA || '';
     if (document.getElementById('opsiB')) document.getElementById('opsiB').value = soal.opsi?.B || soal.opsiB || '';
     if (document.getElementById('opsiC')) document.getElementById('opsiC').value = soal.opsi?.C || soal.opsiC || '';
     if (document.getElementById('opsiD')) document.getElementById('opsiD').value = soal.opsi?.D || soal.opsiD || '';
-    if (document.getElementById('editorKunci')) document.getElementById('editorKunci').value = soal.kunci || '';
+    
+    // MASUKKAN KEMBALI KUNCI JAWABAN KE INPUT YANG SESUAI
+    const kunci = soal.kunci || '';
+    if (tipeSoal === 'PG') {
+        if(document.getElementById('kunciPG')) document.getElementById('kunciPG').value = kunci;
+    } else if (tipeSoal === 'PGK') {
+        const arrKunci = kunci.split(',');
+        document.querySelectorAll('#kunciPGK input[type="checkbox"]').forEach(cb => {
+            cb.checked = arrKunci.includes(cb.value);
+        });
+    } else if (tipeSoal === 'BS') {
+        if(document.getElementById('kunciBS')) document.getElementById('kunciBS').value = kunci;
+    } else {
+        if(document.getElementById('kunciTeks')) document.getElementById('kunciTeks').value = kunci;
+    }
 
     const indexSoal = window.state.butirSoalAktif.findIndex(s => s.id === idSoal);
     const labelNo = document.getElementById('labelNomorSoal');
