@@ -839,80 +839,106 @@
                         </div>
 
                         <!-- Panel Kanan: Form Editor -->
-                        <div class="xl:col-span-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hidden" id="panelFormSoal">
-                            <div class="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center">
-                                <span class="font-bold text-slate-800" id="labelNomorSoal">Soal No. 1</span>
-                                <div class="flex gap-2">
-                                    <select id="editorTipeSoal" class="p-1.5 border rounded text-sm outline-none font-bold text-blue-700">
-                                        <option value="PG">Pilihan Ganda</option>
-                                        <option value="PGK">Ganda Kompleks</option>
-                                        <option value="BS">Benar/Salah</option>
-                                        <option value="ISIAN">Isian Singkat</option>
-                                        <option value="URAIAN">Uraian/Essai</option>
-                                    </select>
-                                </div>
-                            </div>
+                        <!-- Pilih Tipe Soal (Tambahkan onchange) -->
+<div class="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center">
+    <span class="font-bold text-slate-800" id="labelNomorSoal">Soal No. 1</span>
+    <div class="flex gap-2">
+        <select id="editorTipeSoal" onchange="ubahModeKunci()" class="p-1.5 border rounded text-sm outline-none font-bold text-blue-700 cursor-pointer shadow-sm">
+            <option value="PG">Pilihan Ganda</option>
+            <option value="PGK">Ganda Kompleks</option>
+            <option value="BS">Benar/Salah</option>
+            <option value="ISIAN">Isian Singkat</option>
+            <option value="URAIAN">Uraian/Essai</option>
+        </select>
+    </div>
+</div>
 
-                            <div class="p-6 space-y-6">
-                                <!-- Area Pertanyaan -->
-                                <div>
-                                    <div class="flex justify-between items-end mb-2">
-                                        <label class="block text-sm font-bold text-slate-800">Pertanyaan</label>
-                                        <button type="button" onclick="sisipkanGambar('editorPertanyaan')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                                            🖼️ Sisipkan Gambar
-                                        </button>
-                                    </div>
-                                    <textarea id="editorPertanyaan" oninput="updatePreviewSoal()" class="w-full p-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 h-32" placeholder="Ketik pertanyaan..."></textarea>
-                                    
-                                    <div class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-slate-800 shadow-inner">
-                                        <p class="text-[10px] font-bold text-blue-600 uppercase mb-2 border-b border-blue-200 pb-1">Live Preview:</p>
-                                        <div id="previewSoalContainer" class="prose prose-sm max-w-none min-h-[2rem]"></div>
-                                    </div>
-                                </div>
+<div class="p-6 space-y-6">
+    <!-- Area Pertanyaan (Tetap sama) -->
+    <div>
+        <div class="flex justify-between items-end mb-2">
+            <label class="block text-sm font-bold text-slate-800">Pertanyaan</label>
+            <button type="button" onclick="sisipkanGambar('editorPertanyaan')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                🖼️ Sisipkan Gambar
+            </button>
+        </div>
+        <textarea id="editorPertanyaan" oninput="updatePreviewSoal()" class="w-full p-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 h-32" placeholder="Ketik pertanyaan..."></textarea>
+        
+        <div class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-slate-800 shadow-inner">
+            <p class="text-[10px] font-bold text-blue-600 uppercase mb-2 border-b border-blue-200 pb-1">Live Preview:</p>
+            <div id="previewSoalContainer" class="prose prose-sm max-w-none min-h-[2rem]"></div>
+        </div>
+    </div>
 
-                                <!-- Area Opsi Jawaban -->
-                                <div id="panelOpsiJawaban" class="space-y-3 border-t border-slate-100 pt-4">
-                                    <label class="block text-sm font-bold text-slate-800">Opsi Jawaban (Klik 🖼️ untuk gambar)</label>
-                                    
-                                    <div class="flex items-start gap-3">
-                                        <span class="font-bold text-lg mt-2 w-6 text-center">A</span>
-                                        <div class="flex-1 relative">
-                                            <textarea id="opsiA" class="w-full p-2 border rounded h-16 pr-10"></textarea>
-                                            <button type="button" onclick="sisipkanGambar('opsiA')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-start gap-3">
-                                        <span class="font-bold text-lg mt-2 w-6 text-center">B</span>
-                                        <div class="flex-1 relative">
-                                            <textarea id="opsiB" class="w-full p-2 border rounded h-16 pr-10"></textarea>
-                                            <button type="button" onclick="sisipkanGambar('opsiB')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-start gap-3">
-                                        <span class="font-bold text-lg mt-2 w-6 text-center">C</span>
-                                        <div class="flex-1 relative">
-                                            <textarea id="opsiC" class="w-full p-2 border rounded h-16 pr-10"></textarea>
-                                            <button type="button" onclick="sisipkanGambar('opsiC')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-start gap-3">
-                                        <span class="font-bold text-lg mt-2 w-6 text-center">D</span>
-                                        <div class="flex-1 relative">
-                                            <textarea id="opsiD" class="w-full p-2 border rounded h-16 pr-10"></textarea>
-                                            <button type="button" onclick="sisipkanGambar('opsiD')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
-                                        </div>
-                                    </div>
-                                </div>
+    <!-- Area Opsi Jawaban (Tetap sama, tambahkan id untuk dibaca JS) -->
+    <div id="panelOpsiJawaban" class="space-y-3 border-t border-slate-100 pt-4">
+        <label class="block text-sm font-bold text-slate-800">Opsi Jawaban (Klik 🖼️ untuk gambar)</label>
+        
+        <div class="flex items-start gap-3" id="barisOpsiA">
+            <span class="font-bold text-lg mt-2 w-6 text-center">A</span>
+            <div class="flex-1 relative">
+                <textarea id="opsiA" class="w-full p-2 border rounded h-16 pr-10"></textarea>
+                <button type="button" onclick="sisipkanGambar('opsiA')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
+            </div>
+        </div>
+        
+        <div class="flex items-start gap-3" id="barisOpsiB">
+            <span class="font-bold text-lg mt-2 w-6 text-center">B</span>
+            <div class="flex-1 relative">
+                <textarea id="opsiB" class="w-full p-2 border rounded h-16 pr-10"></textarea>
+                <button type="button" onclick="sisipkanGambar('opsiB')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
+            </div>
+        </div>
+        
+        <div class="flex items-start gap-3" id="barisOpsiC">
+            <span class="font-bold text-lg mt-2 w-6 text-center">C</span>
+            <div class="flex-1 relative">
+                <textarea id="opsiC" class="w-full p-2 border rounded h-16 pr-10"></textarea>
+                <button type="button" onclick="sisipkanGambar('opsiC')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
+            </div>
+        </div>
+        
+        <div class="flex items-start gap-3" id="barisOpsiD">
+            <span class="font-bold text-lg mt-2 w-6 text-center">D</span>
+            <div class="flex-1 relative">
+                <textarea id="opsiD" class="w-full p-2 border rounded h-16 pr-10"></textarea>
+                <button type="button" onclick="sisipkanGambar('opsiD')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
+            </div>
+        </div>
+    </div>
 
-                                <!-- Area Kunci Jawaban -->
-                                <div class="border-t border-slate-100 pt-4">
-                                    <label class="block text-sm font-bold text-slate-800 mb-2">Kunci Jawaban</label>
-                                    <input type="text" id="editorKunci" class="w-full p-2 border border-slate-300 rounded uppercase font-bold text-green-700" placeholder="A, B, atau teks">
-                                </div>
-                            </div>
+    <!-- Area Kunci Jawaban CERDAS (Perubahan Utama) -->
+    <div class="border-t border-slate-100 pt-4" id="panelKunciJawaban">
+        <label class="block text-sm font-bold text-slate-800 mb-2">Kunci Jawaban</label>
+        
+        <!-- 1. Kunci PG (Pilihan Ganda Biasa) -->
+        <select id="kunciPG" class="kunci-input w-full p-2 border border-slate-300 rounded font-bold text-green-700 outline-none focus:border-blue-500 cursor-pointer">
+            <option value="">-- Pilih Opsi Benar --</option>
+            <option value="A">Jawaban A</option>
+            <option value="B">Jawaban B</option>
+            <option value="C">Jawaban C</option>
+            <option value="D">Jawaban D</option>
+        </select>
+
+        <!-- 2. Kunci PGK (Bisa pilih lebih dari satu) -->
+        <div id="kunciPGK" class="kunci-input hidden flex gap-5 mt-2 bg-slate-50 p-3 border border-slate-200 rounded">
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-700 text-lg"><input type="checkbox" value="A" class="w-5 h-5 accent-green-600"> A</label>
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-700 text-lg"><input type="checkbox" value="B" class="w-5 h-5 accent-green-600"> B</label>
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-700 text-lg"><input type="checkbox" value="C" class="w-5 h-5 accent-green-600"> C</label>
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-700 text-lg"><input type="checkbox" value="D" class="w-5 h-5 accent-green-600"> D</label>
+        </div>
+
+        <!-- 3. Kunci BS (Benar / Salah) -->
+        <select id="kunciBS" class="kunci-input hidden w-full p-2 border border-slate-300 rounded font-bold text-green-700 outline-none focus:border-blue-500 cursor-pointer">
+            <option value="">-- Pilih Kunci BS --</option>
+            <option value="A">BENAR (Opsi A)</option>
+            <option value="B">SALAH (Opsi B)</option>
+        </select>
+
+        <!-- 4. Kunci Isian / Uraian (Teks Manual) -->
+        <input type="text" id="kunciTeks" class="kunci-input hidden w-full p-2 border border-slate-300 rounded font-bold text-green-700 outline-none focus:border-blue-500 uppercase" placeholder="Ketik kata kunci jawaban yang benar">
+    </div>
+</div>
 
                             <div class="bg-slate-50 p-4 border-t flex justify-between">
                                 <button onclick="hapusButirSoal()" class="text-red-500 font-bold text-sm px-4">🗑️ Hapus Soal</button>
