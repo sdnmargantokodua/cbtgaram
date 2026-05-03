@@ -3045,38 +3045,6 @@ window.loadDaftarButirSoal = async () => {
     } catch(e) { console.error(e); }
 };
 
-// ==========================================
-// 1. FUNGSI TAMBAH BUTIR SOAL BARU
-// ==========================================
-// ==========================================
-// 1. FUNGSI TAMBAH BUTIR SOAL BARU
-// ==========================================
-window.tambahButirSoalBaru = () => {
-    // 1. Munculkan panel form soal (yang tadinya tersembunyi)
-    const panel = document.getElementById('panelFormSoal');
-    if (panel) panel.classList.remove('hidden');
-
-    // 2. Bersihkan semua isian dengan PENGAMAN
-    // Daftar ID elemen HTML yang akan dibersihkan
-    const listInput = ['editorPertanyaan', 'opsiA', 'opsiB', 'opsiC', 'opsiD', 'editorKunci'];
-    
-    listInput.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = ''; // 🛡️ Hanya kosongkan jika elemennya benar-benar ada di HTML
-    });
-
-    // 3. Set default tipe soal ke Pilihan Ganda (PG)
-    const elTipe = document.getElementById('editorTipeSoal');
-    if (elTipe) elTipe.value = 'PG';
-
-    // 4. Update teks judul
-    const labelNo = document.getElementById('labelNomorSoal');
-    if (labelNo) labelNo.innerText = 'Soal Baru';
-    
-    // 5. Bersihkan area preview gambar/soal jika ada
-    const preview = document.getElementById('previewSoalContainer');
-    if (preview) preview.innerHTML = '';
-};
 
 
 window.editButirSoal = (id, noIndex) => {
@@ -5775,34 +5743,76 @@ window.simpanBankSoal = async () => {
     }
 };
 
-// ==========================================
-// 3. JEMBATAN MENUJU EDITOR SOAL
-// ==========================================
-// ==========================================
-// 1. JEMBATAN MENUJU EDITOR SOAL (DIPERBARUI)
-// ==========================================
-window.bukaEditorSoal = (idPaket, namaMapel) => {
-    // 1. Ganti tampilan ke halaman Editor Soal
-    window.switchTab('viewEditorSoal', 'Editor Soal');
-    
-    // 2. Ubah judul di Editor agar sesuai dengan Mapel yang dipilih
-    const header = document.getElementById('headerEditorSoal');
-    if (header) {
-        header.innerText = `Editor Soal: ${namaMapel || 'Mata Pelajaran'}`;
+
+// ============================================================================
+// PAKET LENGKAP MESIN EDITOR SOAL (ANTI ERROR)
+// ============================================================================
+
+// 1. FUNGSI MENAMPILKAN KOTAK NOMOR DI SEBELAH KIRI
+window.renderDaftarButirSoal = () => {
+    const container = document.getElementById('listButirSoal');
+    if (!container) return;
+
+    container.innerHTML = ''; // Kosongkan dulu
+
+    // Pastikan wadah memori aman
+    if (typeof window.state === 'undefined') window.state = {};
+    if (typeof window.state.butirSoalAktif === 'undefined') window.state.butirSoalAktif = [];
+
+    if (window.state.butirSoalAktif.length === 0) {
+        container.innerHTML = '<span class="text-xs text-slate-400 italic w-full text-center mt-4 border-t pt-4">Belum ada soal.</span>';
+        return;
     }
 
-    // 3. 🛡️ PENGAMAN PENTING: Buat wadah memori untuk kotak angka di kiri
-    if (typeof window.state === 'undefined') window.state = {};
-    window.state.butirSoalAktif = []; // Kosongkan setiap kali membuka paket baru
-
-    // 4. Bersihkan dan siapkan layar
-    if (typeof window.renderDaftarButirSoal === 'function') window.renderDaftarButirSoal();
-    if (typeof window.tambahButirSoalBaru === 'function') window.tambahButirSoalBaru();
+    // Cetak kotak angka
+    window.state.butirSoalAktif.forEach((soal, index) => {
+        container.innerHTML += `
+            <button type="button" onclick="bukaEditButirSoal('${soal.id}')" class="w-10 h-10 flex items-center justify-center rounded-lg font-bold text-sm bg-white hover:bg-blue-50 text-slate-700 border border-slate-300 shadow-sm transition">
+                ${index + 1}
+            </button>
+        `;
+    });
 };
 
-// ==========================================
-// 2. FUNGSI SIMPAN BUTIR SOAL (DIPERBARUI)
-// ==========================================
+// 2. FUNGSI MEMBUKA EDITOR SOAL DARI TABEL BANK SOAL
+window.bukaEditorSoal = (idPaket, namaMapel) => {
+    window.switchTab('viewEditorSoal', 'Editor Soal');
+    
+    const header = document.getElementById('headerEditorSoal');
+    if (header) header.innerText = `Editor Soal: ${namaMapel || 'Mata Pelajaran'}`;
+
+    // Kosongkan layar dan memori tiap buka paket soal baru
+    if (typeof window.state === 'undefined') window.state = {};
+    window.state.butirSoalAktif = []; 
+    
+    window.renderDaftarButirSoal();
+    window.tambahButirSoalBaru();
+};
+
+// 3. FUNGSI MEMBERSIHKAN LAYAR TENGAH UNTUK SOAL BARU
+window.tambahButirSoalBaru = () => {
+    const panel = document.getElementById('panelFormSoal');
+    if (panel) panel.classList.remove('hidden');
+
+    const listInput = ['editorPertanyaan', 'opsiA', 'opsiB', 'opsiC', 'opsiD', 'editorKunci'];
+    listInput.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    const elTipe = document.getElementById('editorTipeSoal');
+    if (elTipe) elTipe.value = 'PG';
+
+    const labelNo = document.getElementById('labelNomorSoal');
+    if (typeof window.state !== 'undefined' && window.state.butirSoalAktif) {
+        if (labelNo) labelNo.innerText = `Soal No. ${window.state.butirSoalAktif.length + 1}`;
+    }
+
+    const preview = document.getElementById('previewSoalContainer');
+    if (preview) preview.innerHTML = '';
+};
+
+// 4. FUNGSI SIMPAN SOAL
 window.simpanButirSoal = async () => {
     try {
         const pertanyaan = document.getElementById('editorPertanyaan')?.value || '';
@@ -5813,22 +5823,14 @@ window.simpanButirSoal = async () => {
         const opsiD = document.getElementById('opsiD')?.value || '';
         const kunci = document.getElementById('editorKunci')?.value || '';
 
-        // Validasi: Pertanyaan tidak boleh kosong
-        if (!pertanyaan.trim()) {
-            alert('Gagal: Kolom Pertanyaan masih kosong!');
-            return;
-        }
+        if (!pertanyaan.trim()) return alert('Gagal: Kolom Pertanyaan masih kosong!');
 
         const btnSimpan = document.getElementById('btnSimpanButir');
         const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan Soal';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳ Menyimpan...';
-            btnSimpan.disabled = true;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
 
-        // Siapkan data
         const payload = {
-            id: 'soal_' + Date.now(), // Buat ID unik sementara
+            id: 'soal_' + Date.now(),
             pertanyaan: pertanyaan,
             tipe: tipe,
             opsiA: opsiA,
@@ -5838,38 +5840,34 @@ window.simpanButirSoal = async () => {
             kunci: kunci.toUpperCase().trim()
         };
 
-        // 🛡️ PENGAMAN PENTING: Pastikan wadahnya ada sebelum memasukkan data!
+        // Simpan ke Memori Layar
         if (typeof window.state === 'undefined') window.state = {};
         if (typeof window.state.butirSoalAktif === 'undefined') window.state.butirSoalAktif = [];
         
-        // 1. Masukkan data ke memori layar
         window.state.butirSoalAktif.push(payload);
         
-        // 2. Refresh kotak angka di sebelah kiri
-        if (typeof window.renderDaftarButirSoal === 'function') window.renderDaftarButirSoal();
-
-        // 3. (Opsional) Di sini tempat kode Firebase diletakkan nantinya
+        // PANGGIL KEMBALI FUNGSI RENDER AGAR ANGKA MUNCUL DI KIRI
+        window.renderDaftarButirSoal();
 
         alert("✅ Butir soal berhasil disimpan!");
         
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
-
-        // Kosongkan layar tengah agar siap diketik soal selanjutnya
+        if (btnSimpan) { btnSimpan.innerHTML = teksAsli; btnSimpan.disabled = false; }
         window.tambahButirSoalBaru();
 
     } catch (error) {
-        console.error("Gagal simpan butir soal:", error);
+        console.error("Gagal simpan:", error);
         alert("Terjadi kesalahan: " + error.message);
         const btnSimpan = document.getElementById('btnSimpanButir');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan Soal';
-            btnSimpan.disabled = false;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan Soal'; btnSimpan.disabled = false; }
     }
 };
+
+// 5. FUNGSI SAAT MENGKLIK ANGKA SOAL DI KIRI
+window.bukaEditButirSoal = (idSoal) => {
+    alert("Tombol Edit Soal berfungsi! Nanti fitur ini akan menarik data soal kembali ke tengah layar.");
+};
+// ============================================================================
+
 
 // ==========================================
 // FUNGSI SIMPAN PENGUMUMAN
@@ -5894,34 +5892,7 @@ window.simpanPengumuman = async () => {
     }
 };
 
-// ==========================================
-// FUNGSI MENAMPILKAN KOTAK NOMOR SOAL DI KIRI
-// ==========================================
-window.renderDaftarButirSoal = () => {
-    const container = document.getElementById('listButirSoal');
-    if (!container) return;
 
-    container.innerHTML = '';
-
-    // Simulasi wadah penyimpanan sementara untuk butir soal di memori
-    if (typeof state.butirSoalAktif === 'undefined') {
-        state.butirSoalAktif = []; 
-    }
-
-    if (state.butirSoalAktif.length === 0) {
-        container.innerHTML = '<span class="text-xs text-slate-400 italic w-full text-center mt-4">Belum ada soal dibuat.</span>';
-        return;
-    }
-
-    // Buat kotak angka 1, 2, 3... sesuai jumlah soal yang ada
-    state.butirSoalAktif.forEach((soal, index) => {
-        container.innerHTML += `
-            <button onclick="bukaEditButirSoal('${soal.id}')" class="w-10 h-10 flex items-center justify-center rounded-lg font-bold text-sm bg-white hover:bg-blue-50 text-slate-700 border border-slate-300 shadow-sm transition">
-                ${index + 1}
-            </button>
-        `;
-    });
-};
 
 // ==========================================
 // FUNGSI SAAT MENGKLIK KOTAK NOMOR SOAL (EDIT)
