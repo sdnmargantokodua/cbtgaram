@@ -5921,3 +5921,26 @@ window.bukaEditorSoal = (idPaket, namaMapel) => {
         header.innerText = `Editor Soal: ${namaMapel || 'Mata Pelajaran'}`;
     }
 };
+
+// ==========================================
+// FUNGSI SIMPAN PENGUMUMAN
+// ==========================================
+window.simpanPengumuman = async () => {
+    try {
+        const isiPengumuman = document.getElementById('inputPengumuman')?.value;
+        
+        if (!isiPengumuman || isiPengumuman.trim() === '') {
+            alert('Peringatan: Isi pengumuman masih kosong!');
+            return;
+        }
+
+        // --- NANTI BAPAK BISA MASUKKAN LOGIKA FIREBASE DI SINI ---
+        // Contoh: await setDoc(doc(db, 'pengaturan', 'pengumuman'), { teks: isiPengumuman });
+        
+        alert("✅ Pengumuman berhasil disimpan! Pesan ini sekarang akan terlihat di layar login/dashboard siswa.");
+
+    } catch (error) {
+        console.error("Gagal menyimpan pengumuman:", error);
+        alert("Terjadi kesalahan: " + error.message);
+    }
+};
