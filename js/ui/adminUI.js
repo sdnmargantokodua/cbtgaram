@@ -3128,7 +3128,11 @@ window.simpanButirSoal = async () => {
             btnSimpan.innerHTML = teksAsli;
             btnSimpan.disabled = false;
         }
-
+// --- TAMBAHKAN DUA BARIS INI ---
+        // (Simulasi menambahkan data ke memori agar tampil di layar kiri)
+        state.butirSoalAktif.push(payload); 
+        if (typeof window.renderDaftarButirSoal === 'function') window.renderDaftarButirSoal();
+        // -------------------------------
         // Kosongkan form kembali setelah berhasil simpan agar siap untuk soal berikutnya
         window.tambahButirSoalBaru();
 
@@ -5943,4 +5947,41 @@ window.simpanPengumuman = async () => {
         console.error("Gagal menyimpan pengumuman:", error);
         alert("Terjadi kesalahan: " + error.message);
     }
+};
+
+// ==========================================
+// FUNGSI MENAMPILKAN KOTAK NOMOR SOAL DI KIRI
+// ==========================================
+window.renderDaftarButirSoal = () => {
+    const container = document.getElementById('listButirSoal');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // Simulasi wadah penyimpanan sementara untuk butir soal di memori
+    if (typeof state.butirSoalAktif === 'undefined') {
+        state.butirSoalAktif = []; 
+    }
+
+    if (state.butirSoalAktif.length === 0) {
+        container.innerHTML = '<span class="text-xs text-slate-400 italic w-full text-center mt-4">Belum ada soal dibuat.</span>';
+        return;
+    }
+
+    // Buat kotak angka 1, 2, 3... sesuai jumlah soal yang ada
+    state.butirSoalAktif.forEach((soal, index) => {
+        container.innerHTML += `
+            <button onclick="bukaEditButirSoal('${soal.id}')" class="w-10 h-10 flex items-center justify-center rounded-lg font-bold text-sm bg-white hover:bg-blue-50 text-slate-700 border border-slate-300 shadow-sm transition">
+                ${index + 1}
+            </button>
+        `;
+    });
+};
+
+// ==========================================
+// FUNGSI SAAT MENGKLIK KOTAK NOMOR SOAL (EDIT)
+// ==========================================
+window.bukaEditButirSoal = (idSoal) => {
+    alert("Nanti fitur ini akan memuat kembali data soal nomor tersebut ke form tengah untuk diedit.");
+    // Logika tarik data dari Firebase akan ditaruh di sini
 };
