@@ -2814,46 +2814,37 @@ window.simpanTokenSettings = async () => {
 // ==========================================
 // PENGATURAN BANK SOAL
 // ==========================================
+// ==========================================
+// FUNGSI MEMUAT DATA BANK SOAL DARI FIREBASE
+// ==========================================
 window.loadBankSoal = async () => {
     try {
-        // 1. Pastikan data pendukung Dropdown tersedia
-        if (state.masterSubjects.length === 0) {
-            const s1 = await getDocs(collection(db, 'master_subjects'));
-            state.masterSubjects = [];
-            s1.forEach(d => state.masterSubjects.push({id: d.id, ...d.data()}));
-        }
-        if (state.masterGuru.length === 0) {
-            const s2 = await getDocs(collection(db, 'master_guru'));
-            state.masterGuru = [];
-            s2.forEach(d => state.masterGuru.push({id: d.id, ...d.data()}));
-        }
-        if (state.masterKelas.length === 0) {
-            const s3 = await getDocs(collection(db, 'master_kelas'));
-            state.masterKelas = [];
-            s3.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
-        }
+        // 1. PENGAMAN UTAMA: Pastikan wadah datanya (state) sudah dibuat sebagai array kosong
+        if (typeof state === 'undefined') window.state = {};
+        state.masterSoal = []; 
 
-        // 2. Isi Dropdown di Modal Bank Soal
-        const selMapel = document.getElementById('bsMapel');
-        selMapel.innerHTML = '<option value="">Pilih Mapel</option>';
-        state.masterSubjects.forEach(m => selMapel.innerHTML += `<option value="${m.nama}">${m.nama}</option>`);
-
-        const selGuru = document.getElementById('bsGuru');
-        selGuru.innerHTML = '<option value="">Pilih Guru Pengampu</option>';
-        state.masterGuru.forEach(g => selGuru.innerHTML += `<option value="${g.nama}">${g.nama}</option>`);
-
-        const selKelas = document.getElementById('bsKelas');
-        selKelas.innerHTML = '<option value="">Pilih Kelas</option>';
-        state.masterKelas.forEach(k => selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`);
-
-        // 3. Load Data Bank Soal Utama
-        const snap = await getDocs(collection(db, 'master_bank_soal'));
-        state.masterBankSoal = [];
-        snap.forEach(d => state.masterBankSoal.push({id: d.id, ...d.data()}));
+        // 2. Ambil data dari Firebase
+        const snap = await getDocs(collection(db, 'master_soal'));
         
-        window.renderTableBankSoal();
-    } catch(e) {
+        snap.forEach(d => {
+            state.masterSoal.push({ id: d.id, ...d.data() });
+        });
+
+        // 3. Panggil fungsi untuk menampilkan ke layar (Render)
+        // Kita gunakan pengecekan agar tidak error jika nama fungsi render-nya berbeda
+        if (typeof window.renderBankSoal === 'function') {
+            window.renderBankSoal();
+        } else if (typeof window.renderTableSoal === 'function') {
+            window.renderTableSoal();
+        } else if (typeof window.renderGridSoal === 'function') {
+            window.renderGridSoal();
+        } else {
+            console.warn("Fungsi render (penampil) untuk Bank Soal belum ditemukan di file ini.");
+        }
+
+    } catch (e) {
         console.error("Error load bank soal:", e);
+        // Tampilkan pesan error di konsol tapi jangan buat aplikasi macet
     }
 };
 
