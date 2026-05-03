@@ -531,6 +531,35 @@
     </div>
 </section>
 
+<!-- SECTION: DAFTAR BANK SOAL (PAKET UJIAN) -->
+<section id="viewSoal" class="hidden view-section">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Bank Soal (Paket Ujian)</h3>
+            <button onclick="openModalBankSoal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+                + Buat Paket Soal
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse border border-slate-200">
+                <thead class="bg-slate-800 text-white text-sm border-b">
+                    <tr>
+                        <th class="p-3 text-center w-12 border-r border-slate-700">No.</th>
+                        <th class="p-3 border-r border-slate-700">Mata Pelajaran</th>
+                        <th class="p-3 border-r border-slate-700 text-center">Kelas</th>
+                        <th class="p-3 border-r border-slate-700 text-center">Jenis Ujian</th>
+                        <th class="p-3 border-r border-slate-700 text-center">Guru Pembuat</th>
+                        <th class="p-3 text-center w-40">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBankSoalBody" class="divide-y divide-slate-100 text-sm">
+                    <tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
                 <!-- SECTION LAINNYA DIVISI MINIFIED -->
                 <section id="viewEditorSoal" class="hidden view-section">
                     <div class="flex justify-between items-center mb-4"><div><button onclick="switchTab('viewSoal', 'Bank Soal')" class="text-slate-500 hover:text-blue-600 font-bold text-sm flex items-center gap-1 mb-1">⬅ Kembali ke Bank Soal</button><h3 class="text-xl font-black text-slate-800" id="headerEditorSoal">Editor Soal: -</h3></div><button onclick="tambahButirSoalBaru()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-1">+ Tambah Soal</button></div>
@@ -1032,6 +1061,44 @@
         <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
             <button onclick="closeModal('modalPengawas')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
             <button onclick="simpanPengawas()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL BUAT PAKET SOAL -->
+<div id="modalBankSoal" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+            <h3 class="font-bold text-lg text-slate-800">Buat Paket Soal Baru</h3>
+            <button onclick="closeModal('modalBankSoal')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+        </div>
+        
+        <input type="hidden" id="bankSoalId">
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Mata Pelajaran</label>
+                <input type="text" id="inputSoalMapel" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: BAHASA INDONESIA">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kelas</label>
+                    <input type="text" id="inputSoalKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: VI">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Ujian</label>
+                    <input type="text" id="inputSoalJenis" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SAS">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Guru Pembuat</label>
+                <input type="text" id="inputSoalGuru" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Nama Lengkap Guru">
+            </div>
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+            <button onclick="closeModal('modalBankSoal')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+            <button onclick="simpanBankSoal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan Paket</button>
         </div>
     </div>
 </div>
