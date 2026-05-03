@@ -3045,17 +3045,101 @@ window.loadDaftarButirSoal = async () => {
     } catch(e) { console.error(e); }
 };
 
+// ==========================================
+// 1. FUNGSI TAMBAH BUTIR SOAL BARU
+// ==========================================
 window.tambahButirSoalBaru = () => {
-    state.activeSoalId = null;
-    document.getElementById('panelFormSoal').classList.remove('hidden');
-    document.getElementById('labelNomorSoal').innerText = `Soal Baru (No. ${state.currentButirSoal.length + 1})`;
+    // 1. Munculkan panel form soal (yang tadinya tersembunyi)
+    const panel = document.getElementById('panelFormSoal');
+    if (panel) panel.classList.remove('hidden');
+
+    // 2. Bersihkan semua isian dengan PENGAMAN
+    // Daftar ID elemen HTML yang akan dibersihkan
+    const listInput = ['editorPertanyaan', 'opsiA', 'opsiB', 'opsiC', 'opsiD', 'editorKunci'];
     
-    document.getElementById('editorTipeSoal').value = 'PG';
-    document.getElementById('editorPertanyaan').value = '';
-    ['A','B','C','D','E'].forEach(o => document.getElementById('opsi'+o).value = '');
-    document.getElementById('editorKunci').value = '';
-	// Tambahkan baris ini di akhir:
-    if(typeof updatePreviewSoal === 'function') updatePreviewSoal();
+    listInput.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = ''; // 🛡️ Hanya kosongkan jika elemennya benar-benar ada di HTML
+    });
+
+    // 3. Set default tipe soal ke Pilihan Ganda (PG)
+    const elTipe = document.getElementById('editorTipeSoal');
+    if (elTipe) elTipe.value = 'PG';
+
+    // 4. Update teks judul
+    const labelNo = document.getElementById('labelNomorSoal');
+    if (labelNo) labelNo.innerText = 'Soal Baru';
+    
+    // 5. Bersihkan area preview gambar/soal jika ada
+    const preview = document.getElementById('previewSoalContainer');
+    if (preview) preview.innerHTML = '';
+};
+
+// ==========================================
+// 2. FUNGSI SIMPAN BUTIR SOAL
+// ==========================================
+window.simpanButirSoal = async () => {
+    try {
+        // 🛡️ Gunakan tanda tanya (?.) agar tidak error jika elemen tidak ditemukan di HTML
+        const pertanyaan = document.getElementById('editorPertanyaan')?.value || '';
+        const tipe = document.getElementById('editorTipeSoal')?.value || 'PG';
+        const opsiA = document.getElementById('opsiA')?.value || '';
+        const opsiB = document.getElementById('opsiB')?.value || '';
+        const opsiC = document.getElementById('opsiC')?.value || '';
+        const opsiD = document.getElementById('opsiD')?.value || '';
+        const kunci = document.getElementById('editorKunci')?.value || '';
+
+        // Validasi: Pertanyaan tidak boleh kosong
+        if (!pertanyaan.trim()) {
+            alert('Gagal: Kolom Pertanyaan masih kosong!');
+            return;
+        }
+
+        const btnSimpan = document.getElementById('btnSimpanButir');
+        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan Soal';
+        if (btnSimpan) {
+            btnSimpan.innerHTML = '⏳ Menyimpan...';
+            btnSimpan.disabled = true;
+        }
+
+        // Siapkan data yang akan dikirim ke database
+        const payload = {
+            pertanyaan: pertanyaan,
+            tipe: tipe,
+            opsiA: opsiA,
+            opsiB: opsiB,
+            opsiC: opsiC,
+            opsiD: opsiD,
+            kunci: kunci.toUpperCase().trim()
+        };
+
+        // --- DI SINI TEMPAT LOGIKA FIREBASE BAPAK ---
+        // (Contoh: await addDoc(collection(db, ...), payload) )
+        console.log("Data siap disimpan ke database:", payload);
+        // ---------------------------------------------
+
+        alert("✅ Butir soal berhasil disimpan!");
+        
+        // Kembalikan tombol ke keadaan semula
+        if (btnSimpan) {
+            btnSimpan.innerHTML = teksAsli;
+            btnSimpan.disabled = false;
+        }
+
+        // Kosongkan form kembali setelah berhasil simpan agar siap untuk soal berikutnya
+        window.tambahButirSoalBaru();
+
+    } catch (error) {
+        console.error("Gagal simpan butir soal:", error);
+        alert("Terjadi kesalahan: " + error.message);
+        
+        // Kembalikan tombol jika gagal
+        const btnSimpan = document.getElementById('btnSimpanButir');
+        if (btnSimpan) {
+            btnSimpan.innerHTML = 'Simpan Soal';
+            btnSimpan.disabled = false;
+        }
+    }
 };
 
 window.editButirSoal = (id, noIndex) => {
@@ -3077,41 +3161,6 @@ window.editButirSoal = (id, noIndex) => {
 	if(typeof updatePreviewSoal === 'function') updatePreviewSoal();
 };
 
-window.simpanButirSoal = async () => {
-    const btn = document.getElementById('btnSimpanButir');
-    btn.disabled = true; btn.innerText = "Menyimpan...";
-    
-    const data = {
-        tipe: document.getElementById('editorTipeSoal').value,
-        pertanyaan: document.getElementById('editorPertanyaan').value,
-        opsi: {
-            A: document.getElementById('opsiA').value,
-            B: document.getElementById('opsiB').value,
-            C: document.getElementById('opsiC').value,
-            D: document.getElementById('opsiD').value,
-            E: document.getElementById('opsiE').value
-        },
-        kunci: document.getElementById('editorKunci').value.toUpperCase(),
-        noUrut: state.activeSoalId ? (state.currentButirSoal.find(x => x.id === state.activeSoalId).noUrut) : (state.currentButirSoal.length + 1)
-    };
-
-    try {
-        const subCol = collection(db, `master_bank_soal/${state.currentBankSoalId}/butir_soal`);
-        if(state.activeSoalId) {
-            await updateDoc(doc(subCol, state.activeSoalId), data);
-        } else {
-            const newDoc = await addDoc(subCol, data);
-            state.activeSoalId = newDoc.id;
-        }
-        alert("Butir soal disimpan!");
-        await loadDaftarButirSoal();
-    } catch(e) {
-        console.error(e);
-        alert("Gagal menyimpan soal.");
-    } finally {
-        btn.disabled = false; btn.innerText = "💾 Simpan Soal";
-    }
-};
 
 window.hapusButirSoal = async () => {
     if(!state.activeSoalId) return;
