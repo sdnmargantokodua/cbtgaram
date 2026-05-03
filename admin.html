@@ -4,13 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - CBT GARAM</title>
+    
+    <!-- Library Eksternal -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js"></script>
     <script>window.MathJax = { tex: { inlineMath: [['\\(', '\\)']], displayMath: [['$$', '$$']] }, startup: { pageReady: () => { return MathJax.startup.defaultPageReady(); } } };</script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
     <style>
-        ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .kop-surat-preview { border-bottom: 3px solid black; padding-bottom: 10px; margin-bottom: 2px; } .kop-surat-garis-bawah { border-bottom: 1px solid black; margin-bottom: 15px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; } 
+        ::-webkit-scrollbar-track { background: #f1f1f1; } 
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; } 
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .kop-surat-preview { border-bottom: 3px solid black; padding-bottom: 10px; margin-bottom: 2px; } 
+        .kop-surat-garis-bawah { border-bottom: 1px solid black; margin-bottom: 15px; }
+        
         .widget-card { position: relative; overflow: hidden; border-radius: 0.5rem; color: white; padding: 1rem; padding-bottom: 2.5rem; }
         .widget-card .icon { position: absolute; right: -10px; top: 10px; opacity: 0.2; transform: scale(3); pointer-events: none; }
         .widget-card .detail-btn { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.1); padding: 0.25rem; text-align: center; font-size: 0.75rem; font-weight: bold; cursor: pointer; transition: background 0.3s; }
@@ -19,12 +28,17 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex overflow-hidden">
 
+    <!-- ======================================================= -->
     <!-- LOGIN SCREEN -->
+    <!-- ======================================================= -->
     <div id="loginScreen" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-8 text-center">
-            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div>
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
             <h2 class="text-2xl font-bold text-slate-800">Login Admin GARAM</h2>
             <p class="text-slate-500 text-sm mt-2 mb-6">UPTD SDN MARGANTOKO 2</p>
+            
             <form onsubmit="handleLogin(event)">
                 <div class="mb-4 text-left">
                     <label class="block text-sm font-bold text-slate-700 mb-1">Username</label>
@@ -44,17 +58,32 @@
         </div>
     </div>
 
+    <!-- ======================================================= -->
     <!-- MAIN APP SCREEN -->
+    <!-- ======================================================= -->
     <div id="appScreen" class="hidden w-full h-screen flex">
+        
+        <!-- SIDEBAR MENU -->
         <aside id="sidebar" class="bg-slate-900 text-white w-64 flex-shrink-0 flex flex-col transition-all duration-300 absolute md:relative z-50 h-full -translate-x-full md:translate-x-0 overflow-y-auto">
             <div class="p-5 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900 z-10">
-                <div class="flex items-center gap-3"><div class="bg-blue-600 p-1.5 rounded-lg"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477-4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg></div><span class="font-black text-xl tracking-wider text-blue-400">GARAM</span></div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 p-1.5 rounded-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477-4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    </div>
+                    <span class="font-black text-xl tracking-wider text-blue-400">GARAM</span>
+                </div>
                 <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">✖</button>
             </div>
             
             <nav class="flex-1 p-4 space-y-2 pb-24">
-                <button onclick="switchTab('viewDashboard', 'Dashboard'); loadDashboard();" id="btn-viewDashboard" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> Dashboard</button>
-                <button onclick="switchTab('viewPengumuman', 'Pengumuman');" id="btn-viewPengumuman" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg> Pengumuman</button>
+                <button onclick="switchTab('viewDashboard', 'Dashboard'); loadDashboard();" id="btn-viewDashboard" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> 
+                    Dashboard
+                </button>
+                <button onclick="switchTab('viewPengumuman', 'Pengumuman');" id="btn-viewPengumuman" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg> 
+                    Pengumuman
+                </button>
 
                 <!-- DROPDOWN: DATA UMUM -->
                 <div>
@@ -63,13 +92,27 @@
                         <svg id="icon-nav-data-umum" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     <div id="nav-data-umum" class="space-y-1 hidden border-l border-slate-700 ml-3 pl-2">
-                        <button onclick="switchTab('viewTahunPelajaran', 'Tahun & Semester'); loadTahunPelajaran();" id="btn-viewTahunPelajaran" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="2"></path></svg> Tahun Pelajaran</button>
-                        <button onclick="switchTab('viewMataPelajaran', 'Mata Pelajaran'); loadMataPelajaran();" id="btn-viewMataPelajaran" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477-4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-width="2"></path></svg> Mata Pelajaran</button>
-                        <button onclick="switchTab('viewJurusan', 'Data Jurusan'); loadJurusan();" id="btn-viewJurusan" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H5a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-width="2"></path></svg> Jurusan</button>
-                        <button onclick="switchTab('viewKelas', 'Data Kelas / Rombel'); loadKelas();" id="btn-viewKelas" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-width="2"></path></svg> Kelas / Rombel</button>
-                        <button onclick="switchTab('viewEkskul', 'Data Ekstrakurikuler'); loadEkskul();" id="btn-viewEkskul" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" stroke-width="2"></path></svg> Ekstrakurikuler</button>
-                        <button onclick="switchTab('viewGuru', 'Data Master Guru'); loadGuru();" id="btn-viewGuru" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-width="2"></path></svg> Data Guru</button>
-                        <button onclick="switchTab('viewSiswa', 'Data Master Siswa'); loadSiswa();" id="btn-viewSiswa" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2"></path></svg> Data Siswa</button>
+                        <button onclick="switchTab('viewTahunPelajaran', 'Tahun & Semester'); loadTahunPelajaran();" id="btn-viewTahunPelajaran" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="2"></path></svg> Tahun Pelajaran
+                        </button>
+                        <button onclick="switchTab('viewMataPelajaran', 'Mata Pelajaran'); loadMataPelajaran();" id="btn-viewMataPelajaran" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477-4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-width="2"></path></svg> Mata Pelajaran
+                        </button>
+                        <button onclick="switchTab('viewJurusan', 'Data Jurusan'); loadJurusan();" id="btn-viewJurusan" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H5a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-width="2"></path></svg> Jurusan
+                        </button>
+                        <button onclick="switchTab('viewKelas', 'Data Kelas / Rombel'); loadKelas();" id="btn-viewKelas" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-width="2"></path></svg> Kelas / Rombel
+                        </button>
+                        <button onclick="switchTab('viewEkskul', 'Data Ekstrakurikuler'); loadEkskul();" id="btn-viewEkskul" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" stroke-width="2"></path></svg> Ekstrakurikuler
+                        </button>
+                        <button onclick="switchTab('viewGuru', 'Data Master Guru'); loadGuru();" id="btn-viewGuru" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-width="2"></path></svg> Data Guru
+                        </button>
+                        <button onclick="switchTab('viewSiswa', 'Data Master Siswa'); loadSiswa();" id="btn-viewSiswa" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2"></path></svg> Data Siswa
+                        </button>
                     </div>
                 </div>
 
@@ -80,16 +123,36 @@
                         <svg id="icon-nav-data-ujian" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     <div id="nav-data-ujian" class="space-y-1 hidden border-l border-slate-700 ml-3 pl-2">
-                        <button onclick="switchTab('viewJenisUjian', 'Jenis Ujian'); loadJenisUjian();" id="btn-viewJenisUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2"></path></svg> Jenis Ujian</button>
-                        <button onclick="switchTab('viewSesiUjian', 'Sesi Ujian'); loadSesiUjian();" id="btn-viewSesiUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"></path></svg> Sesi Ujian</button>
-                        <button onclick="switchTab('viewRuangUjian', 'Ruang Ujian'); loadRuangUjian();" id="btn-viewRuangUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H5a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-width="2"></path></svg> Ruang Ujian</button>
-                        <button onclick="switchTab('viewAturRuangSesi', 'Atur Ruang dan Sesi'); loadAturRuangSesi();" id="btn-viewAturRuangSesi" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16" stroke-width="2"></path></svg> Atur Ruang & Sesi</button>
-                        <button onclick="switchTab('viewPengawas', 'Atur Pengawas'); loadPengawas();" id="btn-viewPengawas" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Atur Pengawas</button>
-                        <button onclick="switchTab('viewNomorPeserta', 'Nomor Peserta'); loadNomorPeserta();" id="btn-viewNomorPeserta" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" stroke-width="2"></path></svg> Nomor Peserta</button>
-                        <button onclick="switchTab('viewToken', 'Token Ujian'); loadToken();" id="btn-viewToken" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4v-4l5.659-5.659C9.098 10.053 9 9.53 9 9a6 6 0 0112 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Token Ujian</button>
-                        <button onclick="switchTab('viewSoal', 'Bank Soal'); loadBankSoal();" id="btn-viewSoal" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-width="2"></path></svg> Bank Soal</button>
-                        <button onclick="switchTab('viewUjian', 'Jadwal Penilaian'); loadJadwalUjian();" id="btn-viewUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="2"></path></svg> Jadwal Ujian</button>
-                        <button onclick="switchTab('viewAlokasiWaktu', 'Alokasi Waktu'); loadAlokasiWaktu();" id="btn-viewAlokasiWaktu" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"></path></svg> Alokasi Waktu</button>
+                        <button onclick="switchTab('viewJenisUjian', 'Jenis Ujian'); loadJenisUjian();" id="btn-viewJenisUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2"></path></svg> Jenis Ujian
+                        </button>
+                        <button onclick="switchTab('viewSesiUjian', 'Sesi Ujian'); loadSesiUjian();" id="btn-viewSesiUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"></path></svg> Sesi Ujian
+                        </button>
+                        <button onclick="switchTab('viewRuangUjian', 'Ruang Ujian'); loadRuangUjian();" id="btn-viewRuangUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H5a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-width="2"></path></svg> Ruang Ujian
+                        </button>
+                        <button onclick="switchTab('viewAturRuangSesi', 'Atur Ruang dan Sesi'); loadAturRuangSesi();" id="btn-viewAturRuangSesi" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16" stroke-width="2"></path></svg> Atur Ruang & Sesi
+                        </button>
+                        <button onclick="switchTab('viewPengawas', 'Atur Pengawas'); loadPengawas();" id="btn-viewPengawas" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Atur Pengawas
+                        </button>
+                        <button onclick="switchTab('viewNomorPeserta', 'Nomor Peserta'); loadNomorPeserta();" id="btn-viewNomorPeserta" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" stroke-width="2"></path></svg> Nomor Peserta
+                        </button>
+                        <button onclick="switchTab('viewToken', 'Token Ujian'); loadToken();" id="btn-viewToken" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4v-4l5.659-5.659C9.098 10.053 9 9.53 9 9a6 6 0 0112 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Token Ujian
+                        </button>
+                        <button onclick="switchTab('viewSoal', 'Bank Soal'); loadBankSoal();" id="btn-viewSoal" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-width="2"></path></svg> Bank Soal
+                        </button>
+                        <button onclick="switchTab('viewUjian', 'Jadwal Penilaian'); loadJadwalUjian();" id="btn-viewUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-width="2"></path></svg> Jadwal Ujian
+                        </button>
+                        <button onclick="switchTab('viewAlokasiWaktu', 'Alokasi Waktu'); loadAlokasiWaktu();" id="btn-viewAlokasiWaktu" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"></path></svg> Alokasi Waktu
+                        </button>
                     </div>
                 </div>
 
@@ -100,11 +163,21 @@
                         <svg id="icon-nav-pelaksanaan" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     <div id="nav-pelaksanaan" class="space-y-1 hidden border-l border-slate-700 ml-3 pl-2">
-                        <button onclick="switchTab('viewStatusSiswa', 'Status Ujian Siswa'); loadStatusSiswa();" id="btn-viewStatusSiswa" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"></path></svg> Status Siswa</button>
-                        <button onclick="switchTab('viewHasilUjian', 'Hasil Ujian Siswa'); loadHasilUjian();" id="btn-viewHasilUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"></path></svg> Hasil Ujian</button>
-                        <button onclick="switchTab('viewAnalisaSoal', 'Analisa Soal'); loadAnalisaSoal();" id="btn-viewAnalisaSoal" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"></path></svg> Analisa Soal</button>
-                        <button onclick="switchTab('viewRekapNilai', 'Rekap Hasil Penilaian'); loadRekapNilai();" id="btn-viewRekapNilai" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Rekap Nilai</button>
-                        <button onclick="switchTab('viewCetak', 'Cetak Data Penilaian');" id="btn-viewCetak" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" stroke-width="2"></path></svg> Cetak Berkas</button>
+                        <button onclick="switchTab('viewStatusSiswa', 'Status Ujian Siswa'); loadStatusSiswa();" id="btn-viewStatusSiswa" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2"></path></svg> Status Siswa
+                        </button>
+                        <button onclick="switchTab('viewHasilUjian', 'Hasil Ujian Siswa'); loadHasilUjian();" id="btn-viewHasilUjian" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"></path></svg> Hasil Ujian
+                        </button>
+                        <button onclick="switchTab('viewAnalisaSoal', 'Analisa Soal'); loadAnalisaSoal();" id="btn-viewAnalisaSoal" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2"></path></svg> Analisa Soal
+                        </button>
+                        <button onclick="switchTab('viewRekapNilai', 'Rekap Hasil Penilaian'); loadRekapNilai();" id="btn-viewRekapNilai" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Rekap Nilai
+                        </button>
+                        <button onclick="switchTab('viewCetak', 'Cetak Data Penilaian');" id="btn-viewCetak" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" stroke-width="2"></path></svg> Cetak Berkas
+                        </button>
                     </div>
                 </div>
 
@@ -115,10 +188,18 @@
                         <svg id="icon-nav-pengaturan" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     <div id="nav-pengaturan" class="space-y-1 hidden border-l border-slate-700 ml-3 pl-2">
-                        <button onclick="switchTab('viewUserManagement', 'User Management'); loadUserManagement();" id="btn-viewUserManagement" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2"></path></svg> User Management</button>
-                        <button onclick="switchTab('viewBackup', 'Backup & Restore');" id="btn-viewBackup" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Backup & Restore</button>
-                        <button onclick="switchTab('viewBersihkan', 'Bersihkan Data');" id="btn-viewBersihkan" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Bersihkan Data</button>
-                        <button onclick="switchTab('viewProfil', 'Profil Sekolah');" id="btn-viewProfil" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" stroke-width="2"></path></svg> Profil Sekolah</button>
+                        <button onclick="switchTab('viewUserManagement', 'User Management'); loadUserManagement();" id="btn-viewUserManagement" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2"></path></svg> User Management
+                        </button>
+                        <button onclick="switchTab('viewBackup', 'Backup & Restore');" id="btn-viewBackup" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Backup & Restore
+                        </button>
+                        <button onclick="switchTab('viewBersihkan', 'Bersihkan Data');" id="btn-viewBersihkan" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg> Bersihkan Data
+                        </button>
+                        <button onclick="switchTab('viewProfil', 'Profil Sekolah');" id="btn-viewProfil" class="menu-btn w-full flex items-center gap-3 p-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" stroke-width="2"></path></svg> Profil Sekolah
+                        </button>
                     </div>
                 </div>
             </nav>
@@ -131,15 +212,86 @@
             </div>
         </aside>
 
-        <!-- CONTENT AREA -->
+        <!-- ======================================================= -->
+        <!-- CONTENT AREA (MAIN VIEWS) -->
+        <!-- ======================================================= -->
         <div class="flex-1 flex flex-col h-screen overflow-hidden">
             <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b border-slate-200">
-                <div class="flex items-center gap-3"><button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600">☰</button><h2 id="pageTitle" class="text-xl font-bold text-slate-800">Dashboard</h2></div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-600">☰</button>
+                    <h2 id="pageTitle" class="text-xl font-bold text-slate-800">Dashboard</h2>
+                </div>
                 <div id="clockDisplay" class="font-mono font-bold text-slate-600 text-lg hidden md:block">--:--:--</div>
             </header>
 
             <main class="flex-1 overflow-y-auto bg-slate-100 p-4 md:p-8">
-                <div id="loadingIndicator" class="hidden justify-center items-center py-10"><svg class="animate-spin h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
+                
+                <!-- Loading Spinner -->
+                <div id="loadingIndicator" class="hidden justify-center items-center py-10">
+                    <svg class="animate-spin h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+
+                <!-- SECTION: DASHBOARD -->
+                <section id="viewDashboard" class="block view-section space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div class="widget-card bg-blue-500">
+                            <svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg>
+                            <h3 class="text-3xl font-black" id="dashSiswa">0</h3>
+                            <p class="text-sm opacity-90">Siswa</p>
+                            <div class="detail-btn" onclick="switchTab('viewSiswa', 'Data Master Siswa'); loadSiswa();">Detail ➔</div>
+                        </div>
+                        <div class="widget-card bg-teal-500">
+                            <svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path></svg>
+                            <h3 class="text-3xl font-black" id="dashRombel">0</h3>
+                            <p class="text-sm opacity-90">Rombel</p>
+                            <div class="detail-btn" onclick="switchTab('viewKelas', 'Data Kelas / Rombel'); loadKelas();">Detail ➔</div>
+                        </div>
+                        <div class="widget-card bg-emerald-500">
+                            <svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                            <h3 class="text-3xl font-black" id="dashGuru">0</h3>
+                            <p class="text-sm opacity-90">Guru</p>
+                            <div class="detail-btn" onclick="switchTab('viewGuru', 'Data Master Guru'); loadGuru();">Detail ➔</div>
+                        </div>
+                        <div class="widget-card bg-fuchsia-500">
+                            <svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                            <h3 class="text-3xl font-black">0</h3>
+                            <p class="text-sm opacity-90">Wali Kelas</p>
+                            <div class="detail-btn">Detail ➔</div>
+                        </div>
+                        <div class="widget-card bg-green-500">
+                            <svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path></svg>
+                            <h3 class="text-3xl font-black" id="dashMapel">0</h3>
+                            <p class="text-sm opacity-90">Mapel</p>
+                            <div class="detail-btn" onclick="switchTab('viewMataPelajaran', 'Mata Pelajaran'); loadMataPelajaran();">Detail ➔</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION: PENGUMUMAN -->
+                <section id="viewPengumuman" class="hidden view-section">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-4xl mx-auto mt-6">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-4">
+                            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">📢 Pengumuman Siswa</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg text-sm text-blue-800 shadow-inner">
+                                <p><strong>Info:</strong> Teks pengumuman yang Bapak tulis di sini akan langsung tampil di halaman Dashboard Siswa saat mereka berhasil login.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Isi Pengumuman</label>
+                                <textarea id="inputPengumuman" rows="8" class="w-full p-4 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ketik pesan, informasi ujian, atau tata tertib untuk peserta ujian di sini..."></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-8 flex justify-end">
+                            <button onclick="simpanPengumuman()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg shadow-md transition flex items-center gap-2">
+                                💾 Simpan Pengumuman
+                            </button>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- SECTION: PROFIL SEKOLAH -->
                 <section id="viewProfil" class="hidden view-section space-y-6">
@@ -246,6 +398,7 @@
                     </div>
                 </section>
 
+                <!-- SECTION: MATA PELAJARAN -->
                 <section id="viewMataPelajaran" class="hidden view-section bg-white p-6 rounded-xl border border-slate-200">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="font-bold text-lg">Daftar Mata Pelajaran</h3>
@@ -265,6 +418,7 @@
                     </table>
                 </section>
 
+                <!-- SECTION: JURUSAN -->
                 <section id="viewJurusan" class="hidden view-section">
                     <div class="bg-white p-6 rounded-xl border border-slate-200">
                         <div class="flex justify-between items-center mb-4">
@@ -286,38 +440,36 @@
                 </section>
 
                 <!-- SECTION: KELAS / ROMBEL -->
-<section id="viewKelas" class="hidden view-section">
-    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        
-        <!-- BAGIAN HEADER YANG HILANG (KINI SUDAH KEMBALI) -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <h3 class="font-bold text-lg text-slate-800">Data Kelas / Rombel</h3>
-            <button onclick="openModalKelas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
-                + Tambah Kelas
-            </button>
-        </div>
+                <section id="viewKelas" class="hidden view-section">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <h3 class="font-bold text-lg text-slate-800">Data Kelas / Rombel</h3>
+                            <button onclick="openModalKelas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+                                + Tambah Kelas
+                            </button>
+                        </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse border border-slate-200">
-                <thead class="bg-teal-600 text-white text-sm">
-                    <tr>
-                        <th class="p-3 text-center w-12">No.</th>
-                        <th class="p-3 border-l border-teal-500">Nama Kelas</th>
-                        <th class="p-3 text-center border-l border-teal-500">Kode Kelas</th>
-                        <th class="p-3 border-l border-teal-500">Wali Kelas</th>
-                        <th class="p-3 text-center border-l border-teal-500">Jumlah Siswa</th>
-                        <th class="p-3 text-center w-40 border-l border-teal-500">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tableKelasBody" class="divide-y divide-slate-100 text-sm">
-                    <tr>
-                        <td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</section>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse border border-slate-200">
+                                <thead class="bg-teal-600 text-white text-sm">
+                                    <tr>
+                                        <th class="p-3 text-center w-12">No.</th>
+                                        <th class="p-3 border-l border-teal-500">Nama Kelas</th>
+                                        <th class="p-3 text-center border-l border-teal-500">Kode Kelas</th>
+                                        <th class="p-3 border-l border-teal-500">Wali Kelas</th>
+                                        <th class="p-3 text-center border-l border-teal-500">Jumlah Siswa</th>
+                                        <th class="p-3 text-center w-40 border-l border-teal-500">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableKelasBody" class="divide-y divide-slate-100 text-sm">
+                                    <tr>
+                                        <td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- SECTION: DATA EKSTRAKURIKULER -->
                 <section id="viewEkskul" class="hidden view-section">
@@ -333,43 +485,46 @@
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
                                     <thead class="bg-slate-50 text-slate-700 text-sm border-b">
-                                        <tr><th class="p-4 text-center w-12 border-r">No.</th><th class="p-4 border-r">Ekstrakurikuler</th><th class="p-4 border-r text-center">Kode</th><th class="p-4 text-center w-32">Aksi</th></tr>
+                                        <tr>
+                                            <th class="p-4 text-center w-12 border-r">No.</th>
+                                            <th class="p-4 border-r">Ekstrakurikuler</th>
+                                            <th class="p-4 border-r text-center">Kode</th>
+                                            <th class="p-4 text-center w-32">Aksi</th>
+                                        </tr>
                                     </thead>
                                     <tbody id="tableEkskulBody" class="text-sm divide-y divide-slate-100"></tbody>
                                 </table>
                             </div>
                         </div>
                         <div class="xl:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 h-fit">
-                            <div class="p-4 border-b flex justify-between items-center bg-slate-50"><h4 class="font-bold text-slate-800 uppercase text-xs tracking-widest">Tentukan Kelas Ekskul</h4><button onclick="simpanPenempatanEkskul()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded font-bold text-sm shadow transition">💾 Simpan</button></div>
+                            <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                                <h4 class="font-bold text-slate-800 uppercase text-xs tracking-widest">Tentukan Kelas Ekskul</h4>
+                                <button onclick="simpanPenempatanEkskul()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded font-bold text-sm shadow transition">💾 Simpan</button>
+                            </div>
                             <div class="p-4 space-y-3" id="containerPenempatanEkskul"></div>
                         </div>
                     </div>
                 </section>
 
                 <!-- SECTION: MASTER DATA GURU -->
-<section id="viewGuru" class="hidden view-section">
-    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        
-        <!-- HEADER (Lengkap dengan tombol Export yang baru kita buat) -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Master Data Guru</h3>
-            <div class="flex flex-wrap gap-2">
-                <button onclick="openModalGuru()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">+ Tambah Guru</button>
-                <button onclick="importGuru()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📥 Import</button>
-                <button onclick="exportGuru()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📤 Export / Template</button>
-            </div>
-        </div>
+                <section id="viewGuru" class="hidden view-section">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Master Data Guru</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="openModalGuru()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">+ Tambah Guru</button>
+                                <button onclick="importGuru()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📥 Import</button>
+                                <button onclick="exportGuru()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📤 Export / Template</button>
+                            </div>
+                        </div>
 
-        <!-- WADAH GRID KARTU GURU (Pengganti Tabel) -->
-        <div id="gridGuruContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Teks ini akan hilang otomatis saat JavaScript memasukkan kartu guru -->
-            <div class="col-span-full p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200 italic">
-                Memuat data guru...
-            </div>
-        </div>
-
-    </div>
-</section>
+                        <div id="gridGuruContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="col-span-full p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200 italic">
+                                Memuat data guru...
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- SECTION: DATA MASTER SISWA -->
                 <section id="viewSiswa" class="hidden view-section">
@@ -379,29 +534,44 @@
                             <div class="flex flex-wrap gap-2">
                                 <button onclick="openModalSiswa()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">+ Tambah Siswa</button>
                                 <button onclick="triggerImportSiswa()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📥 Import</button>
-								<!-- TOMBOL EXPORT BARU -->
-								<button onclick="exportSiswa()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📤 Export / Template</button>
-							</div>
+                                <button onclick="exportSiswa()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition">📤 Export / Template</button>
+                            </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse border border-slate-200">
                                 <thead class="bg-slate-50 text-slate-700 text-sm border-b">
-                                    <tr><th class="p-3 text-center w-12 border-r">No.</th><th class="p-3 border-r">Identitas Siswa</th><th class="p-3 border-r text-center">NIS / NISN</th><th class="p-3 border-r text-center">Status</th><th class="p-3 text-center w-32">Aksi</th></tr>
+                                    <tr>
+                                        <th class="p-3 text-center w-12 border-r">No.</th>
+                                        <th class="p-3 border-r">Identitas Siswa</th>
+                                        <th class="p-3 border-r text-center">NIS / NISN</th>
+                                        <th class="p-3 border-r text-center">Status</th>
+                                        <th class="p-3 text-center w-32">Aksi</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="tableSiswaBody" class="divide-y divide-slate-100 text-sm"></tbody>
                             </table>
                         </div>
-                        <div class="mt-6 flex justify-center"><button id="btnLoadMoreSiswa" onclick="loadSiswa(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-8 rounded-full border border-slate-300 transition hidden">⬇️ Muat Lebih Banyak Siswa</button></div>
+                        <div class="mt-6 flex justify-center">
+                            <button id="btnLoadMoreSiswa" onclick="loadSiswa(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-8 rounded-full border border-slate-300 transition hidden">⬇️ Muat Lebih Banyak Siswa</button>
+                        </div>
                     </div>
                 </section>
 
                 <!-- SECTION: JENIS UJIAN -->
                 <section id="viewJenisUjian" class="hidden view-section">
                     <div class="max-w-2xl bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <div class="flex justify-between items-center mb-6"><h3 class="font-bold text-lg text-slate-800">Jenis Penilaian / Ujian</h3><button onclick="openModalJenisUjian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah</button></div>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-bold text-lg text-slate-800">Jenis Penilaian / Ujian</h3>
+                            <button onclick="openModalJenisUjian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah</button>
+                        </div>
                         <table class="w-full border-collapse">
                             <thead class="bg-slate-50 border-b">
-                                <tr><th class="p-3 text-center w-16">No</th><th class="p-3">Nama Jenis Ujian</th><th class="p-3 text-center">Kode</th><th class="p-3 text-center">Aksi</th></tr>
+                                <tr>
+                                    <th class="p-3 text-center w-16">No</th>
+                                    <th class="p-3">Nama Jenis Ujian</th>
+                                    <th class="p-3 text-center">Kode</th>
+                                    <th class="p-3 text-center">Aksi</th>
+                                </tr>
                             </thead>
                             <tbody id="tableJenisUjianBody" class="divide-y text-sm"></tbody>
                         </table>
@@ -411,10 +581,18 @@
                 <!-- SECTION: SESI UJIAN -->
                 <section id="viewSesiUjian" class="hidden view-section">
                     <div class="max-w-3xl bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <div class="flex justify-between items-center mb-6"><h3 class="font-bold text-lg text-slate-800">Pengaturan Sesi Ujian</h3><button onclick="openModalSesiUjian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah Sesi</button></div>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-bold text-lg text-slate-800">Pengaturan Sesi Ujian</h3>
+                            <button onclick="openModalSesiUjian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah Sesi</button>
+                        </div>
                         <table class="w-full border-collapse">
                             <thead class="bg-slate-50 border-b">
-                                <tr><th class="p-3 text-center">No</th><th class="p-3">Nama Sesi</th><th class="p-3 text-center">Waktu</th><th class="p-3 text-center">Aksi</th></tr>
+                                <tr>
+                                    <th class="p-3 text-center">No</th>
+                                    <th class="p-3">Nama Sesi</th>
+                                    <th class="p-3 text-center">Waktu</th>
+                                    <th class="p-3 text-center">Aksi</th>
+                                </tr>
                             </thead>
                             <tbody id="tableSesiUjianBody" class="divide-y text-sm text-center"></tbody>
                         </table>
@@ -424,10 +602,18 @@
                 <!-- SECTION: RUANG UJIAN -->
                 <section id="viewRuangUjian" class="hidden view-section">
                     <div class="max-w-2xl bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <div class="flex justify-between items-center mb-6"><h3 class="font-bold text-lg text-slate-800">Daftar Ruang Ujian</h3><button onclick="openModalRuangUjian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah Ruang</button></div>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-bold text-lg text-slate-800">Daftar Ruang Ujian</h3>
+                            <button onclick="openModalRuangUjian()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">+ Tambah Ruang</button>
+                        </div>
                         <table class="w-full border-collapse text-center">
                             <thead class="bg-slate-50 border-b">
-                                <tr><th class="p-3">No</th><th class="p-3">Nama Ruang</th><th class="p-3">Kode</th><th class="p-3">Aksi</th></tr>
+                                <tr>
+                                    <th class="p-3">No</th>
+                                    <th class="p-3">Nama Ruang</th>
+                                    <th class="p-3">Kode</th>
+                                    <th class="p-3">Aksi</th>
+                                </tr>
                             </thead>
                             <tbody id="tableRuangUjianBody" class="divide-y text-sm"></tbody>
                         </table>
@@ -457,7 +643,6 @@
 
                             <!-- 2. Atur Massal Ruang -->
                             <div class="flex-1 min-w-[250px]">
-                                <!-- KODE YANG BARU DITAMBAHKAN -->
                                 <label id="labelBulkAction" class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                                     Gabungkan siswa ke ruang dan sesi:
                                 </label>
@@ -476,7 +661,13 @@
                         <div class="overflow-x-auto">
                             <table class="w-full border-collapse">
                                 <thead class="bg-slate-800 text-white text-xs uppercase">
-                                    <tr><th class="p-3 text-center w-12">No</th><th class="p-3">Nama Siswa</th><th class="p-3 text-center">Kelas</th><th class="p-3 text-center">Pilih Ruang</th><th class="p-3 text-center">Pilih Sesi</th></tr>
+                                    <tr>
+                                        <th class="p-3 text-center w-12">No</th>
+                                        <th class="p-3">Nama Siswa</th>
+                                        <th class="p-3 text-center">Kelas</th>
+                                        <th class="p-3 text-center">Pilih Ruang</th>
+                                        <th class="p-3 text-center">Pilih Sesi</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="tableAturRuangSesiBody" class="divide-y text-sm"></tbody>
                             </table>
@@ -487,646 +678,695 @@
                 <!-- SECTION: NOMOR PESERTA -->
                 <section id="viewNomorPeserta" class="hidden view-section">
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6"><h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Pengaturan Nomor Peserta</h3><div class="flex flex-wrap gap-2"><button onclick="generateNomorPeserta()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2"><span>✨ Generate Otomatis</span></button><button onclick="simpanNomorPeserta()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2"><span>💾 Simpan Perubahan</span></button></div></div>
-                        <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 text-sm text-blue-800"><p><strong>Info:</strong> Nomor peserta digunakan untuk login siswa jika Anda tidak menggunakan NIS/NISN.</p></div>
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Pengaturan Nomor Peserta</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="generateNomorPeserta()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+                                    <span>✨ Generate Otomatis</span>
+                                </button>
+                                <button onclick="simpanNomorPeserta()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+                                    <span>💾 Simpan Perubahan</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 text-sm text-blue-800">
+                            <p><strong>Info:</strong> Nomor peserta digunakan untuk login siswa jika Anda tidak menggunakan NIS/NISN.</p>
+                        </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse border border-slate-200">
                                 <thead class="bg-slate-50 text-slate-700 text-sm border-b">
-                                    <tr><th class="p-3 text-center w-12 border-r">No.</th><th class="p-3 border-r">Nama Siswa</th><th class="p-3 border-r text-center">Kelas</th><th class="p-3 border-r text-center">Nomor Peserta</th><th class="p-3 text-center w-24">Aksi</th></tr>
+                                    <tr>
+                                        <th class="p-3 text-center w-12 border-r">No.</th>
+                                        <th class="p-3 border-r">Nama Siswa</th>
+                                        <th class="p-3 border-r text-center">Kelas</th>
+                                        <th class="p-3 border-r text-center">Nomor Peserta</th>
+                                        <th class="p-3 text-center w-24">Aksi</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="tableNomorPesertaBody" class="divide-y divide-slate-100 text-sm"></tbody>
                             </table>
                         </div>
                     </div>
                 </section>
-				
-				<!-- SECTION: ATUR PENGAWAS UJIAN -->
-<section id="viewPengawas" class="hidden view-section">
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Atur Pengawas Ujian</h3>
-            <div class="flex gap-2">
-                <button onclick="openModalPengawas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
-                    + Tambah Pengawas
-                </button>
-            </div>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse border border-slate-200">
-                <thead class="bg-slate-800 text-white text-sm border-b">
-                    <tr>
-                        <th class="p-3 text-center w-12 border-r border-slate-700">No.</th>
-                        <th class="p-3 border-r border-slate-700">Nama Pengawas</th>
-                        <th class="p-3 border-r border-slate-700 text-center">NIP / Kode</th>
-                        <th class="p-3 border-r border-slate-700 text-center">Username</th>
-                        <th class="p-3 border-r border-slate-700 text-center">Password</th>
-                        <th class="p-3 text-center w-32">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tablePengawasBody" class="divide-y divide-slate-100 text-sm">
-                    <tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</section>
 
-<!-- SECTION: DAFTAR BANK SOAL (PAKET UJIAN) -->
-<section id="viewSoal" class="hidden view-section">
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Bank Soal (Paket Ujian)</h3>
-            <button onclick="openModalBankSoal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
-                + Buat Paket Soal
-            </button>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse border border-slate-200">
-                <thead class="bg-slate-800 text-white text-sm border-b">
-                    <tr>
-                        <th class="p-3 text-center w-12 border-r border-slate-700">No.</th>
-                        <th class="p-3 border-r border-slate-700">Mata Pelajaran</th>
-                        <th class="p-3 border-r border-slate-700 text-center">Kelas</th>
-                        <th class="p-3 border-r border-slate-700 text-center">Jenis Ujian</th>
-                        <th class="p-3 border-r border-slate-700 text-center">Guru Pembuat</th>
-                        <th class="p-3 text-center w-40">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBankSoalBody" class="divide-y divide-slate-100 text-sm">
-                    <tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</section>
-
-                <!-- SECTION LAINNYA DIVISI MINIFIED -->
-                <section id="viewEditorSoal" class="hidden view-section">
-                    <div class="flex justify-between items-center mb-4"><div><button onclick="switchTab('viewSoal', 'Bank Soal')" class="text-slate-500 hover:text-blue-600 font-bold text-sm flex items-center gap-1 mb-1">⬅ Kembali ke Bank Soal</button><h3 class="text-xl font-black text-slate-800" id="headerEditorSoal">Editor Soal: -</h3></div><button onclick="tambahButirSoalBaru()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-1">+ Tambah Soal</button></div>
-                    <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
-                        <div class="xl:col-span-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 max-h-[80vh] overflow-y-auto"><h4 class="font-bold text-slate-700 border-b pb-2 mb-3">Daftar Soal</h4><div id="listButirSoal" class="flex flex-wrap gap-2"></div></div>
-                        <div class="xl:col-span-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hidden" id="panelFormSoal">
-                            <div class="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center"><span class="font-bold text-slate-800" id="labelNomorSoal">Soal No. 1</span><div class="flex gap-2"><select id="editorTipeSoal" class="p-1.5 border rounded text-sm outline-none font-bold text-blue-700"><option value="PG">Pilihan Ganda</option><option value="PGK">Ganda Kompleks</option><option value="BS">Benar/Salah</option><option value="ISIAN">Isian Singkat</option><option value="URAIAN">Uraian/Essai</option></select></div></div>
-                            <div class="p-6 space-y-6">
-                                <div><div class="flex justify-between items-end mb-2"><label class="block text-sm font-bold text-slate-800">Pertanyaan</label><button type="button" onclick="sisipkanGambar('editorPertanyaan')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm">🖼️ Sisipkan Gambar</button></div><textarea id="editorPertanyaan" oninput="updatePreviewSoal()" class="w-full p-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 h-32" placeholder="Ketik pertanyaan..."></textarea><div class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-slate-800 shadow-inner"><p class="text-[10px] font-bold text-blue-600 uppercase mb-2 border-b border-blue-200 pb-1">Live Preview:</p><div id="previewSoalContainer" class="prose prose-sm max-w-none min-h-[2rem]"></div></div></div>
-                                <div id="panelOpsiJawaban" class="space-y-3 border-t border-slate-100 pt-4">
-                                    <label class="block text-sm font-bold text-slate-800">Opsi Jawaban (Klik 🖼️ untuk gambar)</label>
-                                    <div class="flex items-start gap-3"><span class="font-bold text-lg mt-2 w-6 text-center">A</span><div class="flex-1 relative"><textarea id="opsiA" class="w-full p-2 border rounded h-16 pr-10"></textarea><button type="button" onclick="sisipkanGambar('opsiA')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button></div></div>
-                                    <div class="flex items-start gap-3"><span class="font-bold text-lg mt-2 w-6 text-center">B</span><div class="flex-1 relative"><textarea id="opsiB" class="w-full p-2 border rounded h-16 pr-10"></textarea><button type="button" onclick="sisipkanGambar('opsiB')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button></div></div>
-                                    <div class="flex items-start gap-3"><span class="font-bold text-lg mt-2 w-6 text-center">C</span><div class="flex-1 relative"><textarea id="opsiC" class="w-full p-2 border rounded h-16 pr-10"></textarea><button type="button" onclick="sisipkanGambar('opsiC')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button></div></div>
-                                    <div class="flex items-start gap-3"><span class="font-bold text-lg mt-2 w-6 text-center">D</span><div class="flex-1 relative"><textarea id="opsiD" class="w-full p-2 border rounded h-16 pr-10"></textarea><button type="button" onclick="sisipkanGambar('opsiD')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button></div></div>
-                                </div>
-                                <div class="border-t border-slate-100 pt-4"><label class="block text-sm font-bold text-slate-800 mb-2">Kunci Jawaban</label><input type="text" id="editorKunci" class="w-full p-2 border border-slate-300 rounded uppercase font-bold text-green-700" placeholder="A, B, atau teks"></div>
+                <!-- SECTION: TOKEN UJIAN -->
+                <section id="viewToken" class="hidden view-section">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-4">Token Ujian</h2>
+                    <div class="bg-white rounded-lg shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-center p-4 border-b border-slate-200">
+                            <span class="font-semibold text-slate-700">Token</span>
+                            <button onclick="generateToken()" class="bg-[#28a745] hover:bg-[#218838] text-white px-4 py-2 rounded font-bold text-sm shadow transition tracking-wide">
+                                GENERATE NEW TOKEN
+                            </button>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div class="bg-[#e8f5e9] border border-[#c3e6cb] text-[#155724] p-4 rounded">
+                                <ul class="list-disc pl-5 space-y-1 text-sm">
+                                    <li>Jika mengklik <span class="bg-[#28a745] text-white px-1.5 py-0.5 rounded text-[10px] font-bold">GENERATE NEW TOKEN</span> segera beritahukan guru/admin lain yang sedang login agar merefresh token untuk mendapatkan token terbaru.</li>
+                                    <li>Token akan digenerate otomatis jika pilihan <b>Otomatis: YA</b> dan ada jadwal ujian pada hari ini.</li>
+                                    <li>Jika token otomatis maka guru yang sedang login harus merefresh token untuk melihat token terbaru</li>
+                                </ul>
                             </div>
-                            <div class="bg-slate-50 p-4 border-t flex justify-between"><button onclick="hapusButirSoal()" class="text-red-500 font-bold text-sm px-4">🗑️ Hapus Soal</button><button onclick="simpanButirSoal()" id="btnSimpanButir" class="bg-green-600 text-white px-6 py-2 rounded font-bold shadow transition">💾 Simpan Soal</button></div>
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div class="border border-slate-200 p-5 rounded-lg flex flex-col justify-between">
+                                    <div class="grid grid-cols-2 gap-4 mb-6">
+                                        <div>
+                                            <label class="block text-sm font-bold text-slate-800 mb-2">Otomatis ?</label>
+                                            <select id="settingTokenOtomatis" class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 text-sm">
+                                                <option value="YA">YA</option>
+                                                <option value="TIDAK">TIDAK</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-bold text-slate-800 mb-2">Interval (menit)</label>
+                                            <input type="number" id="settingTokenInterval" value="60" class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 text-sm">
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end mt-auto">
+                                        <button onclick="simpanPengaturanToken()" class="bg-[#17a2b8] hover:bg-[#138496] text-white px-6 py-2 rounded font-bold text-sm shadow transition">
+                                            Simpan
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="border border-slate-200 p-8 rounded-lg flex flex-col items-center justify-center text-center min-h-[150px]">
+                                    <span class="text-slate-700 text-sm font-semibold uppercase tracking-wider mb-3">TOKEN SAAT INI</span>
+                                    <h1 id="displayTokenAktif" class="text-5xl font-sans text-slate-800 tracking-widest">------</h1>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+				
+                <!-- SECTION: ATUR PENGAWAS UJIAN -->
+                <section id="viewPengawas" class="hidden view-section">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Atur Pengawas Ujian</h3>
+                            <div class="flex gap-2">
+                                <button onclick="openModalPengawas()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+                                    + Tambah Pengawas
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse border border-slate-200">
+                                <thead class="bg-slate-800 text-white text-sm border-b">
+                                    <tr>
+                                        <th class="p-3 text-center w-12 border-r border-slate-700">No.</th>
+                                        <th class="p-3 border-r border-slate-700">Nama Pengawas</th>
+                                        <th class="p-3 border-r border-slate-700 text-center">NIP / Kode</th>
+                                        <th class="p-3 border-r border-slate-700 text-center">Username</th>
+                                        <th class="p-3 border-r border-slate-700 text-center">Password</th>
+                                        <th class="p-3 text-center w-32">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablePengawasBody" class="divide-y divide-slate-100 text-sm">
+                                    <tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
 
-                <!-- DASHBOARD SECTION -->
-                <section id="viewDashboard" class="block view-section space-y-6">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <div class="widget-card bg-blue-500"><svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg><h3 class="text-3xl font-black" id="dashSiswa">0</h3><p class="text-sm opacity-90">Siswa</p><div class="detail-btn" onclick="switchTab('viewSiswa', 'Data Master Siswa'); loadSiswa();">Detail ➔</div></div>
-                        <div class="widget-card bg-teal-500"><svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path></svg><h3 class="text-3xl font-black" id="dashRombel">0</h3><p class="text-sm opacity-90">Rombel</p><div class="detail-btn" onclick="switchTab('viewKelas', 'Data Kelas / Rombel'); loadKelas();">Detail ➔</div></div>
-                        <div class="widget-card bg-emerald-500"><svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg><h3 class="text-3xl font-black" id="dashGuru">0</h3><p class="text-sm opacity-90">Guru</p><div class="detail-btn" onclick="switchTab('viewGuru', 'Data Master Guru'); loadGuru();">Detail ➔</div></div>
-                        <div class="widget-card bg-fuchsia-500"><svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg><h3 class="text-3xl font-black">0</h3><p class="text-sm opacity-90">Wali Kelas</p><div class="detail-btn">Detail ➔</div></div>
-                        <div class="widget-card bg-green-500"><svg class="icon w-20 h-20" fill="currentColor" viewBox="0 0 20 20"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path></svg><h3 class="text-3xl font-black" id="dashMapel">0</h3><p class="text-sm opacity-90">Mapel</p><div class="detail-btn" onclick="switchTab('viewMataPelajaran', 'Mata Pelajaran'); loadMataPelajaran();">Detail ➔</div></div>
+                <!-- SECTION: DAFTAR BANK SOAL (PAKET UJIAN) -->
+                <section id="viewSoal" class="hidden view-section">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">Bank Soal (Paket Ujian)</h3>
+                            <button onclick="openModalBankSoal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-2">
+                                + Buat Paket Soal
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse border border-slate-200">
+                                <thead class="bg-slate-800 text-white text-sm border-b">
+                                    <tr>
+                                        <th class="p-3 text-center w-12 border-r border-slate-700">No.</th>
+                                        <th class="p-3 border-r border-slate-700">Mata Pelajaran</th>
+                                        <th class="p-3 border-r border-slate-700 text-center">Kelas</th>
+                                        <th class="p-3 border-r border-slate-700 text-center">Jenis Ujian</th>
+                                        <th class="p-3 border-r border-slate-700 text-center">Guru Pembuat</th>
+                                        <th class="p-3 text-center w-40">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBankSoalBody" class="divide-y divide-slate-100 text-sm">
+                                    <tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
-                
-                <!-- SISA SECTION LAINNYA TETAP SAMA SEPERTI KODE ASAL... -->
-				<!-- SECTION: TOKEN UJIAN -->
-<section id="viewToken" class="hidden view-section">
-    <h2 class="text-2xl font-bold text-slate-800 mb-4">Token Ujian</h2>
 
-    <div class="bg-white rounded-lg shadow-sm border border-slate-200">
-        <!-- Header Bar -->
-        <div class="flex justify-between items-center p-4 border-b border-slate-200">
-            <span class="font-semibold text-slate-700">Token</span>
-            <button onclick="generateToken()" class="bg-[#28a745] hover:bg-[#218838] text-white px-4 py-2 rounded font-bold text-sm shadow transition tracking-wide">
-                GENERATE NEW TOKEN
-            </button>
-        </div>
-
-        <div class="p-4 space-y-4">
-            <!-- Kotak Informasi -->
-            <div class="bg-[#e8f5e9] border border-[#c3e6cb] text-[#155724] p-4 rounded">
-                <ul class="list-disc pl-5 space-y-1 text-sm">
-                    <li>Jika mengklik <span class="bg-[#28a745] text-white px-1.5 py-0.5 rounded text-[10px] font-bold">GENERATE NEW TOKEN</span> segera beritahukan guru/admin lain yang sedang login agar merefresh token untuk mendapatkan token terbaru.</li>
-                    <li>Token akan digenerate otomatis jika pilihan <b>Otomatis: YA</b> dan ada jadwal ujian pada hari ini.</li>
-                    <li>Jika token otomatis maka guru yang sedang login harus merefresh token untuk melihat token terbaru</li>
-                </ul>
-            </div>
-
-            <!-- Grid Pengaturan & Display Token -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                
-                <!-- Kotak Pengaturan Kiri -->
-                <div class="border border-slate-200 p-5 rounded-lg flex flex-col justify-between">
-                    <div class="grid grid-cols-2 gap-4 mb-6">
+                <!-- SECTION: EDITOR SOAL (DIPERBAIKI) -->
+                <section id="viewEditorSoal" class="hidden view-section">
+                    <div class="flex justify-between items-center mb-4">
                         <div>
-                            <label class="block text-sm font-bold text-slate-800 mb-2">Otomatis ?</label>
-                            <select id="settingTokenOtomatis" class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 text-sm">
-                                <option value="YA">YA</option>
-                                <option value="TIDAK">TIDAK</option>
-                            </select>
+                            <button onclick="switchTab('viewSoal', 'Bank Soal')" class="text-slate-500 hover:text-blue-600 font-bold text-sm flex items-center gap-1 mb-1">
+                                ⬅ Kembali ke Bank Soal
+                            </button>
+                            <h3 class="text-xl font-black text-slate-800" id="headerEditorSoal">Editor Soal: -</h3>
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-800 mb-2">Interval (menit)</label>
-                            <input type="number" id="settingTokenInterval" value="60" class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500 text-sm">
-                        </div>
-                    </div>
-                    <div class="flex justify-end mt-auto">
-                        <button onclick="simpanPengaturanToken()" class="bg-[#17a2b8] hover:bg-[#138496] text-white px-6 py-2 rounded font-bold text-sm shadow transition">
-                            Simpan
+                        <button onclick="tambahButirSoalBaru()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition flex items-center gap-1">
+                            + Tambah Soal
                         </button>
                     </div>
-                </div>
 
-                <!-- Kotak Tampilan Token Kanan -->
-                <div class="border border-slate-200 p-8 rounded-lg flex flex-col items-center justify-center text-center min-h-[150px]">
-                    <span class="text-slate-700 text-sm font-semibold uppercase tracking-wider mb-3">TOKEN SAAT INI</span>
-                    <h1 id="displayTokenAktif" class="text-5xl font-sans text-slate-800 tracking-widest">------</h1>
-                </div>
+                    <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+                        <!-- Panel Kiri: Daftar Nomor Soal -->
+                        <div class="xl:col-span-1 bg-white rounded-xl shadow-sm border border-slate-200 p-4 max-h-[80vh] overflow-y-auto">
+                            <h4 class="font-bold text-slate-700 border-b pb-2 mb-3">Daftar Soal</h4>
+                            <div id="listButirSoal" class="flex flex-wrap gap-2"></div>
+                        </div>
 
-            </div>
-        </div>
-    </div>
-</section>
+                        <!-- Panel Kanan: Form Editor -->
+                        <div class="xl:col-span-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hidden" id="panelFormSoal">
+                            <div class="bg-slate-50 border-b border-slate-200 p-4 flex justify-between items-center">
+                                <span class="font-bold text-slate-800" id="labelNomorSoal">Soal No. 1</span>
+                                <div class="flex gap-2">
+                                    <select id="editorTipeSoal" class="p-1.5 border rounded text-sm outline-none font-bold text-blue-700">
+                                        <option value="PG">Pilihan Ganda</option>
+                                        <option value="PGK">Ganda Kompleks</option>
+                                        <option value="BS">Benar/Salah</option>
+                                        <option value="ISIAN">Isian Singkat</option>
+                                        <option value="URAIAN">Uraian/Essai</option>
+                                    </select>
+                                </div>
+                            </div>
 
-<!-- SECTION: PENGUMUMAN -->
-<section id="viewPengumuman" class="hidden view-section">
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-4xl mx-auto mt-6">
-        <div class="flex items-center justify-between border-b border-slate-200 pb-4 mb-4">
-            <h3 class="font-bold text-lg text-slate-800 uppercase tracking-wider">📢 Pengumuman Siswa</h3>
-        </div>
-        
-        <div class="space-y-4">
-            <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg text-sm text-blue-800 shadow-inner">
-                <p><strong>Info:</strong> Teks pengumuman yang Bapak tulis di sini akan langsung tampil di halaman Dashboard Siswa saat mereka berhasil login.</p>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-2">Isi Pengumuman</label>
-                <textarea id="inputPengumuman" rows="8" class="w-full p-4 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ketik pesan, informasi ujian, atau tata tertib untuk peserta ujian di sini..."></textarea>
-            </div>
-        </div>
-        
-        <div class="mt-8 flex justify-end">
-            <button onclick="simpanPengumuman()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg shadow-md transition flex items-center gap-2">
-                💾 Simpan Pengumuman
-            </button>
-        </div>
-    </div>
-</section>
+                            <div class="p-6 space-y-6">
+                                <!-- Area Pertanyaan -->
+                                <div>
+                                    <div class="flex justify-between items-end mb-2">
+                                        <label class="block text-sm font-bold text-slate-800">Pertanyaan</label>
+                                        <button type="button" onclick="sisipkanGambar('editorPertanyaan')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                            🖼️ Sisipkan Gambar
+                                        </button>
+                                    </div>
+                                    <textarea id="editorPertanyaan" oninput="updatePreviewSoal()" class="w-full p-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 h-32" placeholder="Ketik pertanyaan..."></textarea>
+                                    
+                                    <div class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-slate-800 shadow-inner">
+                                        <p class="text-[10px] font-bold text-blue-600 uppercase mb-2 border-b border-blue-200 pb-1">Live Preview:</p>
+                                        <div id="previewSoalContainer" class="prose prose-sm max-w-none min-h-[2rem]"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Area Opsi Jawaban -->
+                                <div id="panelOpsiJawaban" class="space-y-3 border-t border-slate-100 pt-4">
+                                    <label class="block text-sm font-bold text-slate-800">Opsi Jawaban (Klik 🖼️ untuk gambar)</label>
+                                    
+                                    <div class="flex items-start gap-3">
+                                        <span class="font-bold text-lg mt-2 w-6 text-center">A</span>
+                                        <div class="flex-1 relative">
+                                            <textarea id="opsiA" class="w-full p-2 border rounded h-16 pr-10"></textarea>
+                                            <button type="button" onclick="sisipkanGambar('opsiA')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start gap-3">
+                                        <span class="font-bold text-lg mt-2 w-6 text-center">B</span>
+                                        <div class="flex-1 relative">
+                                            <textarea id="opsiB" class="w-full p-2 border rounded h-16 pr-10"></textarea>
+                                            <button type="button" onclick="sisipkanGambar('opsiB')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start gap-3">
+                                        <span class="font-bold text-lg mt-2 w-6 text-center">C</span>
+                                        <div class="flex-1 relative">
+                                            <textarea id="opsiC" class="w-full p-2 border rounded h-16 pr-10"></textarea>
+                                            <button type="button" onclick="sisipkanGambar('opsiC')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start gap-3">
+                                        <span class="font-bold text-lg mt-2 w-6 text-center">D</span>
+                                        <div class="flex-1 relative">
+                                            <textarea id="opsiD" class="w-full p-2 border rounded h-16 pr-10"></textarea>
+                                            <button type="button" onclick="sisipkanGambar('opsiD')" class="absolute top-2 right-2 p-1.5 bg-slate-100 rounded">🖼️</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Area Kunci Jawaban -->
+                                <div class="border-t border-slate-100 pt-4">
+                                    <label class="block text-sm font-bold text-slate-800 mb-2">Kunci Jawaban</label>
+                                    <input type="text" id="editorKunci" class="w-full p-2 border border-slate-300 rounded uppercase font-bold text-green-700" placeholder="A, B, atau teks">
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-50 p-4 border-t flex justify-between">
+                                <button onclick="hapusButirSoal()" class="text-red-500 font-bold text-sm px-4">🗑️ Hapus Soal</button>
+                                <button onclick="simpanButirSoal()" id="btnSimpanButir" class="bg-green-600 text-white px-6 py-2 rounded font-bold shadow transition">💾 Simpan Soal</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ======================================================= -->
+                <!-- TEMPAT UNTUK SECTION LAINNYA (UJIAN, ALOKASI WAKTU, DLL) -->
+                <!-- Silakan salin kembali kode section asli Bapak di bawah ini -->
+                <!-- ======================================================= -->
+                
+                <!-- SISA SECTION LAINNYA TETAP SAMA SEPERTI KODE ASAL... -->
 
 
             </main>
         </div>
     </div>
 
-
-
-    <!-- SEMUA MODALS TETAP DI SINI... -->
-	<!-- MODAL TAHUN PELAJARAN -->
-<div id="modalTahunPelajaran" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Form Tahun Pelajaran</h3>
-            <button onclick="closeModal('modalTahunPelajaran')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <input type="hidden" id="tahunId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Tahun Pelajaran</label>
-                <input type="text" id="inputNamaTahun" class="w-full p-2 border border-slate-300 rounded outline-none uppercase focus:border-blue-500" placeholder="Contoh: 2025/2026">
+    <!-- ======================================================= -->
+    <!-- AREA MODAL (POP-UP) -->
+    <!-- ======================================================= -->
+    
+    <!-- MODAL TAHUN PELAJARAN -->
+    <div id="modalTahunPelajaran" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Form Tahun Pelajaran</h3>
+                <button onclick="closeModal('modalTahunPelajaran')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
             </div>
-            <!-- Elemen ini yang kemungkinan dicari oleh JavaScript Bapak -->
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Status</label>
-                <select id="inputStatusTahun" class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500">
-                    <option value="Aktif">Aktif</option>
-                    <option value="Tidak Aktif">Tidak Aktif</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalTahunPelajaran')" class="px-5 py-2 border border-slate-300 rounded-lg font-bold text-slate-600 hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanTahunPelajaran()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL MATA PELAJARAN -->
-<div id="modalMataPelajaran" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Data Mata Pelajaran</h3>
-            <button onclick="closeModal('modalMataPelajaran')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <input type="hidden" id="mapelId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Mapel</label>
-                <input type="text" id="inputNamaMapel" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: MATEMATIKA">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Kode Mapel</label>
-                <input type="text" id="inputKodeMapel" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: MTK">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Kelompok</label>
-                <select id="inputKelompokMapel" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
-                    <option value="Kelompok A (Wajib)">Kelompok A (Wajib)</option>
-                    <option value="Kelompok B (Muatan Lokal)">Kelompok B (Muatan Lokal)</option>
-                </select>
-            </div>
-            <div class="flex items-center gap-2 pt-2">
-                <input type="checkbox" id="inputStatusMapel" class="w-4 h-4 accent-blue-600" checked> 
-                <label for="inputStatusMapel" class="text-xs font-bold text-slate-700 cursor-pointer">Mapel Aktif</label>
-            </div>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalMataPelajaran')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanMapel()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DATA JURUSAN -->
-<div id="modalJurusan" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Data Jurusan</h3>
-            <button onclick="closeModal('modalJurusan')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <!-- ID PENTING untuk JS -->
-        <input type="hidden" id="jurusanId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Kode Jurusan</label>
-                <input type="text" id="inputKodeJurusan" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: IPA / UMUM">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Jurusan</label>
-                <input type="text" id="inputNamaJurusan" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: ILMU PENGETAHUAN ALAM">
-            </div>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalJurusan')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanJurusan()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DATA KELAS / ROMBEL -->
-<div id="modalKelas" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Data Kelas / Rombel</h3>
-            <button onclick="closeModal('modalKelas')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <!-- ID PENTING untuk JavaScript -->
-        <input type="hidden" id="kelasId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Kelas</label>
-                <input type="text" id="inputNamaKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: VI-A">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Kode Kelas</label>
-                <input type="text" id="inputKodeKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: 6A">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Wali Kelas</label>
-                <input type="text" id="inputWaliKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: NAMA GURU, S.Pd">
-            </div>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalKelas')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanKelas()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DATA EKSTRAKURIKULER -->
-<div id="modalEkskul" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Data Ekstrakurikuler</h3>
-            <button onclick="closeModal('modalEkskul')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <!-- ID PENTING untuk JavaScript -->
-        <input type="hidden" id="ekskulId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Ekstrakurikuler</label>
-                <input type="text" id="inputNamaEkskul" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: PRAMUKA">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Kode Ekskul</label>
-                <input type="text" id="inputKodeEkskul" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: PRMK">
-            </div>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalEkskul')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanEkskul()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DATA MASTER GURU -->
-<div id="modalGuru" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Form Data Master Guru</h3>
-            <button onclick="closeModal('modalGuru')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <!-- ID PENTING untuk JavaScript -->
-        <input type="hidden" id="guruId">
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">NIP / NUPTK</label>
-                <input type="text" id="guruNip" class="w-full p-2 border border-slate-300 rounded-lg outline-none font-mono tracking-wider focus:border-blue-500" placeholder="Kosongkan jika tidak ada">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Kode Guru</label>
-                <input type="text" id="guruKode" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: GR01">
-            </div>
-        </div>
-        
-        <div class="mb-3">
-            <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Guru</label>
-            <input type="text" id="guruNama" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: NAMA GURU, S.Pd.">
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Username Login</label>
-                <input type="text" id="guruUsername" class="w-full p-2 border border-slate-300 rounded-lg outline-none lowercase focus:border-blue-500" placeholder="Contoh: guru01">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Password Login</label>
-                <input type="text" id="guruPassword" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="••••••••">
-            </div>
-        </div>
-        
-        <div class="flex items-center gap-2 mb-2">
-            <input type="checkbox" id="guruStatus" class="w-4 h-4 accent-blue-600" checked>
-            <label for="guruStatus" class="text-sm font-bold text-slate-700 cursor-pointer">Status Guru Aktif</label>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalGuru')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanGuru()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DATA MASTER SISWA -->
-<div id="modalSiswa" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Form Data Master Siswa</h3>
-            <button onclick="closeModal('modalSiswa')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <!-- ID PENTING untuk JavaScript -->
-        <input type="hidden" id="siswaId">
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">NISN</label>
-                <input type="text" id="siswaNisn" class="w-full p-2 border border-slate-300 rounded-lg outline-none font-mono tracking-wider focus:border-blue-500" placeholder="Nomor Induk Siswa Nasional">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">NIS</label>
-                <input type="text" id="siswaNis" class="w-full p-2 border border-slate-300 rounded-lg outline-none font-mono tracking-wider focus:border-blue-500" placeholder="Nomor Induk Sekolah">
-            </div>
-        </div>
-        
-        <div class="mb-3">
-            <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Siswa</label>
-            <input type="text" id="siswaNama" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: AHMAD MAULANA">
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Kelamin</label>
-                <select id="siswaJk" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
-                    <option value="L">Laki-laki (L)</option>
-                    <option value="P">Perempuan (P)</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Kelas</label>
-                <!-- Opsi kelas ini bisa dibuat dinamis nanti, sementara manual dulu -->
-                <input type="text" id="siswaKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: VI-A">
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Username Login</label>
-                <input type="text" id="siswaUsername" class="w-full p-2 border border-slate-300 rounded-lg outline-none lowercase focus:border-blue-500" placeholder="Contoh: siswa01">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Password Login</label>
-                <input type="text" id="siswaPassword" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="••••••••">
-            </div>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalSiswa')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanSiswa()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- INPUT GAIB UNTUK IMPORT SISWA -->
-<input type="file" id="importSiswaFile" class="hidden" accept=".xlsx, .xls" onchange="prosesImportSiswa(event)">
-
-<!-- MODAL DATA JENIS UJIAN -->
-<div id="modalJenisUjian" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Data Jenis Ujian</h3>
-            <button onclick="closeModal('modalJenisUjian')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <!-- ID PENTING untuk JavaScript -->
-        <input type="hidden" id="jenisUjianId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Jenis Ujian</label>
-                <input type="text" id="inputNamaJenisUjian" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SUMATIF AKHIR SEMESTER">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Kode Ujian</label>
-                <input type="text" id="inputKodeJenisUjian" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SAS">
-            </div>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalJenisUjian')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanJenisUjian()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DATA SESI UJIAN -->
-<div id="modalSesiUjian" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Data Sesi Ujian</h3>
-            <button onclick="closeModal('modalSesiUjian')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <!-- ID PENTING untuk JavaScript -->
-        <input type="hidden" id="sesiUjianId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Sesi</label>
-                <input type="text" id="inputNamaSesi" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SESI 1">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Waktu Pelaksanaan</label>
-                <input type="text" id="inputWaktuSesi" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="Contoh: 07:30 - 09:30">
-            </div>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalSesiUjian')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanSesiUjian()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DATA RUANG UJIAN -->
-<div id="modalRuangUjian" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Data Ruang Ujian</h3>
-            <button onclick="closeModal('modalRuangUjian')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <!-- ID PENTING untuk JavaScript -->
-        <input type="hidden" id="ruangUjianId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Ruang</label>
-                <input type="text" id="inputNamaRuang" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: RUANG 01">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Kode Ruang</label>
-                <input type="text" id="inputKodeRuang" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: R01">
-            </div>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalRuangUjian')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanRuangUjian()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL DATA PENGAWAS -->
-<div id="modalPengawas" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Data Pengawas Ujian</h3>
-            <button onclick="closeModal('modalPengawas')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <!-- ID PENTING untuk JS -->
-        <input type="hidden" id="pengawasId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Pengawas</label>
-                <input type="text" id="inputNamaPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: BAPAK GURU, S.Pd">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">NIP / Kode Guru</label>
-                <input type="text" id="inputNipPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Kosongkan jika tidak ada">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
+            
+            <input type="hidden" id="tahunId">
+            
+            <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Username</label>
-                    <input type="text" id="inputUserPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none lowercase focus:border-blue-500" placeholder="pengawas01">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Tahun Pelajaran</label>
+                    <input type="text" id="inputNamaTahun" class="w-full p-2 border border-slate-300 rounded outline-none uppercase focus:border-blue-500" placeholder="Contoh: 2025/2026">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Password</label>
-                    <input type="text" id="inputPassPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="123456">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Status</label>
+                    <select id="inputStatusTahun" class="w-full p-2 border border-slate-300 rounded outline-none focus:border-blue-500">
+                        <option value="Aktif">Aktif</option>
+                        <option value="Tidak Aktif">Tidak Aktif</option>
+                    </select>
                 </div>
             </div>
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalPengawas')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanPengawas()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalTahunPelajaran')" class="px-5 py-2 border border-slate-300 rounded-lg font-bold text-slate-600 hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanTahunPelajaran()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- MODAL BUAT PAKET SOAL -->
-<div id="modalBankSoal" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
-        <div class="flex justify-between items-center border-b pb-3 mb-4">
-            <h3 class="font-bold text-lg text-slate-800">Buat Paket Soal Baru</h3>
-            <button onclick="closeModal('modalBankSoal')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
-        </div>
-        
-        <input type="hidden" id="bankSoalId">
-        
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Mata Pelajaran</label>
-                <input type="text" id="inputSoalMapel" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: BAHASA INDONESIA">
+    <!-- MODAL MATA PELAJARAN -->
+    <div id="modalMataPelajaran" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Data Mata Pelajaran</h3>
+                <button onclick="closeModal('modalMataPelajaran')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            
+            <input type="hidden" id="mapelId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Mapel</label>
+                    <input type="text" id="inputNamaMapel" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: MATEMATIKA">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kode Mapel</label>
+                    <input type="text" id="inputKodeMapel" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: MTK">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kelompok</label>
+                    <select id="inputKelompokMapel" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
+                        <option value="Kelompok A (Wajib)">Kelompok A (Wajib)</option>
+                        <option value="Kelompok B (Muatan Lokal)">Kelompok B (Muatan Lokal)</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="inputStatusMapel" class="w-4 h-4 accent-blue-600" checked> 
+                    <label for="inputStatusMapel" class="text-xs font-bold text-slate-700 cursor-pointer">Mapel Aktif</label>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalMataPelajaran')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanMapel()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DATA JURUSAN -->
+    <div id="modalJurusan" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Data Jurusan</h3>
+                <button onclick="closeModal('modalJurusan')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="jurusanId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kode Jurusan</label>
+                    <input type="text" id="inputKodeJurusan" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: IPA / UMUM">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Jurusan</label>
+                    <input type="text" id="inputNamaJurusan" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: ILMU PENGETAHUAN ALAM">
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalJurusan')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanJurusan()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DATA KELAS / ROMBEL -->
+    <div id="modalKelas" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Data Kelas / Rombel</h3>
+                <button onclick="closeModal('modalKelas')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="kelasId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Kelas</label>
+                    <input type="text" id="inputNamaKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: VI-A">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kode Kelas</label>
+                    <input type="text" id="inputKodeKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: 6A">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Wali Kelas</label>
+                    <input type="text" id="inputWaliKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: NAMA GURU, S.Pd">
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalKelas')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanKelas()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DATA EKSTRAKURIKULER -->
+    <div id="modalEkskul" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Data Ekstrakurikuler</h3>
+                <button onclick="closeModal('modalEkskul')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="ekskulId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Ekstrakurikuler</label>
+                    <input type="text" id="inputNamaEkskul" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: PRAMUKA">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kode Ekskul</label>
+                    <input type="text" id="inputKodeEkskul" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: PRMK">
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalEkskul')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanEkskul()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DATA MASTER GURU -->
+    <div id="modalGuru" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Form Data Master Guru</h3>
+                <button onclick="closeModal('modalGuru')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="guruId">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">NIP / NUPTK</label>
+                    <input type="text" id="guruNip" class="w-full p-2 border border-slate-300 rounded-lg outline-none font-mono tracking-wider focus:border-blue-500" placeholder="Kosongkan jika tidak ada">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kode Guru</label>
+                    <input type="text" id="guruKode" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: GR01">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Guru</label>
+                <input type="text" id="guruNama" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: NAMA GURU, S.Pd.">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Username Login</label>
+                    <input type="text" id="guruUsername" class="w-full p-2 border border-slate-300 rounded-lg outline-none lowercase focus:border-blue-500" placeholder="Contoh: guru01">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Password Login</label>
+                    <input type="text" id="guruPassword" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="••••••••">
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 mb-2">
+                <input type="checkbox" id="guruStatus" class="w-4 h-4 accent-blue-600" checked>
+                <label for="guruStatus" class="text-sm font-bold text-slate-700 cursor-pointer">Status Guru Aktif</label>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalGuru')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanGuru()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DATA MASTER SISWA -->
+    <div id="modalSiswa" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Form Data Master Siswa</h3>
+                <button onclick="closeModal('modalSiswa')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="siswaId">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">NISN</label>
+                    <input type="text" id="siswaNisn" class="w-full p-2 border border-slate-300 rounded-lg outline-none font-mono tracking-wider focus:border-blue-500" placeholder="Nomor Induk Siswa Nasional">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">NIS</label>
+                    <input type="text" id="siswaNis" class="w-full p-2 border border-slate-300 rounded-lg outline-none font-mono tracking-wider focus:border-blue-500" placeholder="Nomor Induk Sekolah">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Siswa</label>
+                <input type="text" id="siswaNama" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: AHMAD MAULANA">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Kelamin</label>
+                    <select id="siswaJk" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500">
+                        <option value="L">Laki-laki (L)</option>
+                        <option value="P">Perempuan (P)</option>
+                    </select>
+                </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">Kelas</label>
-                    <input type="text" id="inputSoalKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: VI">
+                    <input type="text" id="siswaKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: VI-A">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Username Login</label>
+                    <input type="text" id="siswaUsername" class="w-full p-2 border border-slate-300 rounded-lg outline-none lowercase focus:border-blue-500" placeholder="Contoh: siswa01">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Ujian</label>
-                    <input type="text" id="inputSoalJenis" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SAS">
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Password Login</label>
+                    <input type="text" id="siswaPassword" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="••••••••">
                 </div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Guru Pembuat</label>
-                <input type="text" id="inputSoalGuru" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Nama Lengkap Guru">
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalSiswa')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanSiswa()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
             </div>
         </div>
-        
-        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
-            <button onclick="closeModal('modalBankSoal')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
-            <button onclick="simpanBankSoal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan Paket</button>
+    </div>
+
+    <!-- INPUT GAIB UNTUK IMPORT SISWA -->
+    <input type="file" id="importSiswaFile" class="hidden" accept=".xlsx, .xls" onchange="prosesImportSiswa(event)">
+
+    <!-- MODAL DATA JENIS UJIAN -->
+    <div id="modalJenisUjian" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Data Jenis Ujian</h3>
+                <button onclick="closeModal('modalJenisUjian')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="jenisUjianId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Jenis Ujian</label>
+                    <input type="text" id="inputNamaJenisUjian" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SUMATIF AKHIR SEMESTER">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kode Ujian</label>
+                    <input type="text" id="inputKodeJenisUjian" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SAS">
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalJenisUjian')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanJenisUjian()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
         </div>
     </div>
-</div>
 
+    <!-- MODAL DATA SESI UJIAN -->
+    <div id="modalSesiUjian" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Data Sesi Ujian</h3>
+                <button onclick="closeModal('modalSesiUjian')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="sesiUjianId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Sesi</label>
+                    <input type="text" id="inputNamaSesi" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SESI 1">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Waktu Pelaksanaan</label>
+                    <input type="text" id="inputWaktuSesi" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="Contoh: 07:30 - 09:30">
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalSesiUjian')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanSesiUjian()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DATA RUANG UJIAN -->
+    <div id="modalRuangUjian" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Data Ruang Ujian</h3>
+                <button onclick="closeModal('modalRuangUjian')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="ruangUjianId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Ruang</label>
+                    <input type="text" id="inputNamaRuang" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: RUANG 01">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kode Ruang</label>
+                    <input type="text" id="inputKodeRuang" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: R01">
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalRuangUjian')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanRuangUjian()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DATA PENGAWAS -->
+    <div id="modalPengawas" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Data Pengawas Ujian</h3>
+                <button onclick="closeModal('modalPengawas')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="pengawasId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap Pengawas</label>
+                    <input type="text" id="inputNamaPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: BAPAK GURU, S.Pd">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">NIP / Kode Guru</label>
+                    <input type="text" id="inputNipPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Kosongkan jika tidak ada">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Username</label>
+                        <input type="text" id="inputUserPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none lowercase focus:border-blue-500" placeholder="pengawas01">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Password</label>
+                        <input type="text" id="inputPassPengawas" class="w-full p-2 border border-slate-300 rounded-lg outline-none focus:border-blue-500" placeholder="123456">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalPengawas')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanPengawas()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL BUAT PAKET SOAL -->
+    <div id="modalBankSoal" class="fixed inset-0 bg-slate-900/50 z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="font-bold text-lg text-slate-800">Buat Paket Soal Baru</h3>
+                <button onclick="closeModal('modalBankSoal')" class="text-slate-400 font-bold text-xl hover:text-red-500 transition">✖</button>
+            </div>
+            
+            <input type="hidden" id="bankSoalId">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Mata Pelajaran</label>
+                    <input type="text" id="inputSoalMapel" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: BAHASA INDONESIA">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Kelas</label>
+                        <input type="text" id="inputSoalKelas" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: VI">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Jenis Ujian</label>
+                        <input type="text" id="inputSoalJenis" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Contoh: SAS">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Guru Pembuat</label>
+                    <input type="text" id="inputSoalGuru" class="w-full p-2 border border-slate-300 rounded-lg outline-none uppercase focus:border-blue-500" placeholder="Nama Lengkap Guru">
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button onclick="closeModal('modalBankSoal')" class="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition">Batal</button>
+                <button onclick="simpanBankSoal()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition">Simpan Paket</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT PENGHUBUNG -->
     <script type="module" src="./js/ui/adminUI.js"></script>
     <script>
         // Update live clock
@@ -1144,17 +1384,25 @@
             };
             
             const kab = getVal('profKabupaten', 'SAMPANG').toUpperCase();
-            document.getElementById('kopDinas').innerHTML = `PEMERINTAH KABUPATEN ${kab}<br>DINAS PENDIDIKAN`;
-            document.getElementById('kopNamaSekolah').innerText = getVal('profSekolah', 'UPTD SDN MARGANTOKO 2').toUpperCase();
+            const elDinas = document.getElementById('kopDinas');
+            if(elDinas) elDinas.innerHTML = `PEMERINTAH KABUPATEN ${kab}<br>DINAS PENDIDIKAN`;
+            
+            const elSekolah = document.getElementById('kopNamaSekolah');
+            if(elSekolah) elSekolah.innerText = getVal('profSekolah', 'UPTD SDN MARGANTOKO 2').toUpperCase();
             
             const alamat = getVal('profAlamat', '');
             const desa = getVal('profDesa', '');
             const kec = getVal('profKecamatan', '');
             const kdpos = getVal('profKodePos', '');
-            document.getElementById('kopAlamatSekolah').innerText = `${alamat} ${desa} Kec. ${kec} ${kab} Kode Pos ${kdpos}`;
             
-            document.getElementById('kopEmail').innerText = "Email: " + getVal('profEmail', '-');
-            document.getElementById('kopWebsite').innerText = "Website: " + getVal('profWebsite', '-');
+            const elAlamat = document.getElementById('kopAlamatSekolah');
+            if(elAlamat) elAlamat.innerText = `${alamat} ${desa} Kec. ${kec} ${kab} Kode Pos ${kdpos}`;
+            
+            const elEmail = document.getElementById('kopEmail');
+            if(elEmail) elEmail.innerText = "Email: " + getVal('profEmail', '-');
+            
+            const elWeb = document.getElementById('kopWebsite');
+            if(elWeb) elWeb.innerText = "Website: " + getVal('profWebsite', '-');
         };
     </script>
 </body>
