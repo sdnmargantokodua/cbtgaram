@@ -1,13 +1,11 @@
 import { state } from '../services/store.js';
 import { db, doc, collection, addDoc, updateDoc, deleteDoc, setDoc, initFirebase } from '../services/api.js';
-// Baris di bawah ini yang ditambah: orderBy, limit, startAfter
 import { getDoc, getDocs, query, where, orderBy, limit, startAfter, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-// Tambahkan baris impor ini untuk memanggil Firebase Auth
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-// ==========================================
-// SESSION & UI NAVIGATION (SIDEBAR FIXED)
-// ==========================================
+// ============================================================================
+// 1. SESSION & UI NAVIGATION
+// ============================================================================
 window.checkAdminSession = () => { 
     if (localStorage.getItem('admin_logged_in') === 'true') { 
         document.getElementById('loginScreen').classList.add('hidden'); 
@@ -24,47 +22,30 @@ window.checkAdminSession = () => {
 
 window.handleLogin = async (e) => { 
     e.preventDefault(); 
-    
-    // Sembunyikan pesan error jika sebelumnya muncul
     document.getElementById('loginError').classList.add('hidden'); 
     
-    // Ambil data yang diketik
     let inputUser = document.getElementById('adminUsername').value.trim();
     const inputPass = document.getElementById('adminPassword').value.trim();
     const btnMasuk = document.getElementById('btnMasukAdmin');
 
-    if (!inputUser || !inputPass) {
-        return alert("Username dan Sandi tidak boleh kosong!");
-    }
+    if (!inputUser || !inputPass) return alert("Username dan Sandi tidak boleh kosong!");
 
-    // Trik Cerdas: Jika user mengetik 'admin', kita ubah otomatis jadi 'admin@garam.cbt'
-    // agar diterima oleh standar keamanan Firebase Auth
-    if (!inputUser.includes('@')) {
-        inputUser = inputUser + '@cbt.local';
-    }
+    if (!inputUser.includes('@')) inputUser = inputUser + '@cbt.local';
 
-    // Beri efek loading pada tombol
     const originalText = btnMasuk.innerText;
     btnMasuk.innerText = "Memeriksa Keamanan...";
     btnMasuk.disabled = true;
 
     try {
         const auth = getAuth();
-        
-        // Memanggil fungsi verifikasi bawaan Firebase Auth
         await signInWithEmailAndPassword(auth, inputUser, inputPass);
-
-        // Jika baris di atas berhasil lolos tanpa error, berarti login valid!
         localStorage.setItem('admin_logged_in', 'true');
         checkAdminSession(); 
     } catch (error) {
         console.error("Gagal login:", error.code);
-        
-        // Tampilkan tulisan merah di bawah inputan password
         const errElement = document.getElementById('loginError');
         errElement.classList.remove('hidden'); 
         
-        // Custom pesan error berdasarkan penolakan Firebase
         if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
             errElement.innerText = "Username atau Sandi Salah/Tidak Terdaftar!";
         } else if (error.code === 'auth/too-many-requests') {
@@ -73,7 +54,6 @@ window.handleLogin = async (e) => {
             errElement.innerText = "Gagal menghubungi server otentikasi.";
         }
     } finally {
-        // Kembalikan tombol seperti semula
         btnMasuk.innerText = originalText;
         btnMasuk.disabled = false;
     }
@@ -82,7 +62,7 @@ window.handleLogin = async (e) => {
 window.logoutAdmin = async () => {
     try {
         const auth = getAuth();
-        await signOut(auth); // Putuskan sesi aman di server Firebase
+        await signOut(auth);
         localStorage.removeItem('admin_logged_in');
         location.reload();
     } catch (e) {
@@ -91,171 +71,140 @@ window.logoutAdmin = async () => {
     }
 };
 
-// Fungsi ini wajib ada agar dropdown sidebar bisa diklik
+window.toggleSidebar = () => {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.toggle('-translate-x-full');
+};
+
 window.toggleNavMenu = (id) => {
     const menu = document.getElementById(id);
     const icon = document.getElementById('icon-' + id);
-    if (menu.classList.contains('hidden')) {
-        menu.classList.remove('hidden');
-        menu.classList.add('block');
-        icon.classList.add('rotate-180');
-    } else {
-        menu.classList.add('hidden');
-        menu.classList.remove('block');
-        icon.classList.remove('rotate-180');
-    }
-};
-
-// Fungsi untuk buka-tutup sidebar (Mobile)
-window.toggleSidebar = () => {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('-translate-x-full');
-    }
-};
-
-// Fungsi untuk buka-tutup dropdown menu (Data Umum, Data Ujian, dll)
-window.toggleNavMenu = (menuId) => {
-    const menu = document.getElementById(menuId);
-    const icon = document.getElementById('icon-' + menuId);
-    
     if (menu) {
-        menu.classList.toggle('hidden');
-        // Putar ikon panah jika ada
-        if (icon) icon.classList.toggle('rotate-180');
+        if (menu.classList.contains('hidden')) {
+            menu.classList.remove('hidden');
+            menu.classList.add('block');
+            if(icon) icon.classList.add('rotate-180');
+        } else {
+            menu.classList.add('hidden');
+            menu.classList.remove('block');
+            if(icon) icon.classList.remove('rotate-180');
+        }
     }
 };
+
 window.closeModal = (id) => {
     document.getElementById(id).classList.add('hidden');
 };
 
-// Fungsi perpindahan Tab yang sudah disesuaikan dengan HTML admin.html Anda
 window.switchTab = (viewId, title) => {
     try {
         const targetView = document.getElementById(viewId);
         const targetBtn = document.getElementById('btn-' + viewId);
 
-        // 1. Validasi: Jika section tidak ada, jangan teruskan
         if (!targetView) {
             console.error(`Error: Section ID "${viewId}" tidak ditemukan di HTML.`);
             return;
         }
 
-        // 2. Sembunyikan semua section
         document.querySelectorAll('.view-section').forEach(s => {
             s.classList.add('hidden');
             s.classList.remove('block');
         });
 
-        // 3. Tampilkan section yang dituju
         targetView.classList.remove('hidden');
         targetView.classList.add('block');
 
-        // 4. Update Judul di Header
         const pageTitle = document.getElementById('pageTitle');
         if (pageTitle) pageTitle.innerText = title;
 
-        // 5. Update Status Tombol Sidebar (Warna Aktif)
         document.querySelectorAll('.menu-btn').forEach(b => {
             b.classList.remove('bg-slate-800', 'text-blue-400', 'border-l-4', 'border-blue-500');
             b.classList.add('text-slate-300');
         });
 
-        // HANYA update tombol jika ID-nya ditemukan (Mencegah error null classList)
         if (targetBtn) {
             targetBtn.classList.add('bg-slate-800', 'text-blue-400', 'border-l-4', 'border-blue-500');
             targetBtn.classList.remove('text-slate-300');
         }
 
-        // Tutup sidebar otomatis di HP
         if (window.innerWidth < 768) toggleSidebar();
-
     } catch (err) {
         console.error("Gagal berpindah menu:", err);
     }
 };
 
-// Tambahkan fungsi Dashboard kosong agar tidak error saat diklik
-window.loadDashboard = () => {
-    console.log("Dashboard dimuat.");
-    // Anda bisa menambahkan fungsi hitung total data di sini nanti
-};
-// ==========================================
-// DASHBOARD
-// ==========================================
+// Jalankan pengecekan sesi saat file dimuat
+window.checkAdminSession();
+
+
+// ============================================================================
+// 2. DASHBOARD
+// ============================================================================
 window.loadDashboard = async () => {
     try {
-        // Ambil Data Master Umum
         const snapSiswa = await getDocs(collection(db, 'master_siswa'));
         const snapMapel = await getDocs(collection(db, 'master_subjects'));
         const snapKelas = await getDocs(collection(db, 'master_kelas'));
         const snapGuru = await getDocs(collection(db, 'master_guru'));
 
-        // Update ID Master
         if(document.getElementById('dashSiswa')) document.getElementById('dashSiswa').innerText = snapSiswa.size;
         if(document.getElementById('dashRombel')) document.getElementById('dashRombel').innerText = snapKelas.size;
         if(document.getElementById('dashGuru')) document.getElementById('dashGuru').innerText = snapGuru.size;
         if(document.getElementById('dashMapel')) document.getElementById('dashMapel').innerText = snapMapel.size;
 
-        // Ambil Data Statistik Penilaian
         const snapRuang = await getDocs(collection(db, 'master_ruang_ujian'));
         const snapSesi = await getDocs(collection(db, 'master_sesi_ujian'));
         const snapBankSoal = await getDocs(collection(db, 'master_bank_soal'));
         const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
         const snapToken = await getDoc(doc(db, 'settings', 'token_ujian'));
 
-        // Update ID Penilaian
         if(document.getElementById('dashRuang')) document.getElementById('dashRuang').innerText = snapRuang.size;
         if(document.getElementById('dashSesi')) document.getElementById('dashSesi').innerText = snapSesi.size;
         if(document.getElementById('dashBankSoal')) document.getElementById('dashBankSoal').innerText = snapBankSoal.size;
         if(document.getElementById('dashJadwal')) document.getElementById('dashJadwal').innerText = snapJadwal.size;
         
-        // Menampilkan Token yang Sedang Aktif
         if(document.getElementById('dashToken') && snapToken.exists()) {
             document.getElementById('dashToken').innerText = snapToken.data().currentToken || '-';
         }
 
-        // Tampilkan teks pengumuman ke widget dashboard
         if (typeof window.loadPengumuman === 'function') {
             window.loadPengumuman(true);
         }
 
-// Update Widget Aktivitas Terkini
-const dashActivity = document.getElementById('dashActivity');
-if (dashActivity) {
-    let activityHtml = '';
-    
-    // 1. Cek Siswa yang sedang login / mengerjakan ujian
-    const siswaOnline = snapSiswa.docs.filter(d => d.data().isOnline === true).length;
-    if (siswaOnline > 0) {
-        activityHtml += `
-            <div class="p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-800 flex items-center gap-3 shadow-sm">
-                <span class="relative flex h-3 w-3">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-                </span> 
-                <b>${siswaOnline} Siswa</b> sedang online / mengerjakan ujian.
-            </div>`;
-    }
-    
-    // 2. Cek jumlah jadwal yang sedang berstatus AKTIF
-    const jadwalAktif = snapJadwal.docs.filter(d => d.data().isActive === true).length;
-    activityHtml += `
-        <div class="p-3 bg-emerald-50 border border-emerald-100 rounded text-sm text-emerald-800 shadow-sm flex items-center gap-2">
-            ✅ Terdapat <b>${jadwalAktif} Jadwal</b> penilaian yang sedang aktif dibuka.
-        </div>`;
-        
-    dashActivity.innerHTML = activityHtml || '<div class="text-sm text-slate-500 italic p-4 text-center">Sistem berjalan normal. Tidak ada aktivitas khusus saat ini.</div>';
-}
-
+        const dashActivity = document.getElementById('dashActivity');
+        if (dashActivity) {
+            let activityHtml = '';
+            const siswaOnline = snapSiswa.docs.filter(d => d.data().isOnline === true).length;
+            if (siswaOnline > 0) {
+                activityHtml += `
+                    <div class="p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-800 flex items-center gap-3 shadow-sm">
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                        </span> 
+                        <b>${siswaOnline} Siswa</b> sedang online / mengerjakan ujian.
+                    </div>`;
+            }
+            
+            const jadwalAktif = snapJadwal.docs.filter(d => d.data().isActive === true).length;
+            activityHtml += `
+                <div class="p-3 bg-emerald-50 border border-emerald-100 rounded text-sm text-emerald-800 shadow-sm flex items-center gap-2">
+                    ✅ Terdapat <b>${jadwalAktif} Jadwal</b> penilaian yang sedang aktif dibuka.
+                </div>`;
+                
+            dashActivity.innerHTML = activityHtml || '<div class="text-sm text-slate-500 italic p-4 text-center">Sistem berjalan normal. Tidak ada aktivitas khusus saat ini.</div>';
+        }
     } catch (e) { 
         console.error("Error load dashboard:", e); 
     }
 };
 
-// ==========================================
-// AKADEMIK (TAHUN & SEMESTER)
-// ==========================================
+
+// ============================================================================
+// 3. PENGATURAN UMUM & MASTER DATA UTAMA
+// ============================================================================
+
+// --- AKADEMIK (TAHUN & SEMESTER) ---
 window.loadTahunPelajaran = async () => {
     try {
         const docRef = doc(db, 'settings', 'academic_config');
@@ -317,23 +266,15 @@ window.renderTahunPelajaran = () => {
 };
 
 window.openModalTahun = (id = '', nama = '', status = 'Aktif') => {
-    // 1. Ambil elemen
     const elId = document.getElementById('tahunId');
     const elNama = document.getElementById('inputNamaTahun');
     const elStatus = document.getElementById('inputStatusTahun');
     const modal = document.getElementById('modalTahunPelajaran');
 
-    // 2. 🛡️ PENGAMAN: Hanya atur value jika elemennya benar-benar ada di HTML
     if (elId) elId.value = id;
     if (elNama) elNama.value = nama;
     if (elStatus) elStatus.value = status;
-
-    // 3. Tampilkan modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalTahunPelajaran' tidak ditemukan di HTML.");
-    }
+    if (modal) modal.classList.remove('hidden');
 };
 
 window.simpanTahunPelajaran = async () => {
@@ -368,27 +309,16 @@ window.hapusTahun = async (nama) => {
     window.renderTahunPelajaran();
 };
 
-// ==========================================
-// MATA PELAJARAN
-// ==========================================
-// 1. FUNGSI UNTUK MENGAMBIL DATA DARI FIREBASE
+// --- MATA PELAJARAN ---
 window.loadMataPelajaran = async () => {
     const tb = document.getElementById('tableMapelBody');
     if (!tb) return;
-
     tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>';
-    
     try {
-        // Tarik data dari koleksi 'master_mapel'
         const snap = await getDocs(collection(db, 'master_mapel'));
-        
-        // Simpan ke dalam memori state
         state.masterMapel = [];
         snap.forEach(d => state.masterMapel.push({id: d.id, ...d.data()}));
-        
-        // Urutkan berdasarkan nama
         state.masterMapel.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
-        
         window.renderTableMapel();
     } catch(e) {
         console.error("Error load mapel:", e);
@@ -396,21 +326,15 @@ window.loadMataPelajaran = async () => {
     }
 };
 
-// 2. FUNGSI UNTUK MENAMPILKAN KE TABEL HTML
 window.renderTableMapel = () => {
     const tb = document.getElementById('tableMapelBody');
     if (!tb) return;
-    
     tb.innerHTML = '';
-    
-    // Jika memori kosong atau belum ada data di Firebase
     if (!state.masterMapel || state.masterMapel.length === 0) {
         tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data Mata Pelajaran.</td></tr>';
         return;
     }
-
     state.masterMapel.forEach((m, i) => {
-        // Tentukan label status aktif/nonaktif
         const isAktif = m.aktif !== false;
         const statusBadge = isAktif 
             ? '<span class="px-2 py-1 rounded text-[10px] font-bold bg-green-100 text-green-700">AKTIF</span>' 
@@ -423,7 +347,6 @@ window.renderTableMapel = () => {
                 <td class="p-3 text-center border-r text-slate-600 text-sm">${m.kelompok || '-'}</td>
                 <td class="p-3 text-center border-r">${statusBadge}</td>
                 <td class="p-3 text-center space-x-1">
-                    <!-- Mempassing m.id ke fungsi editMapel yang kita perbaiki sebelumnya -->
                     <button onclick="editMapel('${m.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
                     <button onclick="hapusMapel('${m.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
                 </td>
@@ -433,7 +356,6 @@ window.renderTableMapel = () => {
 };
 
 window.openModalMapel = (id = '', kode = '', nama = '', kelompok = 'Kelompok A (Wajib)', status = true) => {
-    // 1. Ambil elemen berdasarkan ID yang ADA di HTML Bapak
     const elId = document.getElementById('mapelId');
     const elKode = document.getElementById('inputKodeMapel');
     const elNama = document.getElementById('inputNamaMapel');
@@ -441,133 +363,71 @@ window.openModalMapel = (id = '', kode = '', nama = '', kelompok = 'Kelompok A (
     const elStatus = document.getElementById('inputStatusMapel');
     const modal = document.getElementById('modalMataPelajaran');
 
-    // 2. 🛡️ PENGAMAN: Hanya isi value jika elemennya ditemukan
     if (elId) elId.value = id;
     if (elKode) elKode.value = kode;
     if (elNama) elNama.value = nama;
     if (elKelompok) elKelompok.value = kelompok;
-    
-    // Checkbox menggunakan .checked, bukan .value
     if (elStatus) elStatus.checked = status; 
-
-    // 3. Tampilkan modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalMataPelajaran' tidak ditemukan di HTML.");
-    }
+    if (modal) modal.classList.remove('hidden');
 };
 
 window.simpanMapel = async () => {
     try {
-        // 1. Ambil nilai dari elemen HTML yang sudah kita rapikan sebelumnya
         const idMapel = document.getElementById('mapelId')?.value || '';
         const nama = document.getElementById('inputNamaMapel')?.value.trim();
         const kode = document.getElementById('inputKodeMapel')?.value.trim();
         const kelompok = document.getElementById('inputKelompokMapel')?.value;
         const aktif = document.getElementById('inputStatusMapel')?.checked;
 
-        // 2. Validasi Data Kosong
-        if (!nama || !kode) {
-            alert('Gagal: Nama dan Kode Mata Pelajaran wajib diisi!');
-            return;
-        }
+        if (!nama || !kode) return alert('Gagal: Nama dan Kode wajib diisi!');
 
-        // 3. Tampilkan indikator loading pada tombol (opsional agar terlihat profesional)
         const btnSimpan = document.querySelector('#modalMataPelajaran button[onclick="simpanMapel()"]');
         const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳ Menyimpan...';
-            btnSimpan.disabled = true;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
 
-        // 4. Siapkan format data yang akan dilempar ke Firebase
         const payload = {
-            nama: nama.toUpperCase(), // Paksa jadi huruf besar
+            nama: nama.toUpperCase(),
             kode: kode.toUpperCase(),
             kelompok: kelompok || 'Kelompok A (Wajib)',
-            aktif: aktif !== false // Default nilainya true
+            aktif: aktif !== false 
         };
 
-        // 5. Eksekusi ke Firebase (Update jika ada ID, Add Doc jika ID kosong)
         if (idMapel) {
-            const docRef = doc(db, 'master_mapel', idMapel);
-            await updateDoc(docRef, payload);
+            await updateDoc(doc(db, 'master_mapel', idMapel), payload);
         } else {
             await addDoc(collection(db, 'master_mapel'), payload);
         }
 
-        // 6. Kembalikan tombol ke kondisi semula
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
-
-        // 7. Tutup pop-up dan segarkan (refresh) tabel
+        if (btnSimpan) { btnSimpan.innerHTML = teksAsli; btnSimpan.disabled = false; }
         window.closeModal('modalMataPelajaran');
         window.loadMataPelajaran();
 
-        // Kosongkan form agar bersih saat dibuka lagi nanti
         if (document.getElementById('inputNamaMapel')) document.getElementById('inputNamaMapel').value = '';
         if (document.getElementById('inputKodeMapel')) document.getElementById('inputKodeMapel').value = '';
 
     } catch (error) {
-        console.error("Gagal menyimpan Mata Pelajaran:", error);
-        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
-        
-        // Pulihkan tombol jika error
-        const btnSimpan = document.querySelector('#modalMataPelajaran button[onclick="simpanMapel()"]');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan';
-            btnSimpan.disabled = false;
-        }
+        console.error("Gagal menyimpan Mapel:", error);
+        alert('Terjadi kesalahan: ' + error.message);
     }
 };
 
 window.editMapel = (id) => {
-    // 1. Cari data mapel dari state berdasarkan ID
     const mapel = state.masterMapel ? state.masterMapel.find(m => m.id === id) : null;
-    
-    if (!mapel) {
-        console.error("Data mapel tidak ditemukan di memori!");
-        return;
-    }
-
-    // 2. Ambil elemen HTML
-    const elId = document.getElementById('mapelId');
-    const elKode = document.getElementById('inputKodeMapel');
-    const elNama = document.getElementById('inputNamaMapel');
-    const elKelompok = document.getElementById('inputKelompokMapel');
-    const elStatus = document.getElementById('inputStatusMapel');
-    const modal = document.getElementById('modalMataPelajaran');
-
-    // 3. 🛡️ PENGAMAN: Set data ke dalam form modal
-    if (elId) elId.value = mapel.id;
-    if (elKode) elKode.value = mapel.kode || '';
-    if (elNama) elNama.value = mapel.nama || '';
-    if (elKelompok) elKelompok.value = mapel.kelompok || 'Kelompok A (Wajib)';
-    if (elStatus) elStatus.checked = mapel.aktif !== false; // Default true jika tidak ada properti aktif
-
-    // 4. Buka modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    }
+    if (!mapel) return;
+    window.openModalMapel(mapel.id, mapel.kode, mapel.nama, mapel.kelompok, mapel.aktif);
 };
 
 window.hapusMapel = async (id) => {
     if(confirm("Hapus mapel ini?")) {
-        await deleteDoc(doc(db, 'master_subjects', id));
+        await deleteDoc(doc(db, 'master_mapel', id));
         loadMataPelajaran();
     }
 };
 
-// ==========================================
-// JURUSAN
-// ==========================================
+// --- JURUSAN ---
 window.loadJurusan = async () => {
     try {
         const snap = await getDocs(collection(db, 'master_jurusan'));
-        if(!state.masterJurusan) state.masterJurusan = [];
         state.masterJurusan = [];
         snap.forEach(d => state.masterJurusan.push({id: d.id, ...d.data()}));
         state.masterJurusan.sort((a,b) => (a.kode || '').localeCompare(b.kode || ''));
@@ -577,6 +437,7 @@ window.loadJurusan = async () => {
 
 window.renderTableJurusan = () => {
     const tb = document.getElementById('tableJurusanBody');
+    if(!tb) return;
     tb.innerHTML = '';
     if (!state.masterJurusan || state.masterJurusan.length === 0) {
         tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-500 italic">Belum ada data Jurusan.</td></tr>';
@@ -597,23 +458,15 @@ window.renderTableJurusan = () => {
 };
 
 window.openModalJurusan = (id = '', kode = '', nama = '') => {
-    // 1. Sesuaikan ID dengan yang ada di admin.html
     const elId = document.getElementById('jurusanId');
     const elKode = document.getElementById('inputKodeJurusan');
     const elNama = document.getElementById('inputNamaJurusan');
     const modal = document.getElementById('modalJurusan');
 
-    // 2. 🛡️ PENGAMAN: Hanya isi nilai jika elemennya benar-benar ada di layar
     if (elId) elId.value = id;
     if (elKode) elKode.value = kode;
     if (elNama) elNama.value = nama;
-
-    // 3. Tampilkan modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal dengan ID 'modalJurusan' tidak ditemukan di HTML.");
-    }
+    if (modal) modal.classList.remove('hidden');
 };
 
 window.simpanJurusan = async () => {
@@ -632,29 +485,8 @@ window.simpanJurusan = async () => {
 };
 
 window.editJurusan = (id) => {
-    // 1. Cari data dari memori (state)
     const jurusan = state.masterJurusan ? state.masterJurusan.find(j => j.id === id) : null;
-    
-    if (!jurusan) {
-        console.error("Data jurusan tidak ditemukan di memori!");
-        return;
-    }
-
-    // 2. Ambil elemen form modal
-    const elId = document.getElementById('jurusanId');
-    const elKode = document.getElementById('inputKodeJurusan');
-    const elNama = document.getElementById('inputNamaJurusan');
-    const modal = document.getElementById('modalJurusan');
-
-    // 3. 🛡️ PENGAMAN: Lempar data ke form hanya jika elemennya ada
-    if (elId) elId.value = jurusan.id;
-    if (elKode) elKode.value = jurusan.kode || '';
-    if (elNama) elNama.value = jurusan.nama || '';
-
-    // 4. Buka modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    }
+    if (jurusan) window.openModalJurusan(jurusan.id, jurusan.kode, jurusan.nama);
 };
 
 window.hapusJurusan = async (id) => {
@@ -664,36 +496,25 @@ window.hapusJurusan = async (id) => {
     }
 };
 
-// ==========================================
-// KELAS / ROMBEL
-// ==========================================
-// 1. FUNGSI LOAD KELAS DARI FIREBASE
+// --- KELAS / ROMBEL ---
 window.loadKelas = async () => {
     const tb = document.getElementById('tableKelasBody');
     if (!tb) return;
-
     tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>';
-    
     try {
         const snap = await getDocs(collection(db, 'master_kelas'));
         state.masterKelas = [];
         snap.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
-        
-        // Urutkan berdasarkan nama kelas secara alfabetis
         state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
-        
         window.renderTableKelas();
     } catch(e) {
         console.error("Error load kelas:", e);
-        tb.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold">Gagal memuat data: ${e.message}</td></tr>`;
     }
 };
 
-// 2. FUNGSI RENDER TABEL KELAS
 window.renderTableKelas = () => {
     const tb = document.getElementById('tableKelasBody');
     if (!tb) return;
-    
     tb.innerHTML = '';
     
     if (!state.masterKelas || state.masterKelas.length === 0) {
@@ -702,11 +523,8 @@ window.renderTableKelas = () => {
     }
 
     state.masterKelas.forEach((k, i) => {
-        // Otomatis menghitung jumlah siswa di kelas ini (jika data siswa sudah diload)
         let jmlSiswa = 0;
-        if (state.masterSiswa) {
-            jmlSiswa = state.masterSiswa.filter(s => s.kelas === k.nama).length;
-        }
+        if (state.masterSiswa) jmlSiswa = state.masterSiswa.filter(s => s.kelas === k.nama).length;
 
         tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
@@ -716,7 +534,6 @@ window.renderTableKelas = () => {
                 <td class="p-3 border-r text-slate-700">${k.wali || '-'}</td>
                 <td class="p-3 text-center border-r font-bold text-blue-600">${jmlSiswa} Siswa</td>
                 <td class="p-3 text-center space-x-1">
-                    <!-- Tombol Edit diperbaiki dengan kutipan id yang aman -->
                     <button onclick="editKelas('${k.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
                     <button onclick="hapusKelas('${k.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow-sm text-xs transition">🗑️</button>
                 </td>
@@ -725,7 +542,20 @@ window.renderTableKelas = () => {
     });
 };
 
-// 3. FUNGSI SIMPAN KELAS (KEBAL ERROR)
+window.openModalKelas = (id = '', nama = '', kode = '', wali = '') => {
+    const elId = document.getElementById('kelasId');
+    const elNama = document.getElementById('inputNamaKelas');
+    const elKode = document.getElementById('inputKodeKelas');
+    const elWali = document.getElementById('inputWaliKelas');
+    const modal = document.getElementById('modalKelas');
+
+    if (elId) elId.value = id;
+    if (elNama) elNama.value = nama;
+    if (elKode) elKode.value = kode;
+    if (elWali) elWali.value = wali;
+    if (modal) modal.classList.remove('hidden');
+};
+
 window.simpanKelas = async () => {
     try {
         const idKelas = document.getElementById('kelasId')?.value || '';
@@ -733,105 +563,33 @@ window.simpanKelas = async () => {
         const kode = document.getElementById('inputKodeKelas')?.value.trim();
         const wali = document.getElementById('inputWaliKelas')?.value.trim();
 
-        if (!nama) {
-            alert('Gagal: Nama Kelas wajib diisi!');
-            return;
-        }
+        if (!nama) return alert('Gagal: Nama Kelas wajib diisi!');
 
-        // Tampilkan loading di tombol
         const btnSimpan = document.querySelector('#modalKelas button[onclick="simpanKelas()"]');
-        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳ Menyimpan...';
-            btnSimpan.disabled = true;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
 
-        const payload = {
-            nama: nama.toUpperCase(), // Pastikan tersimpan dengan huruf kapital
-            kode: kode.toUpperCase(),
-            wali: wali
-        };
+        const payload = { nama: nama.toUpperCase(), kode: kode.toUpperCase(), wali: wali };
 
-        if (idKelas) {
-            await updateDoc(doc(db, 'master_kelas', idKelas), payload);
-        } else {
-            await addDoc(collection(db, 'master_kelas'), payload);
-        }
+        if (idKelas) await updateDoc(doc(db, 'master_kelas', idKelas), payload);
+        else await addDoc(collection(db, 'master_kelas'), payload);
 
-        // Kembalikan tombol seperti semula
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan'; btnSimpan.disabled = false; }
 
         window.closeModal('modalKelas');
-        window.loadKelas(); // Segarkan tabel otomatis
+        window.loadKelas();
 
-        // Bersihkan form
         if (document.getElementById('inputNamaKelas')) document.getElementById('inputNamaKelas').value = '';
         if (document.getElementById('inputKodeKelas')) document.getElementById('inputKodeKelas').value = '';
         if (document.getElementById('inputWaliKelas')) document.getElementById('inputWaliKelas').value = '';
-
     } catch (error) {
         console.error("Gagal menyimpan Kelas:", error);
-        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
-        const btnSimpan = document.querySelector('#modalKelas button[onclick="simpanKelas()"]');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan';
-            btnSimpan.disabled = false;
-        }
+        alert('Terjadi kesalahan: ' + error.message);
     }
 };
-
-window.openModalKelas = (id = '', nama = '', kode = '', wali = '') => {
-    // 1. Ambil elemen sesuai dengan ID yang ada di admin.html
-    const elId = document.getElementById('kelasId');
-    const elNama = document.getElementById('inputNamaKelas');
-    const elKode = document.getElementById('inputKodeKelas');
-    const elWali = document.getElementById('inputWaliKelas');
-    const modal = document.getElementById('modalKelas');
-
-    // 2. 🛡️ PENGAMAN: Hanya isi nilai jika elemen formnya ditemukan
-    if (elId) elId.value = id;
-    if (elNama) elNama.value = nama;
-    if (elKode) elKode.value = kode;
-    if (elWali) elWali.value = wali;
-
-    // 3. Tampilkan modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalKelas' tidak ditemukan di HTML.");
-    }
-};
-
 
 window.editKelas = (id) => {
-    // 1. Cari data kelas dari memori (state) berdasarkan ID
     const kelas = state.masterKelas ? state.masterKelas.find(k => k.id === id) : null;
-    
-    if (!kelas) {
-        console.error("Data kelas tidak ditemukan di memori!");
-        return;
-    }
-
-    // 2. Ambil elemen form modal
-    const elId = document.getElementById('kelasId');
-    const elNama = document.getElementById('inputNamaKelas');
-    const elKode = document.getElementById('inputKodeKelas');
-    const elWali = document.getElementById('inputWaliKelas');
-    const modal = document.getElementById('modalKelas');
-
-    // 3. 🛡️ PENGAMAN: Lempar data dari state ke dalam form
-    if (elId) elId.value = kelas.id;
-    if (elNama) elNama.value = kelas.nama || '';
-    if (elKode) elKode.value = kelas.kode || '';
-    if (elWali) elWali.value = kelas.wali || '';
-
-    // 4. Buka modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    }
+    if (kelas) window.openModalKelas(kelas.id, kelas.nama, kelas.kode, kelas.wali);
 };
 
 window.hapusKelas = async (id) => {
@@ -841,17 +599,9 @@ window.hapusKelas = async (id) => {
     }
 };
 
-window.kenaikanKelas = () => alert("Fitur sedang disiapkan.");
-
-// Jalankan pengecekan sesi saat file dimuat
-window.checkAdminSession();
-
-// ==========================================
-// DATA EKSTRAKURIKULER & PENEMPATAN
-// ==========================================
+// --- EKSTRAKURIKULER & PENEMPATAN ---
 window.loadEkskul = async () => {
     try {
-        // Load data Kelas untuk kebutuhan checkbox penempatan ekskul
         if(!state.masterKelas || state.masterKelas.length === 0) {
             const snapKelas = await getDocs(collection(db, 'master_kelas'));
             state.masterKelas = [];
@@ -859,13 +609,11 @@ window.loadEkskul = async () => {
             state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
         }
 
-        // Load data Ekskul
         const snap = await getDocs(collection(db, 'master_ekskul'));
         state.masterEkskul = [];
         snap.forEach(d => state.masterEkskul.push({id: d.id, ...d.data()}));
         state.masterEkskul.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
 
-        // Load data Penempatan Ekskul dari Document Settings
         const penempatanSnap = await getDoc(doc(db, 'settings', 'penempatan_ekskul'));
         if(penempatanSnap.exists()) {
             state.penempatanEkskul = penempatanSnap.data();
@@ -875,20 +623,12 @@ window.loadEkskul = async () => {
 
         window.renderTableEkskul();
         window.renderPenempatanEkskul();
-    } catch(e) { 
-        console.error("Error load ekskul:", e); 
-    }
+    } catch(e) { console.error("Error load ekskul:", e); }
 };
 
 window.renderTableEkskul = () => {
     const tb = document.getElementById('tableEkskulBody');
-
-    // 🛡️ PENGAMAN: Jika tabel tidak ada, jangan paksa isi innerHTML
-    if (!tb) {
-        console.warn("Peringatan: ID 'tableEkskulBody' tidak ditemukan di admin.html.");
-        return; 
-    }
-
+    if (!tb) return;
     tb.innerHTML = '';
 
     if (!state.masterEkskul || state.masterEkskul.length === 0) {
@@ -911,117 +651,49 @@ window.renderTableEkskul = () => {
 };
 
 window.openModalEkskul = (id = '', nama = '', kode = '') => {
-    // 1. Sesuaikan ID dengan yang ada di admin.html
     const elId = document.getElementById('ekskulId');
     const elNama = document.getElementById('inputNamaEkskul');
     const elKode = document.getElementById('inputKodeEkskul');
     const modal = document.getElementById('modalEkskul');
 
-    // 2. 🛡️ PENGAMAN: Hanya isi nilai jika elemen formnya ditemukan
     if (elId) elId.value = id;
     if (elNama) elNama.value = nama;
     if (elKode) elKode.value = kode;
-
-    // 3. Tampilkan modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalEkskul' tidak ditemukan di HTML.");
-    }
-};
-
-window.editEkskul = (id) => {
-    // 1. Cari data ekskul dari memori (state) berdasarkan ID
-    const ekskul = state.masterEkskul ? state.masterEkskul.find(e => e.id === id) : null;
-    
-    if (!ekskul) {
-        console.error("Data ekskul tidak ditemukan di memori!");
-        return;
-    }
-
-    // 2. Ambil elemen form modal
-    const elId = document.getElementById('ekskulId');
-    const elNama = document.getElementById('inputNamaEkskul');
-    const elKode = document.getElementById('inputKodeEkskul');
-    const modal = document.getElementById('modalEkskul');
-
-    // 3. 🛡️ PENGAMAN: Lempar data dari state ke dalam form
-    if (elId) elId.value = ekskul.id;
-    if (elNama) elNama.value = ekskul.nama || '';
-    if (elKode) elKode.value = ekskul.kode || '';
-
-    // 4. Buka modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    }
-};
-
-window.simpanEkskul = async () => {
-    try {
-        // Ambil nilai dengan pengaman (Safe Navigation ?.)
-        const idEkskul = document.getElementById('ekskulId')?.value || '';
-        const nama = document.getElementById('inputNamaEkskul')?.value.trim();
-        const kode = document.getElementById('inputKodeEkskul')?.value.trim();
-
-        if (!nama) {
-            alert('Gagal: Nama Ekstrakurikuler wajib diisi!');
-            return;
-        }
-
-        // Efek loading di tombol
-        const btnSimpan = document.querySelector('#modalEkskul button[onclick="simpanEkskul()"]');
-        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳ Menyimpan...';
-            btnSimpan.disabled = true;
-        }
-
-        // Format data
-        const payload = {
-            nama: nama.toUpperCase(),
-            kode: (kode || '').toUpperCase()
-        };
-
-        // Simpan ke Firebase
-        if (idEkskul) {
-            await updateDoc(doc(db, 'master_ekskul', idEkskul), payload);
-        } else {
-            await addDoc(collection(db, 'master_ekskul'), payload);
-        }
-
-        // Kembalikan tombol
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
-
-        window.closeModal('modalEkskul');
-        window.loadEkskul(); // Segarkan tabel otomatis
-
-        // Bersihkan form
-        if (document.getElementById('inputNamaEkskul')) document.getElementById('inputNamaEkskul').value = '';
-        if (document.getElementById('inputKodeEkskul')) document.getElementById('inputKodeEkskul').value = '';
-
-    } catch (error) {
-        console.error("Gagal menyimpan Ekskul:", error);
-        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
-        
-        const btnSimpan = document.querySelector('#modalEkskul button[onclick="simpanEkskul()"]');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan';
-            btnSimpan.disabled = false;
-        }
-    }
+    if (modal) modal.classList.remove('hidden');
 };
 
 window.editEkskul = (id) => {
     const e = state.masterEkskul.find(x => x.id === id);
-    if(!e) return;
-    
-    document.getElementById('ekskulId').value = e.id;
-    document.getElementById('inputNamaEkskul').value = e.nama || '';
-    document.getElementById('inputKodeEkskul').value = e.kode || '';
-    document.getElementById('modalEkskul').classList.remove('hidden');
+    if(e) window.openModalEkskul(e.id, e.nama, e.kode);
+};
+
+window.simpanEkskul = async () => {
+    try {
+        const idEkskul = document.getElementById('ekskulId')?.value || '';
+        const nama = document.getElementById('inputNamaEkskul')?.value.trim();
+        const kode = document.getElementById('inputKodeEkskul')?.value.trim();
+
+        if (!nama) return alert('Gagal: Nama Ekstrakurikuler wajib diisi!');
+
+        const btnSimpan = document.querySelector('#modalEkskul button[onclick="simpanEkskul()"]');
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
+
+        const payload = { nama: nama.toUpperCase(), kode: (kode || '').toUpperCase() };
+
+        if (idEkskul) await updateDoc(doc(db, 'master_ekskul', idEkskul), payload);
+        else await addDoc(collection(db, 'master_ekskul'), payload);
+
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan'; btnSimpan.disabled = false; }
+
+        window.closeModal('modalEkskul');
+        window.loadEkskul();
+
+        if (document.getElementById('inputNamaEkskul')) document.getElementById('inputNamaEkskul').value = '';
+        if (document.getElementById('inputKodeEkskul')) document.getElementById('inputKodeEkskul').value = '';
+    } catch (error) {
+        console.error("Gagal menyimpan Ekskul:", error);
+        alert('Terjadi kesalahan: ' + error.message);
+    }
 };
 
 window.hapusEkskul = async (id) => {
@@ -1029,24 +701,21 @@ window.hapusEkskul = async (id) => {
         try {
             await deleteDoc(doc(db, 'master_ekskul', id));
             loadEkskul(); 
-        } catch(e) {
-            console.error(e);
-        }
+        } catch(e) { console.error(e); }
     }
 };
 
-// --- FUNGSI UNTUK PENEMPATAN EKSKUL ---
 window.renderPenempatanEkskul = () => {
     const container = document.getElementById('containerPenempatanEkskul');
+    if(!container) return;
     container.innerHTML = '';
     
     if (!state.masterEkskul || state.masterEkskul.length === 0) {
         container.innerHTML = '<p class="text-sm text-slate-500 italic p-2 border rounded bg-white">Tambahkan data ekstrakurikuler terlebih dahulu.</p>';
         return;
     }
-
     if (!state.masterKelas || state.masterKelas.length === 0) {
-        container.innerHTML = '<p class="text-sm text-slate-500 italic p-2 border rounded bg-white">Data Kelas masih kosong. Tambahkan kelas terlebih dahulu agar bisa diatur penempatannya.</p>';
+        container.innerHTML = '<p class="text-sm text-slate-500 italic p-2 border rounded bg-white">Data Kelas masih kosong. Tambahkan kelas terlebih dahulu.</p>';
         return;
     }
 
@@ -1075,14 +744,10 @@ window.renderPenempatanEkskul = () => {
 
 window.simpanPenempatanEkskul = async () => {
     if (!state.masterEkskul) return;
-    
-    // Cari tombol simpannya dan beri efek loading
     const btn = document.querySelector('button[onclick="simpanPenempatanEkskul()"]');
     if(btn) { btn.innerText = "Menyimpan..."; btn.disabled = true; }
 
     const dataToSave = {};
-    
-    // Looping semua ekskul, dan ambil nilai checkbox kelas yang tercentang
     state.masterEkskul.forEach(e => {
         const checkboxes = document.querySelectorAll(`.cb-penempatan-${e.id}:checked`);
         const selectedClasses = Array.from(checkboxes).map(cb => cb.value);
@@ -1101,27 +766,20 @@ window.simpanPenempatanEkskul = async () => {
     }
 };
 
-// ==========================================
-// DATA MASTER GURU
-// ==========================================
+// --- DATA MASTER GURU ---
 window.loadGuru = async () => {
     try {
         const snap = await getDocs(collection(db, 'master_guru'));
         state.masterGuru = [];
         snap.forEach(d => state.masterGuru.push({id: d.id, ...d.data()}));
-        
-        // Urutkan berdasarkan nama
         state.masterGuru.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
         window.renderGridGuru();
-    } catch(e) {
-        console.error("Error load guru:", e);
-    }
+    } catch(e) { console.error("Error load guru:", e); }
 };
 
 window.renderGridGuru = () => {
     const container = document.getElementById('gridGuruContainer');
     if (!container) return;
-    
     container.innerHTML = '';
     
     if (!state.masterGuru || state.masterGuru.length === 0) {
@@ -1130,7 +788,6 @@ window.renderGridGuru = () => {
     }
 
     state.masterGuru.forEach((g) => {
-        // Penanda status aktif / nonaktif
         const badgeAktif = g.isActive !== false 
             ? `<span class="bg-green-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Aktif</span>` 
             : `<span class="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Nonaktif</span>`;
@@ -1142,7 +799,6 @@ window.renderGridGuru = () => {
                     <div class="w-[70px] h-[70px] rounded-full border-2 border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center text-4xl shadow-inner">👨‍🏫</div>
                     <div class="flex-1">
                         <p class="text-[11px] text-slate-500 tracking-wider font-mono">${g.nip || '-'}</p>
-                        <!-- PERUBAHAN: Menghapus class uppercase di tag h4 bawah ini -->
                         <h4 class="font-bold text-[15px] text-slate-800 mt-0.5 leading-tight line-clamp-2">${g.nama || '-'}</h4>
                         <p class="text-[10px] text-blue-600 font-bold uppercase mt-1 mb-2">${g.jabatan || 'Guru Kelas'}</p>
                         <div>${badgeAktif}</div>
@@ -1161,7 +817,6 @@ window.renderGridGuru = () => {
 };
 
 window.openModalGuru = (id = '', nip = '', kode = '', nama = '', username = '', password = '', status = true) => {
-    // 1. Sesuaikan ID dengan yang ada di admin.html
     const elId = document.getElementById('guruId');
     const elNip = document.getElementById('guruNip');
     const elKode = document.getElementById('guruKode');
@@ -1171,7 +826,6 @@ window.openModalGuru = (id = '', nip = '', kode = '', nama = '', username = '', 
     const elStatus = document.getElementById('guruStatus');
     const modal = document.getElementById('modalGuru');
 
-    // 2. 🛡️ PENGAMAN
     if (elId) elId.value = id;
     if (elNip) elNip.value = nip;
     if (elKode) elKode.value = kode;
@@ -1179,40 +833,12 @@ window.openModalGuru = (id = '', nip = '', kode = '', nama = '', username = '', 
     if (elUsername) elUsername.value = username;
     if (elPassword) elPassword.value = password;
     if (elStatus) elStatus.checked = status;
-
-    // 3. Buka Modal
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalGuru' tidak ditemukan di HTML.");
-    }
+    if (modal) modal.classList.remove('hidden');
 };
 
 window.editGuru = (id) => {
     const guru = state.masterGuru ? state.masterGuru.find(g => g.id === id) : null;
-    if (!guru) {
-        console.error("Data guru tidak ditemukan di memori!");
-        return;
-    }
-
-    const elId = document.getElementById('guruId');
-    const elNip = document.getElementById('guruNip');
-    const elKode = document.getElementById('guruKode');
-    const elNama = document.getElementById('guruNama');
-    const elUsername = document.getElementById('guruUsername');
-    const elPassword = document.getElementById('guruPassword');
-    const elStatus = document.getElementById('guruStatus');
-    const modal = document.getElementById('modalGuru');
-
-    if (elId) elId.value = guru.id;
-    if (elNip) elNip.value = guru.nip || '';
-    if (elKode) elKode.value = guru.kode || '';
-    if (elNama) elNama.value = guru.nama || '';
-    if (elUsername) elUsername.value = guru.username || '';
-    if (elPassword) elPassword.value = guru.password || '';
-    if (elStatus) elStatus.checked = guru.aktif !== false;
-
-    if (modal) modal.classList.remove('hidden');
+    if (guru) window.openModalGuru(guru.id, guru.nip, guru.kode, guru.nama, guru.username, guru.password, guru.isActive !== false);
 };
 
 window.simpanGuru = async () => {
@@ -1225,114 +851,102 @@ window.simpanGuru = async () => {
         const password = document.getElementById('guruPassword')?.value;
         const statusAktif = document.getElementById('guruStatus')?.checked;
 
-        if (!nama) {
-            alert('Gagal: Nama Lengkap Guru wajib diisi!');
-            return;
-        }
+        if (!nama) return alert('Gagal: Nama Lengkap Guru wajib diisi!');
 
         const btnSimpan = document.querySelector('#modalGuru button[onclick="simpanGuru()"]');
-        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳ Menyimpan...';
-            btnSimpan.disabled = true;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
 
-        // FORMAT DATA disesuaikan dengan kebutuhan Grid Bapak
         const payload = {
             nip: nip || '',
             kode: (kode || '').toUpperCase(),
             nama: nama.toUpperCase(),
             username: (username || '').toLowerCase(),
             password: password || '',
-            isActive: statusAktif !== false // Menggunakan isActive agar sesuai dengan renderGridGuru
+            isActive: statusAktif !== false 
         };
 
-        if (idGuru) {
-            await updateDoc(doc(db, 'master_guru', idGuru), payload);
-        } else {
-            await addDoc(collection(db, 'master_guru'), payload);
-        }
+        if (idGuru) await updateDoc(doc(db, 'master_guru', idGuru), payload);
+        else await addDoc(collection(db, 'master_guru'), payload);
 
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan'; btnSimpan.disabled = false; }
 
         window.closeModal('modalGuru');
-        
-        // Panggil fungsi loadGuru versi asli Bapak untuk me-refresh Grid
-        if (typeof window.loadGuru === 'function') {
-            window.loadGuru();
-        }
+        if (typeof window.loadGuru === 'function') window.loadGuru();
 
         ['guruId', 'guruNip', 'guruKode', 'guruNama', 'guruUsername', 'guruPassword'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
         });
         if (document.getElementById('guruStatus')) document.getElementById('guruStatus').checked = true;
-
     } catch (error) {
         console.error("Gagal menyimpan Guru:", error);
-        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
-        
-        const btnSimpan = document.querySelector('#modalGuru button[onclick="simpanGuru()"]');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan';
-            btnSimpan.disabled = false;
-        }
+        alert('Terjadi kesalahan: ' + error.message);
     }
 };
-
 
 window.hapusGuru = async (id) => {
-    if(confirm("Yakin ingin menghapus data guru ini? Data yang terhapus tidak dapat dikembalikan.")) {
+    if(confirm("Yakin ingin menghapus data guru ini?")) {
         try {
             await deleteDoc(doc(db, 'master_guru', id));
-            loadGuru(); // Muat ulang grid setelah terhapus
-        } catch(e) {
-            console.error(e);
-            alert("Gagal menghapus data guru.");
-        }
+            loadGuru(); 
+        } catch(e) { console.error(e); }
     }
 };
 
-// Fitur cepat untuk langsung mengubah jabatan via popup konfirmasi
 window.editJabatanGuru = async (id) => {
     const g = state.masterGuru.find(x => x.id === id);
     if(!g) return;
-    
     const jabatanBaru = prompt(`Masukkan Jabatan untuk ${g.nama}\n(Contoh: Wali Kelas 5A, Guru PAI, dll):`, g.jabatan || "Guru Kelas");
-    
     if(jabatanBaru !== null && jabatanBaru.trim() !== "") {
         try {
             await updateDoc(doc(db, 'master_guru', id), { jabatan: jabatanBaru.toUpperCase() });
             loadGuru();
-        } catch(e) {
-            console.error(e);
-            alert("Gagal merubah jabatan.");
-        }
+        } catch(e) { console.error(e); }
     }
 };
 
-// ==========================================
-// DATA MASTER SISWA
-// ==========================================
-// ==========================================
-// DATA MASTER SISWA
-// ==========================================
+window.exportGuru = () => {
+    let dataExport = [];
+    if (state.masterGuru && state.masterGuru.length > 0) {
+        dataExport = state.masterGuru.map((g, i) => ({
+            "NO": i + 1,
+            "NIP_NUPTK": g.nip || "",
+            "KODE_GURU": g.kode || "",
+            "NAMA_LENGKAP": g.nama || "",
+            "USERNAME": g.username || "",
+            "PASSWORD": g.password || ""
+        }));
+    } else {
+        dataExport = [{
+            "NO": 1,
+            "NIP_NUPTK": "198001012005011001",
+            "KODE_GURU": "GR01",
+            "NAMA_LENGKAP": "NAMA GURU CONTOH, S.Pd",
+            "USERNAME": "guru01",
+            "PASSWORD": "password123"
+        }];
+        alert("Karena data guru kosong, sistem mengunduh Template Excel.");
+    }
+    try {
+        const ws = XLSX.utils.json_to_sheet(dataExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Data_Guru");
+        XLSX.writeFile(wb, "Data_Atau_Template_Guru.xlsx");
+    } catch (error) {
+        console.error("Gagal mengexport file:", error);
+    }
+};
 
-// --- TAMBAHKAN 3 VARIABEL INI ---
-state.siswaLimit = 50;          // Jumlah data yang diload per halaman
-state.siswaLastDoc = null;      // Menyimpan dokumen terakhir sebagai titik mulai halaman berikutnya
-state.siswaHasMore = true;      // Penanda apakah masih ada sisa data di database
-state.unsubscribeStatus = null; // Memori untuk mematikan Radar Live sebelumnya
+// --- DATA MASTER SISWA (PAGINATED) ---
+state.siswaLimit = 50;          
+state.siswaLastDoc = null;      
+state.siswaHasMore = true;      
+state.unsubscribeStatus = null; 
 
-// --- TIMPA FUNGSI loadSiswa LAMA DENGAN INI ---
 window.loadSiswa = async (isLoadMore = false) => {
     const tb = document.getElementById('tableSiswaBody');
     const btnLoadMore = document.getElementById('btnLoadMoreSiswa');
     
-    // 1. Reset tabel jika bukan sedang load more (pemanggilan awal)
     if (!isLoadMore) {
         state.masterSiswa = [];
         state.siswaLastDoc = null;
@@ -1340,36 +954,19 @@ window.loadSiswa = async (isLoadMore = false) => {
         if(tb) tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Memuat data siswa...</td></tr>';
     }
 
-    // 2. Cek apakah masih ada data. Jika habis, hentikan pencarian.
     if (!state.siswaHasMore) return;
-
-    // 3. Efek visual tombol loading
     if (btnLoadMore) btnLoadMore.innerText = "Memuat...";
 
     try {
         let q;
-        // 4. Bangun Query Firestore
         if (state.siswaLastDoc) {
-            // Lanjutkan pencarian dari titik dokumen terakhir
-            q = query(
-                collection(db, 'master_siswa'), 
-                orderBy('nama'), 
-                startAfter(state.siswaLastDoc), 
-                limit(state.siswaLimit)
-            );
+            q = query(collection(db, 'master_siswa'), orderBy('nama'), startAfter(state.siswaLastDoc), limit(state.siswaLimit));
         } else {
-            // Pencarian pertama kali (dari halaman pertama)
-            q = query(
-                collection(db, 'master_siswa'), 
-                orderBy('nama'), 
-                limit(state.siswaLimit)
-            );
+            q = query(collection(db, 'master_siswa'), orderBy('nama'), limit(state.siswaLimit));
         }
 
-        // 5. Tarik data dari Firestore
         const snap = await getDocs(q);
         
-        // 6. Tangani jika database kosong saat pemanggilan pertama
         if (snap.empty && !isLoadMore) {
             state.siswaHasMore = false;
             if(tb) tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data siswa di database.</td></tr>';
@@ -1377,44 +974,32 @@ window.loadSiswa = async (isLoadMore = false) => {
             return;
         }
 
-        // 7. Simpan dokumen terakhir untuk pijakan 'Load More' selanjutnya
         state.siswaLastDoc = snap.docs[snap.docs.length - 1];
-
-        // 8. Ekstrak data dan masukkan ke memori sementara (state)
         snap.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
         
-        // --- MODIFIKASI PENGURUTAN (Karena order dari server hanya nama, kita urutkan ulang di sisi klien agar kelasnya rapi) ---
         state.masterSiswa.sort((a,b) => {
             if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
             return (a.kelas || '').localeCompare(b.kelas || '');
         });
 
-        // 9. Panggil fungsi render tabel
         window.renderTableSiswa(); 
 
-        // 10. Evaluasi sisa data
-        // Jika data yang ditarik jumlahnya KURANG DARI limit (50), berarti data sudah habis ditarik semua.
         if (snap.docs.length < state.siswaLimit) {
             state.siswaHasMore = false;
             if(btnLoadMore) btnLoadMore.classList.add('hidden');
         } else {
-            // Jika datanya pas 50, berarti kemungkinan masih ada data ke-51 dst di belakangnya.
             if(btnLoadMore) {
                 btnLoadMore.classList.remove('hidden');
                 btnLoadMore.innerHTML = "⬇️ Muat Lebih Banyak Siswa";
             }
         }
-
     } catch (e) {
         console.error("Error load siswa:", e);
         if(tb && !isLoadMore) tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-red-500 font-bold">Gagal memuat data. Periksa Index Firestore Anda.</td></tr>';
     } finally {
-        // Kembalikan tulisan tombol
         if(btnLoadMore && state.siswaHasMore) btnLoadMore.innerHTML = "⬇️ Muat Lebih Banyak Siswa";
     }
 };
-
-// ... (kode `window.renderTableSiswa`, `window.openModalSiswa`, dll. biarkan tetap sama) ...
 
 window.renderTableSiswa = () => {
     const tb = document.getElementById('tableSiswaBody');
@@ -1463,11 +1048,7 @@ window.renderTableSiswa = () => {
     });
 };
 
-// ==========================================
-// 1. FUNGSI BUKA MODAL TAMBAH SISWA
-// ==========================================
 window.openModalSiswa = (id = '', nisn = '', nis = '', nama = '', jk = 'L', kelas = '', username = '', password = '') => {
-    // Sesuaikan ID dengan yang akan kita pakai di HTML
     const elId = document.getElementById('siswaId');
     const elNisn = document.getElementById('siswaNisn');
     const elNis = document.getElementById('siswaNis');
@@ -1478,7 +1059,6 @@ window.openModalSiswa = (id = '', nisn = '', nis = '', nama = '', jk = 'L', kela
     const elPassword = document.getElementById('siswaPassword');
     const modal = document.getElementById('modalSiswa');
 
-    // 🛡️ PENGAMAN: Hanya isi nilai jika elemen formnya ditemukan
     if (elId) elId.value = id;
     if (elNisn) elNisn.value = nisn;
     if (elNis) elNis.value = nis;
@@ -1488,131 +1068,14 @@ window.openModalSiswa = (id = '', nisn = '', nis = '', nama = '', jk = 'L', kela
     if (elUsername) elUsername.value = username;
     if (elPassword) elPassword.value = password;
 
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalSiswa' tidak ditemukan di HTML.");
-    }
-};
-
-// ==========================================
-// 2. FUNGSI BUKA MODAL EDIT SISWA
-// ==========================================
-window.editSiswa = (id) => {
-    const siswa = state.masterSiswa ? state.masterSiswa.find(s => s.id === id) : null;
-    if (!siswa) {
-        console.error("Data siswa tidak ditemukan di memori!");
-        return;
-    }
-
-    const elId = document.getElementById('siswaId');
-    const elNisn = document.getElementById('siswaNisn');
-    const elNis = document.getElementById('siswaNis');
-    const elNama = document.getElementById('siswaNama');
-    const elJk = document.getElementById('siswaJk');
-    const elKelas = document.getElementById('siswaKelas');
-    const elUsername = document.getElementById('siswaUsername');
-    const elPassword = document.getElementById('siswaPassword');
-    const modal = document.getElementById('modalSiswa');
-
-    // 🛡️ PENGAMAN: Lempar data dari state ke dalam form
-    if (elId) elId.value = siswa.id;
-    if (elNisn) elNisn.value = siswa.nisn || '';
-    if (elNis) elNis.value = siswa.nis || '';
-    if (elNama) elNama.value = siswa.nama || '';
-    if (elJk) elJk.value = siswa.jk || 'L';
-    if (elKelas) elKelas.value = siswa.kelas || '';
-    if (elUsername) elUsername.value = siswa.username || '';
-    if (elPassword) elPassword.value = siswa.password || '';
-
     if (modal) modal.classList.remove('hidden');
 };
 
-// ==========================================
-// 3. FUNGSI IMPORT SISWA (MEMBUAT INPUT GAIB)
-// ==========================================
-// ==========================================
-// 1. FUNGSI PEMICU (Membuka Jendela File)
-// ==========================================
-window.triggerImportSiswa = () => { 
-    const fileInput = document.getElementById('importSiswaFile');
-    if (fileInput) {
-        fileInput.click(); 
-    } else {
-        alert("Elemen input file tidak ditemukan di HTML!");
-    }
+window.editSiswa = (id) => {
+    const siswa = state.masterSiswa ? state.masterSiswa.find(s => s.id === id) : null;
+    if (siswa) window.openModalSiswa(siswa.id, siswa.nisn, siswa.nis, siswa.nama, siswa.jk, siswa.kelas, siswa.username, siswa.password);
 };
 
-// ==========================================
-// 2. FUNGSI MESIN PEMBACA EXCEL (Dipanggil setelah file dipilih)
-// ==========================================
-window.prosesImportSiswa = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return; // Batal pilih file
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
-            if (jsonData.length === 0) return alert("File Excel kosong atau format tidak sesuai!");
-            if (!confirm(`Ditemukan ${jsonData.length} baris data siswa. Lanjutkan import ke database?`)) return;
-
-            alert("Proses import sedang berjalan. Jangan tutup browser...");
-
-            const promises = [];
-            jsonData.forEach(row => {
-                const nisn = (row["NISN"] || '').toString().trim();
-                
-                // Cerdas membaca judul kolom baru (NAMA_LENGKAP) atau format lama (Nama Lengkap)
-                const nama = (row["NAMA_LENGKAP"] || row["Nama Lengkap"] || '').toString().trim().toUpperCase();
-                if (!nama) return; 
-
-                const siswaData = {
-                    nisn: nisn,
-                    nis: (row["NIS"] || '').toString().trim(),
-                    nama: nama,
-                    jk: (row["JENIS_KELAMIN"] || row["Jenis Kelamin (L/P)"] || 'L').toString().trim().toUpperCase(),
-                    kelas: (row["KELAS"] || row["Kelas"] || '').toString().trim().toUpperCase(),
-                    username: (row["USERNAME"] || row["Username"] || nisn || nama.replace(/\s/g,'').toLowerCase()).toString().trim().toLowerCase(),
-                    password: (row["PASSWORD"] || row["Password"] || nisn || '123456').toString().trim(),
-                    isActive: true
-                };
-
-                // Cek jika siswa sudah ada
-                let existingSiswa = nisn ? state.masterSiswa.find(s => s.nisn === nisn) : null;
-
-                if (existingSiswa) {
-                    promises.push(updateDoc(doc(db, 'master_siswa', existingSiswa.id), siswaData));
-                } else {
-                    promises.push(addDoc(collection(db, 'master_siswa'), siswaData));
-                }
-            });
-
-            await Promise.all(promises);
-            alert("Import Data Siswa Berhasil!");
-            
-            if (typeof window.loadSiswa === 'function') {
-                window.loadSiswa();
-            }
-
-        } catch (err) {
-            console.error("Gagal Import Siswa:", err);
-            alert("Gagal membaca file Excel. Pastikan format tabel sesuai.");
-        } finally {
-            // Kosongkan input agar bisa mengimport file yang sama lagi jika perlu
-            event.target.value = '';
-        }
-    };
-    reader.readAsArrayBuffer(file);
-};
-
-// ==========================================
-// 1. FUNGSI SIMPAN SISWA (ANTI-ERROR CHECKED)
-// ==========================================
 window.simpanSiswa = async () => {
     try {
         const idSiswa = document.getElementById('siswaId')?.value || '';
@@ -1623,21 +1086,12 @@ window.simpanSiswa = async () => {
         const kelas = document.getElementById('siswaKelas')?.value.trim();
         const username = document.getElementById('siswaUsername')?.value.trim();
         const password = document.getElementById('siswaPassword')?.value;
-        
-        // 🛡️ PENGAMAN: Gunakan ?.checked dan berikan nilai default true (Aktif) jika elemen tidak ada di HTML
         const statusAktif = document.getElementById('siswaStatus')?.checked ?? true;
 
-        if (!nama) {
-            alert('Gagal: Nama Lengkap Siswa wajib diisi!');
-            return;
-        }
+        if (!nama) return alert('Gagal: Nama Lengkap Siswa wajib diisi!');
 
         const btnSimpan = document.querySelector('#modalSiswa button[onclick="simpanSiswa()"]');
-        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳ Menyimpan...';
-            btnSimpan.disabled = true;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
 
         const payload = {
             nisn: nisn || '',
@@ -1650,24 +1104,13 @@ window.simpanSiswa = async () => {
             isActive: statusAktif
         };
 
-        if (idSiswa) {
-            await updateDoc(doc(db, 'master_siswa', idSiswa), payload);
-        } else {
-            await addDoc(collection(db, 'master_siswa'), payload);
-        }
+        if (idSiswa) await updateDoc(doc(db, 'master_siswa', idSiswa), payload);
+        else await addDoc(collection(db, 'master_siswa'), payload);
 
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
-
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan'; btnSimpan.disabled = false; }
         window.closeModal('modalSiswa');
-        
-        if (typeof window.loadSiswa === 'function') {
-            window.loadSiswa();
-        }
+        if (typeof window.loadSiswa === 'function') window.loadSiswa();
 
-        // Bersihkan form
         ['siswaId', 'siswaNisn', 'siswaNis', 'siswaNama', 'siswaKelas', 'siswaUsername', 'siswaPassword'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
@@ -1677,30 +1120,28 @@ window.simpanSiswa = async () => {
 
     } catch (error) {
         console.error("Gagal menyimpan Siswa:", error);
-        alert('Terjadi kesalahan saat menyimpan data: ' + error.message);
-        const btnSimpan = document.querySelector('#modalSiswa button[onclick="simpanSiswa()"]');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan';
-            btnSimpan.disabled = false;
-        }
+        alert('Terjadi kesalahan: ' + error.message);
     }
 };
 
-// ==========================================
-// 2. FUNGSI IMPORT SISWA (GANTI TOTAL)
-// ==========================================
+window.hapusSiswa = async (id) => {
+    if(confirm("Yakin ingin menghapus data siswa ini?")) {
+        try {
+            await deleteDoc(doc(db, 'master_siswa', id));
+            loadSiswa(); 
+        } catch(e) { console.error(e); }
+    }
+};
+
 window.importSiswa = () => {
-    // 1. Buat elemen input file sementara secara gaib
     const inputExcel = document.createElement('input');
     inputExcel.type = 'file';
     inputExcel.accept = '.xlsx, .xls'; 
     
-    // 2. Saat file Excel dipilih
     inputExcel.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return; 
         
-        // 3. Mesin pembaca Excel
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
@@ -1713,8 +1154,8 @@ window.importSiswa = () => {
                 if (!confirm(`Ditemukan ${jsonData.length} baris data siswa. Lanjutkan import ke database?`)) return;
 
                 alert("Proses import sedang berjalan. Jangan tutup browser...");
-
                 const promises = [];
+                
                 jsonData.forEach(row => {
                     const nisn = (row["NISN"] || '').toString().trim();
                     const nama = (row["NAMA_LENGKAP"] || row["Nama Lengkap"] || '').toString().trim().toUpperCase();
@@ -1732,7 +1173,6 @@ window.importSiswa = () => {
                     };
 
                     let existingSiswa = nisn ? state.masterSiswa.find(s => s.nisn === nisn) : null;
-
                     if (existingSiswa) {
                         promises.push(updateDoc(doc(db, 'master_siswa', existingSiswa.id), siswaData));
                     } else {
@@ -1742,11 +1182,7 @@ window.importSiswa = () => {
 
                 await Promise.all(promises);
                 alert("Import Data Siswa Berhasil!");
-                
-                if (typeof window.loadSiswa === 'function') {
-                    window.loadSiswa();
-                }
-
+                if (typeof window.loadSiswa === 'function') window.loadSiswa();
             } catch (err) {
                 console.error("Gagal Import Siswa:", err);
                 alert("Gagal membaca file Excel. Pastikan format tabel sesuai.");
@@ -1754,68 +1190,107 @@ window.importSiswa = () => {
         };
         reader.readAsArrayBuffer(file);
     };
-    
-    // Picu klik otomatis
     inputExcel.click();
 };
 
-window.hapusSiswa = async (id) => {
-    if(confirm("Yakin ingin menghapus data siswa ini?")) {
-        try {
-            await deleteDoc(doc(db, 'master_siswa', id));
-            loadSiswa(); // Muat ulang tabel setelah dihapus
-        } catch(e) {
-            console.error(e);
-            alert("Gagal menghapus data siswa.");
-        }
+window.exportSiswa = () => {
+    let dataExport = [];
+    if (state.masterSiswa && state.masterSiswa.length > 0) {
+        dataExport = state.masterSiswa.map((s, i) => ({
+            "NO": i + 1,
+            "NISN": s.nisn || "",
+            "NIS": s.nis || "",
+            "NAMA_LENGKAP": s.nama || "",
+            "JENIS_KELAMIN": s.jk || "",
+            "KELAS": s.kelas || "",
+            "USERNAME": s.username || "",
+            "PASSWORD": s.password || ""
+        }));
+    } else {
+        dataExport = [{
+            "NO": 1,
+            "NISN": "0123456789",
+            "NIS": "1234",
+            "NAMA_LENGKAP": "NAMA SISWA CONTOH",
+            "JENIS_KELAMIN": "L",
+            "KELAS": "6A",
+            "USERNAME": "siswa01",
+            "PASSWORD": "password123"
+        }];
+        alert("Karena data siswa kosong, sistem mengunduh Template Excel.");
+    }
+    try {
+        const ws = XLSX.utils.json_to_sheet(dataExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Data_Siswa");
+        XLSX.writeFile(wb, "Data_Atau_Template_Siswa.xlsx");
+    } catch (error) {
+        console.error("Gagal mengexport file:", error);
     }
 };
 
-// ==========================================
-// DATA JENIS UJIAN
-// ==========================================
+window.kenaikanKelas = async () => {
+    if(!confirm("⚠️ PERINGATAN!\n\nFitur ini akan menaikkan kelas semua siswa secara otomatis (contoh: Siswa kelas 1 menjadi kelas 2).\nSiswa kelas tertinggi (Kelas 6) akan otomatis ditandai sebagai ALUMNI/LULUS.\n\nPastikan data nilai tahun ini sudah di-backup. Lanjutkan?")) return;
+    try {
+        const promises = [];
+        state.masterSiswa.forEach(s => {
+            let kelasBaru = s.kelas;
+            let num = parseInt(s.kelas);
+            if(!isNaN(num)) {
+                if(num >= 6) {
+                    kelasBaru = "ALUMNI";
+                } else {
+                    kelasBaru = (num + 1).toString() + s.kelas.replace(num, "");
+                }
+            }
+            if(kelasBaru !== s.kelas) {
+                promises.push(updateDoc(doc(db, 'master_siswa', s.id), { kelas: kelasBaru }));
+            }
+        });
+        await Promise.all(promises);
+        alert("Proses Kenaikan Kelas Massal Berhasil! Data siswa telah diperbarui.");
+        loadSiswa(); 
+    } catch(e) {
+        console.error(e); 
+        alert("Gagal memproses kenaikan kelas.");
+    }
+};
+
+
+// ============================================================================
+// 4. PENGATURAN RUANG, SESI & JENIS UJIAN
+// ============================================================================
+
+// --- JENIS UJIAN ---
 window.loadJenisUjian = async () => {
     try {
         const snap = await getDocs(collection(db, 'master_jenis_ujian'));
         state.masterJenisUjian = [];
         snap.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()}));
 
-        // Generate data default jika database benar-benar kosong
         if(state.masterJenisUjian.length === 0) {
             const defaultJenis = [
                 { nama: 'Penilaian Harian', kode: 'PH', noUrut: 1 },
-                { nama: 'Penilaian Tengah Semester', kode: 'PTS', noUrut: 2 },
-                { nama: 'Penilaian Akhir Semester', kode: 'PAS', noUrut: 3 },
-                { nama: 'Penilaian Akhir Tahun', kode: 'PAT', noUrut: 4 },
-                { nama: 'Ujian Sekolah Berbasis Komputer', kode: 'USBK', noUrut: 5 },
-                { nama: 'Try Out', kode: 'TO', noUrut: 6 },
-                { nama: 'Simulasi', kode: 'SIML', noUrut: 7 }
+                { nama: 'Penilaian Akhir Semester', kode: 'PAS', noUrut: 3 }
             ];
-            
             for (const j of defaultJenis) {
                 const docRef = await addDoc(collection(db, 'master_jenis_ujian'), j);
                 state.masterJenisUjian.push({ id: docRef.id, ...j });
             }
         }
-
-        // Urutkan berdasarkan noUrut
         state.masterJenisUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
         window.renderTableJenisUjian();
-    } catch(e) {
-        console.error("Error load jenis ujian:", e);
-    }
+    } catch(e) { console.error("Error load jenis ujian:", e); }
 };
 
 window.renderTableJenisUjian = () => {
     const tb = document.getElementById('tableJenisUjianBody');
     if (!tb) return;
     tb.innerHTML = '';
-
     if (state.masterJenisUjian.length === 0) {
         tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data Jenis Ujian.</td></tr>';
         return;
     }
-
     state.masterJenisUjian.forEach((ju, i) => {
         tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
@@ -1832,102 +1307,44 @@ window.renderTableJenisUjian = () => {
     });
 };
 
-// ==========================================
-// 1. BUKA MODAL JENIS UJIAN (TAMBAH)
-// ==========================================
 window.openModalJenisUjian = (id = '', nama = '', kode = '') => {
     const elId = document.getElementById('jenisUjianId');
     const elNama = document.getElementById('inputNamaJenisUjian');
     const elKode = document.getElementById('inputKodeJenisUjian');
     const modal = document.getElementById('modalJenisUjian');
 
-    // 🛡️ Guard Clause pengaman
     if (elId) elId.value = id;
     if (elNama) elNama.value = nama;
     if (elKode) elKode.value = kode;
-
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalJenisUjian' tidak ditemukan di HTML.");
-    }
-};
-
-// ==========================================
-// 2. BUKA MODAL JENIS UJIAN (EDIT)
-// ==========================================
-window.editJenisUjian = (id) => {
-    const ujian = state.masterJenisUjian ? state.masterJenisUjian.find(u => u.id === id) : null;
-    if (!ujian) return;
-
-    const elId = document.getElementById('jenisUjianId');
-    const elNama = document.getElementById('inputNamaJenisUjian');
-    const elKode = document.getElementById('inputKodeJenisUjian');
-    const modal = document.getElementById('modalJenisUjian');
-
-    if (elId) elId.value = ujian.id;
-    if (elNama) elNama.value = ujian.nama || '';
-    if (elKode) elKode.value = ujian.kode || '';
-
     if (modal) modal.classList.remove('hidden');
 };
 
-// ==========================================
-// 3. SIMPAN JENIS UJIAN
-// ==========================================
+window.editJenisUjian = (id) => {
+    const ujian = state.masterJenisUjian ? state.masterJenisUjian.find(u => u.id === id) : null;
+    if (ujian) window.openModalJenisUjian(ujian.id, ujian.nama, ujian.kode);
+};
+
 window.simpanJenisUjian = async () => {
     try {
         const idUjian = document.getElementById('jenisUjianId')?.value || '';
         const nama = document.getElementById('inputNamaJenisUjian')?.value.trim();
         const kode = document.getElementById('inputKodeJenisUjian')?.value.trim();
 
-        if (!nama) {
-            alert('Gagal: Nama Jenis Ujian wajib diisi!');
-            return;
-        }
+        if (!nama) return alert('Gagal: Nama Jenis Ujian wajib diisi!');
 
         const btnSimpan = document.querySelector('#modalJenisUjian button[onclick="simpanJenisUjian()"]');
-        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳...';
-            btnSimpan.disabled = true;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳...'; btnSimpan.disabled = true; }
 
-        const payload = {
-            nama: nama.toUpperCase(),
-            kode: (kode || '').toUpperCase()
-        };
+        const payload = { nama: nama.toUpperCase(), kode: (kode || '').toUpperCase() };
 
-        if (idUjian) {
-            await updateDoc(doc(db, 'master_jenis_ujian', idUjian), payload);
-        } else {
-            await addDoc(collection(db, 'master_jenis_ujian'), payload);
-        }
+        if (idUjian) await updateDoc(doc(db, 'master_jenis_ujian', idUjian), payload);
+        else await addDoc(collection(db, 'master_jenis_ujian'), payload);
 
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
-
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan'; btnSimpan.disabled = false; }
         window.closeModal('modalJenisUjian');
-        
-        if (typeof window.loadJenisUjian === 'function') {
-            window.loadJenisUjian();
-        }
-
-        // Bersihkan input
-        if (document.getElementById('jenisUjianId')) document.getElementById('jenisUjianId').value = '';
-        if (document.getElementById('inputNamaJenisUjian')) document.getElementById('inputNamaJenisUjian').value = '';
-        if (document.getElementById('inputKodeJenisUjian')) document.getElementById('inputKodeJenisUjian').value = '';
-
+        if (typeof window.loadJenisUjian === 'function') window.loadJenisUjian();
     } catch (error) {
         console.error("Gagal menyimpan:", error);
-        alert('Terjadi kesalahan: ' + error.message);
-        const btnSimpan = document.querySelector('#modalJenisUjian button[onclick="simpanJenisUjian()"]');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan';
-            btnSimpan.disabled = false;
-        }
     }
 };
 
@@ -1936,53 +1353,40 @@ window.hapusJenisUjian = async (id) => {
         try {
             await deleteDoc(doc(db, 'master_jenis_ujian', id));
             loadJenisUjian();
-        } catch(e) {
-            console.error(e);
-            alert("Gagal menghapus data.");
-        }
+        } catch(e) { console.error(e); }
     }
 };
 
-// ==========================================
-// DATA SESI UJIAN
-// ==========================================
+// --- SESI UJIAN ---
 window.loadSesiUjian = async () => {
     try {
         const snap = await getDocs(collection(db, 'master_sesi_ujian'));
         state.masterSesiUjian = [];
         snap.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()}));
 
-        // Generate data default jika database masih kosong
         if(state.masterSesiUjian.length === 0) {
             const defaultSesi = [
                 { nama: 'Sesi 1', kode: 'S1', waktuMulai: '07:30:00', waktuSelesai: '09:30:00', noUrut: 1 },
                 { nama: 'Sesi 2', kode: 'S2', waktuMulai: '10:00:00', waktuSelesai: '12:00:00', noUrut: 2 }
             ];
-            
             for (const s of defaultSesi) {
                 const docRef = await addDoc(collection(db, 'master_sesi_ujian'), s);
                 state.masterSesiUjian.push({ id: docRef.id, ...s });
             }
         }
-
-        // Urutkan berdasarkan noUrut
         state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
         window.renderTableSesiUjian();
-    } catch(e) {
-        console.error("Error load sesi ujian:", e);
-    }
+    } catch(e) { console.error("Error load sesi ujian:", e); }
 };
 
 window.renderTableSesiUjian = () => {
     const tb = document.getElementById('tableSesiUjianBody');
     if (!tb) return;
     tb.innerHTML = '';
-
     if (state.masterSesiUjian.length === 0) {
         tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada data Sesi Ujian.</td></tr>';
         return;
     }
-
     state.masterSesiUjian.forEach((s, i) => {
         tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
@@ -2000,105 +1404,44 @@ window.renderTableSesiUjian = () => {
     });
 };
 
-// ==========================================
-// 1. BUKA MODAL SESI UJIAN (TAMBAH)
-// ==========================================
 window.openModalSesiUjian = (id = '', nama = '', waktu = '') => {
     const elId = document.getElementById('sesiUjianId');
     const elNama = document.getElementById('inputNamaSesi');
     const elWaktu = document.getElementById('inputWaktuSesi');
     const modal = document.getElementById('modalSesiUjian');
 
-    // 🛡️ Guard Clause pengaman
     if (elId) elId.value = id;
     if (elNama) elNama.value = nama;
     if (elWaktu) elWaktu.value = waktu;
-
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalSesiUjian' tidak ditemukan di HTML.");
-    }
-};
-
-// ==========================================
-// 2. BUKA MODAL SESI UJIAN (EDIT)
-// ==========================================
-window.editSesiUjian = (id) => {
-    // Cari data di memori
-    const sesi = state.masterSesiUjian ? state.masterSesiUjian.find(s => s.id === id) : null;
-    if (!sesi) return;
-
-    const elId = document.getElementById('sesiUjianId');
-    const elNama = document.getElementById('inputNamaSesi');
-    const elWaktu = document.getElementById('inputWaktuSesi');
-    const modal = document.getElementById('modalSesiUjian');
-
-    if (elId) elId.value = sesi.id;
-    if (elNama) elNama.value = sesi.nama || '';
-    if (elWaktu) elWaktu.value = sesi.waktu || '';
-
     if (modal) modal.classList.remove('hidden');
 };
 
-// ==========================================
-// 3. SIMPAN SESI UJIAN
-// ==========================================
+window.editSesiUjian = (id) => {
+    const sesi = state.masterSesiUjian ? state.masterSesiUjian.find(s => s.id === id) : null;
+    if (sesi) window.openModalSesiUjian(sesi.id, sesi.nama, sesi.waktu);
+};
+
 window.simpanSesiUjian = async () => {
     try {
         const idSesi = document.getElementById('sesiUjianId')?.value || '';
         const nama = document.getElementById('inputNamaSesi')?.value.trim();
         const waktu = document.getElementById('inputWaktuSesi')?.value.trim();
 
-        if (!nama) {
-            alert('Gagal: Nama Sesi wajib diisi!');
-            return;
-        }
+        if (!nama) return alert('Gagal: Nama Sesi wajib diisi!');
 
         const btnSimpan = document.querySelector('#modalSesiUjian button[onclick="simpanSesiUjian()"]');
-        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳...';
-            btnSimpan.disabled = true;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳...'; btnSimpan.disabled = true; }
 
-        const payload = {
-            nama: nama.toUpperCase(),
-            waktu: waktu || ''
-        };
+        const payload = { nama: nama.toUpperCase(), waktu: waktu || '' };
 
-        if (idSesi) {
-            await updateDoc(doc(db, 'master_sesi_ujian', idSesi), payload);
-        } else {
-            await addDoc(collection(db, 'master_sesi_ujian'), payload);
-        }
+        if (idSesi) await updateDoc(doc(db, 'master_sesi_ujian', idSesi), payload);
+        else await addDoc(collection(db, 'master_sesi_ujian'), payload);
 
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
-
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan'; btnSimpan.disabled = false; }
         window.closeModal('modalSesiUjian');
-        
-        // Refresh tabel
-        if (typeof window.loadSesiUjian === 'function') {
-            window.loadSesiUjian();
-        }
-
-        // Bersihkan isian form
-        if (document.getElementById('sesiUjianId')) document.getElementById('sesiUjianId').value = '';
-        if (document.getElementById('inputNamaSesi')) document.getElementById('inputNamaSesi').value = '';
-        if (document.getElementById('inputWaktuSesi')) document.getElementById('inputWaktuSesi').value = '';
-
+        if (typeof window.loadSesiUjian === 'function') window.loadSesiUjian();
     } catch (error) {
         console.error("Gagal menyimpan Sesi Ujian:", error);
-        alert('Terjadi kesalahan: ' + error.message);
-        
-        const btnSimpan = document.querySelector('#modalSesiUjian button[onclick="simpanSesiUjian()"]');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan';
-            btnSimpan.disabled = false;
-        }
     }
 };
 
@@ -2107,54 +1450,40 @@ window.hapusSesiUjian = async (id) => {
         try {
             await deleteDoc(doc(db, 'master_sesi_ujian', id));
             loadSesiUjian();
-        } catch(e) {
-            console.error(e);
-            alert("Gagal menghapus data.");
-        }
+        } catch(e) { console.error(e); }
     }
 };
 
-// ==========================================
-// DATA RUANG UJIAN
-// ==========================================
+// --- RUANG UJIAN ---
 window.loadRuangUjian = async () => {
     try {
         const snap = await getDocs(collection(db, 'master_ruang_ujian'));
         state.masterRuangUjian = [];
         snap.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
 
-        // Generate data default jika database masih kosong
         if(state.masterRuangUjian.length === 0) {
             const defaultRuang = [
                 { nama: 'Ruang 1', kode: 'R1', jumSesi: 2, noUrut: 1 },
-                { nama: 'Ruang 2', kode: 'R2', jumSesi: 2, noUrut: 2 },
-                { nama: 'Ruang 3', kode: 'R3', jumSesi: 2, noUrut: 3 }
+                { nama: 'Ruang 2', kode: 'R2', jumSesi: 2, noUrut: 2 }
             ];
-            
             for (const r of defaultRuang) {
                 const docRef = await addDoc(collection(db, 'master_ruang_ujian'), r);
                 state.masterRuangUjian.push({ id: docRef.id, ...r });
             }
         }
-
-        // Urutkan berdasarkan noUrut
         state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
         window.renderTableRuangUjian();
-    } catch(e) {
-        console.error("Error load ruang ujian:", e);
-    }
+    } catch(e) { console.error("Error load ruang ujian:", e); }
 };
 
 window.renderTableRuangUjian = () => {
     const tb = document.getElementById('tableRuangUjianBody');
     if (!tb) return;
     tb.innerHTML = '';
-
     if (state.masterRuangUjian.length === 0) {
         tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada data Ruang Ujian.</td></tr>';
         return;
     }
-
     state.masterRuangUjian.forEach((r, i) => {
         tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
@@ -2172,103 +1501,44 @@ window.renderTableRuangUjian = () => {
     });
 };
 
-// ==========================================
-// 1. BUKA MODAL RUANG UJIAN (TAMBAH)
-// ==========================================
 window.openModalRuangUjian = (id = '', nama = '', kode = '') => {
     const elId = document.getElementById('ruangUjianId');
     const elNama = document.getElementById('inputNamaRuang');
     const elKode = document.getElementById('inputKodeRuang');
     const modal = document.getElementById('modalRuangUjian');
 
-    // 🛡️ Guard Clause pengaman
     if (elId) elId.value = id;
     if (elNama) elNama.value = nama;
     if (elKode) elKode.value = kode;
-
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalRuangUjian' tidak ditemukan di HTML.");
-    }
-};
-
-// ==========================================
-// 2. BUKA MODAL RUANG UJIAN (EDIT)
-// ==========================================
-window.editRuangUjian = (id) => {
-    const ruang = state.masterRuangUjian ? state.masterRuangUjian.find(r => r.id === id) : null;
-    if (!ruang) return;
-
-    const elId = document.getElementById('ruangUjianId');
-    const elNama = document.getElementById('inputNamaRuang');
-    const elKode = document.getElementById('inputKodeRuang');
-    const modal = document.getElementById('modalRuangUjian');
-
-    if (elId) elId.value = ruang.id;
-    if (elNama) elNama.value = ruang.nama || '';
-    if (elKode) elKode.value = ruang.kode || '';
-
     if (modal) modal.classList.remove('hidden');
 };
 
-// ==========================================
-// 3. SIMPAN RUANG UJIAN
-// ==========================================
+window.editRuangUjian = (id) => {
+    const ruang = state.masterRuangUjian ? state.masterRuangUjian.find(r => r.id === id) : null;
+    if (ruang) window.openModalRuangUjian(ruang.id, ruang.nama, ruang.kode);
+};
+
 window.simpanRuangUjian = async () => {
     try {
         const idRuang = document.getElementById('ruangUjianId')?.value || '';
         const nama = document.getElementById('inputNamaRuang')?.value.trim();
         const kode = document.getElementById('inputKodeRuang')?.value.trim();
 
-        if (!nama) {
-            alert('Gagal: Nama Ruang wajib diisi!');
-            return;
-        }
+        if (!nama) return alert('Gagal: Nama Ruang wajib diisi!');
 
         const btnSimpan = document.querySelector('#modalRuangUjian button[onclick="simpanRuangUjian()"]');
-        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳...';
-            btnSimpan.disabled = true;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳...'; btnSimpan.disabled = true; }
 
-        const payload = {
-            nama: nama.toUpperCase(),
-            kode: (kode || '').toUpperCase()
-        };
+        const payload = { nama: nama.toUpperCase(), kode: (kode || '').toUpperCase() };
 
-        if (idRuang) {
-            await updateDoc(doc(db, 'master_ruang_ujian', idRuang), payload);
-        } else {
-            await addDoc(collection(db, 'master_ruang_ujian'), payload);
-        }
+        if (idRuang) await updateDoc(doc(db, 'master_ruang_ujian', idRuang), payload);
+        else await addDoc(collection(db, 'master_ruang_ujian'), payload);
 
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
-
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan'; btnSimpan.disabled = false; }
         window.closeModal('modalRuangUjian');
-        
-        if (typeof window.loadRuangUjian === 'function') {
-            window.loadRuangUjian();
-        }
-
-        // Bersihkan form
-        if (document.getElementById('ruangUjianId')) document.getElementById('ruangUjianId').value = '';
-        if (document.getElementById('inputNamaRuang')) document.getElementById('inputNamaRuang').value = '';
-        if (document.getElementById('inputKodeRuang')) document.getElementById('inputKodeRuang').value = '';
-
+        if (typeof window.loadRuangUjian === 'function') window.loadRuangUjian();
     } catch (error) {
         console.error("Gagal menyimpan Ruang Ujian:", error);
-        alert('Terjadi kesalahan: ' + error.message);
-        
-        const btnSimpan = document.querySelector('#modalRuangUjian button[onclick="simpanRuangUjian()"]');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan';
-            btnSimpan.disabled = false;
-        }
     }
 };
 
@@ -2277,34 +1547,21 @@ window.hapusRuangUjian = async (id) => {
         try {
             await deleteDoc(doc(db, 'master_ruang_ujian', id));
             loadRuangUjian();
-        } catch(e) {
-            console.error(e);
-            alert("Gagal menghapus data.");
-        }
+        } catch(e) { console.error(e); }
     }
 };
 
-// ==========================================
-// ATUR RUANG & SESI SISWA
-// ==========================================
+// --- ATUR RUANG & SESI SISWA ---
 window.loadAturRuangSesi = async () => {
-    // 1. Ambil Referensi Elemen & Lakukan Proteksi (Guard Clause)
     const tb = document.getElementById('tableAturRuangSesiBody');
     const filterKelas = document.getElementById('filterKelasAtur');
     const bulkRuang = document.getElementById('bulkRuang');
     const bulkSesi = document.getElementById('bulkSesi');
 
-    // Jika salah satu elemen kunci tidak ditemukan, hentikan fungsi sebelum error muncul
-    if (!tb || !filterKelas || !bulkRuang || !bulkSesi) {
-        console.warn("Peringatan: Beberapa elemen UI Atur Ruang Sesi tidak ditemukan di HTML (Cek ID: tableAturRuangSesiBody, filterKelasAtur, bulkRuang, atau bulkSesi).");
-        return; 
-    }
-
-    // Tampilkan status memuat di tabel
+    if (!tb || !filterKelas || !bulkRuang || !bulkSesi) return;
     tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Memuat data...</td></tr>';
 
     try {
-        // 2. Load Data Master (Hanya jika memori state kosong)
         if (!state.masterKelas || state.masterKelas.length === 0) {
             const snapKelas = await getDocs(collection(db, 'master_kelas'));
             state.masterKelas = [];
@@ -2326,88 +1583,58 @@ window.loadAturRuangSesi = async () => {
             state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
         }
 
-        // 3. Load Data Siswa
         const snapSiswa = await getDocs(collection(db, 'master_siswa'));
         state.masterSiswa = [];
         snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
 
-        // 4. Render Dropdown Filter Kelas
         filterKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-        state.masterKelas.forEach(k => {
-            filterKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`;
-        });
+        state.masterKelas.forEach(k => { filterKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; });
 
-        // 5. Render Dropdown Bulk Action (Ruang & Sesi)
         bulkRuang.innerHTML = '<option value="">Pilih ruang</option>';
-        state.masterRuangUjian.forEach(r => {
-            bulkRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`;
-        });
+        state.masterRuangUjian.forEach(r => { bulkRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`; });
 
         bulkSesi.innerHTML = '<option value="">Pilih sesi</option>';
-        state.masterSesiUjian.forEach(s => {
-            bulkSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
-        });
+        state.masterSesiUjian.forEach(s => { bulkSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`; });
 
-        // Otomatis pilih kelas pertama jika ada
-        if(state.masterKelas.length > 0 && !filterKelas.value) {
-            filterKelas.value = state.masterKelas[0].nama;
-        }
-
-        // Jalankan render tabel utama
+        if(state.masterKelas.length > 0 && !filterKelas.value) filterKelas.value = state.masterKelas[0].nama;
         window.renderTableAturRuangSesi();
-
     } catch(e) {
         console.error("Error load atur ruang sesi:", e);
-        tb.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 font-bold">Gagal memuat data: ${e.message}</td></tr>`;
     }
 };
 
 window.renderTableAturRuangSesi = () => {
-    // 1. Ambil referensi elemen
     const elFilter = document.getElementById('filterKelasAtur');
     const tb = document.getElementById('tableAturRuangSesiBody');
     const lbl = document.getElementById('labelBulkAction');
     
-    // 🛡️ PENGAMAN UTAMA: Jangan lanjutkan jika tabel atau filter tidak ada
-    if (!tb || !elFilter) {
-        console.warn("Peringatan: Elemen 'tableAturRuangSesiBody' atau 'filterKelasAtur' tidak ditemukan.");
-        return;
-    }
+    if (!tb || !elFilter) return;
 
     const kelasVal = elFilter.value;
-    
-    // 2. Bersihkan tabel
     tb.innerHTML = '';
 
-    // 🛡️ PENGAMAN LABEL: Hanya isi teks jika elemen labelBulkAction ditemukan
-    if (lbl) {
-        lbl.innerText = `Gabungkan siswa ${kelasVal ? kelasVal : ''} ke ruang dan sesi:`;
-    }
+    if (lbl) lbl.innerText = `Gabungkan siswa ${kelasVal ? kelasVal : ''} ke ruang dan sesi:`;
     
-    // 3. Validasi pilihan kelas
     if (!kelasVal) {
         tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Silakan pilih kelas terlebih dahulu.</td></tr>';
         return;
     }
 
-    // 4. Filter data siswa berdasarkan kelas
     const filteredSiswa = (state.masterSiswa || [])
         .filter(s => s.kelas === kelasVal)
         .sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
     
     if (filteredSiswa.length === 0) {
-        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa yang terdaftar di kelas ini.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Tidak ada siswa terdaftar di kelas ini.</td></tr>';
         return;
     }
 
-    // 5. Siapkan elemen option HTML untuk Ruang dan Sesi
     let optRuang = '<option value="">Pilih ruang</option>';
     (state.masterRuangUjian || []).forEach(r => { optRuang += `<option value="${r.nama}">${r.nama}</option>`; });
     
     let optSesi = '<option value="">Pilih sesi</option>';
     (state.masterSesiUjian || []).forEach(s => { optSesi += `<option value="${s.nama}">${s.nama}</option>`; });
 
-    // 6. Render baris tabel
     filteredSiswa.forEach((s, i) => {
         tb.innerHTML += `
             <tr class="hover:bg-blue-50 transition border-b border-slate-100" data-id="${s.id}">
@@ -2424,34 +1651,72 @@ window.renderTableAturRuangSesi = () => {
         `;
     });
 
-    // 7. Atur nilai terpilih (selected) sesuai data di database
     setTimeout(() => {
         tb.querySelectorAll('tr[data-id]').forEach(row => {
             const id = row.getAttribute('data-id');
             const s = filteredSiswa.find(x => x.id === id);
             if(s) {
-                if(s.ruang) {
-                    const selRuang = row.querySelector('.select-ruang');
-                    if(selRuang) selRuang.value = s.ruang;
-                }
-                if(s.sesi) {
-                    const selSesi = row.querySelector('.select-sesi');
-                    if(selSesi) selSesi.value = s.sesi;
-                }
+                if(s.ruang) row.querySelector('.select-ruang').value = s.ruang;
+                if(s.sesi) row.querySelector('.select-sesi').value = s.sesi;
             }
         });
     }, 50);
 };
 
-// Fungsi Terapkan Ke Semua Siswa
-window.applyBulkRuangSesi = () => {
-    const ruangVal = document.getElementById('bulkRuang').value;
-    const sesiVal = document.getElementById('bulkSesi').value;
-    
-    document.getElementById('tableAturRuangSesiBody').querySelectorAll('tr[data-id]').forEach(row => {
-        if(ruangVal) row.querySelector('.select-ruang').value = ruangVal;
-        if(sesiVal) row.querySelector('.select-sesi').value = sesiVal;
+window.terapkanAturMassal = () => {
+    const valRuang = document.getElementById('bulkRuang')?.value;
+    const valSesi = document.getElementById('bulkSesi')?.value;
+
+    if (!valRuang && !valSesi) return alert("Pilih Ruang atau Sesi terlebih dahulu untuk diterapkan secara massal.");
+
+    const rows = document.querySelectorAll('#tableAturRuangSesiBody tr');
+    let count = 0;
+
+    rows.forEach(row => {
+        const selects = row.querySelectorAll('select');
+        if (selects.length >= 2) {
+            if (valRuang) selects[0].value = valRuang;
+            if (valSesi) selects[1].value = valSesi;
+            count++;
+        }
     });
+
+    if (count > 0) alert(`Berhasil menerapkan pilihan ke ${count} siswa di layar. Jangan lupa klik tombol "💾 Simpan Perubahan"!`);
+};
+
+window.generateRuangSesiOtomatis = () => {
+    const rows = document.querySelectorAll('#tableAturRuangSesiBody tr');
+    if (rows.length === 0) return alert("Belum ada data siswa di tabel.");
+
+    const firstRowSelects = rows[0].querySelectorAll('select');
+    if (firstRowSelects.length < 2) return;
+
+    const opsiRuang = Array.from(firstRowSelects[0].options).map(opt => opt.value).filter(val => val !== "");
+    const opsiSesi = Array.from(firstRowSelects[1].options).map(opt => opt.value).filter(val => val !== "");
+
+    if (opsiRuang.length === 0 || opsiSesi.length === 0) return alert("Data Master Ruang atau Sesi masih kosong!");
+
+    let ruangIndex = 0;
+    let sesiIndex = 0;
+    const kapasitasPerRuang = 20; 
+
+    rows.forEach((row, index) => {
+        const selects = row.querySelectorAll('select');
+        if (selects.length >= 2) {
+            selects[0].value = opsiRuang[ruangIndex];
+            selects[1].value = opsiSesi[sesiIndex];
+
+            if ((index + 1) % kapasitasPerRuang === 0) {
+                ruangIndex++;
+                if (ruangIndex >= opsiRuang.length) {
+                    ruangIndex = 0;
+                    sesiIndex++;
+                    if (sesiIndex >= opsiSesi.length) sesiIndex = 0; 
+                }
+            }
+        }
+    });
+    alert("✨ Siswa berhasil didistribusikan secara otomatis (Asumsi max. 20 anak per ruangan). Jangan lupa klik '💾 Simpan Perubahan'!");
 };
 
 window.simpanAturRuangSesi = async () => {
@@ -2460,20 +1725,14 @@ window.simpanAturRuangSesi = async () => {
     
     try {
         const promises = [];
-        
         document.getElementById('tableAturRuangSesiBody').querySelectorAll('tr[data-id]').forEach(row => {
             const id = row.getAttribute('data-id');
             const ruang = row.querySelector('.select-ruang').value;
             const sesi = row.querySelector('.select-sesi').value;
             
-            // Update state lokal
             const s = state.masterSiswa.find(x => x.id === id);
-            if(s) {
-                s.ruang = ruang;
-                s.sesi = sesi;
-            }
+            if(s) { s.ruang = ruang; s.sesi = sesi; }
             
-            // Push perintah update ke array promises untuk dieksekusi secara paralel (lebih cepat)
             promises.push(updateDoc(doc(db, 'master_siswa', id), { ruang, sesi }));
         });
         
@@ -2487,53 +1746,28 @@ window.simpanAturRuangSesi = async () => {
     }
 };
 
-// ==========================================
-// ATUR PENGAWAS UJIAN
-// ==========================================
-// ==========================================
-// 1. FUNGSI LOAD PENGAWAS DARI FIREBASE
-// ==========================================
+// --- PENGAWAS UJIAN ---
 window.loadPengawas = async () => {
-    // Pastikan ID ini sama dengan <tbody> di HTML Bapak
     const tb = document.getElementById('tablePengawasBody');
     if (!tb) return;
-
     tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">⏳ Memuat data pengawas...</td></tr>';
-
     try {
         const snap = await getDocs(collection(db, 'master_pengawas'));
         state.masterPengawas = [];
         snap.forEach(d => state.masterPengawas.push({id: d.id, ...d.data()}));
-
-        // Urutkan berdasarkan abjad nama pengawas
         state.masterPengawas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
-
-        // Panggil fungsi penampil ke tabel
-        if (typeof window.renderTablePengawas === 'function') {
-            window.renderTablePengawas();
-        }
-    } catch(e) {
-        console.error("Error load pengawas:", e);
-        tb.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold">Gagal memuat data: ${e.message}</td></tr>`;
-    }
+        if (typeof window.renderTablePengawas === 'function') window.renderTablePengawas();
+    } catch(e) { console.error("Error load pengawas:", e); }
 };
 
-// ==========================================
-// 2. FUNGSI MENCETAK DATA KE TABEL HTML
-// ==========================================
 window.renderTablePengawas = () => {
     const tb = document.getElementById('tablePengawasBody');
     if (!tb) return;
-
     tb.innerHTML = '';
-
-    // Jika data kosong
     if (!state.masterPengawas || state.masterPengawas.length === 0) {
         tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada data Pengawas. Silakan klik Tambah Pengawas.</td></tr>';
         return;
     }
-
-    // Jika data ada, cetak baris per baris
     state.masterPengawas.forEach((p, i) => {
         tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
@@ -2551,11 +1785,6 @@ window.renderTablePengawas = () => {
     });
 };
 
-
-
-// ==========================================
-// 1. BUKA MODAL PENGAWAS (TAMBAH)
-// ==========================================
 window.openModalPengawas = (id = '', nama = '', nip = '', user = '', pass = '') => {
     const elId = document.getElementById('pengawasId');
     const elNama = document.getElementById('inputNamaPengawas');
@@ -2564,46 +1793,19 @@ window.openModalPengawas = (id = '', nama = '', nip = '', user = '', pass = '') 
     const elPass = document.getElementById('inputPassPengawas');
     const modal = document.getElementById('modalPengawas');
 
-    // Pengaman
     if (elId) elId.value = id;
     if (elNama) elNama.value = nama;
     if (elNip) elNip.value = nip;
     if (elUser) elUser.value = user;
     if (elPass) elPass.value = pass;
-
-    if (modal) {
-        modal.classList.remove('hidden');
-    } else {
-        console.warn("Peringatan: Modal 'modalPengawas' tidak ditemukan di HTML.");
-    }
-};
-
-// ==========================================
-// 2. BUKA MODAL PENGAWAS (EDIT)
-// ==========================================
-window.editPengawas = (id) => {
-    const pengawas = state.masterPengawas ? state.masterPengawas.find(p => p.id === id) : null;
-    if (!pengawas) return;
-
-    const elId = document.getElementById('pengawasId');
-    const elNama = document.getElementById('inputNamaPengawas');
-    const elNip = document.getElementById('inputNipPengawas');
-    const elUser = document.getElementById('inputUserPengawas');
-    const elPass = document.getElementById('inputPassPengawas');
-    const modal = document.getElementById('modalPengawas');
-
-    if (elId) elId.value = pengawas.id;
-    if (elNama) elNama.value = pengawas.nama || '';
-    if (elNip) elNip.value = pengawas.nip || '';
-    if (elUser) elUser.value = pengawas.username || '';
-    if (elPass) elPass.value = pengawas.password || '';
-
     if (modal) modal.classList.remove('hidden');
 };
 
-// ==========================================
-// 3. SIMPAN PENGAWAS
-// ==========================================
+window.editPengawas = (id) => {
+    const pengawas = state.masterPengawas ? state.masterPengawas.find(p => p.id === id) : null;
+    if (pengawas) window.openModalPengawas(pengawas.id, pengawas.nama, pengawas.nip, pengawas.username, pengawas.password);
+};
+
 window.simpanPengawas = async () => {
     try {
         const idPengawas = document.getElementById('pengawasId')?.value || '';
@@ -2612,17 +1814,10 @@ window.simpanPengawas = async () => {
         const user = document.getElementById('inputUserPengawas')?.value.trim();
         const pass = document.getElementById('inputPassPengawas')?.value;
 
-        if (!nama) {
-            alert('Gagal: Nama Pengawas wajib diisi!');
-            return;
-        }
+        if (!nama) return alert('Gagal: Nama Pengawas wajib diisi!');
 
         const btnSimpan = document.querySelector('#modalPengawas button[onclick="simpanPengawas()"]');
-        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan';
-        if (btnSimpan) {
-            btnSimpan.innerHTML = '⏳...';
-            btnSimpan.disabled = true;
-        }
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳...'; btnSimpan.disabled = true; }
 
         const payload = {
             nama: nama.toUpperCase(),
@@ -2631,41 +1826,32 @@ window.simpanPengawas = async () => {
             password: pass || ''
         };
 
-        if (idPengawas) {
-            await updateDoc(doc(db, 'master_pengawas', idPengawas), payload);
-        } else {
-            await addDoc(collection(db, 'master_pengawas'), payload);
-        }
+        if (idPengawas) await updateDoc(doc(db, 'master_pengawas', idPengawas), payload);
+        else await addDoc(collection(db, 'master_pengawas'), payload);
 
-        if (btnSimpan) {
-            btnSimpan.innerHTML = teksAsli;
-            btnSimpan.disabled = false;
-        }
-
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan'; btnSimpan.disabled = false; }
         window.closeModal('modalPengawas');
-        
-        if (typeof window.loadPengawas === 'function') {
-            window.loadPengawas();
-        }
-
+        if (typeof window.loadPengawas === 'function') window.loadPengawas();
     } catch (error) {
         console.error("Gagal menyimpan Pengawas:", error);
-        alert('Terjadi kesalahan: ' + error.message);
-        
-        const btnSimpan = document.querySelector('#modalPengawas button[onclick="simpanPengawas()"]');
-        if (btnSimpan) {
-            btnSimpan.innerHTML = 'Simpan';
-            btnSimpan.disabled = false;
-        }
     }
 };
 
-// ==========================================
-// GENERATE NOMOR PESERTA UJIAN
-// ==========================================
+window.hapusPengawas = async (id) => {
+    if(confirm("Yakin ingin menghapus data pengawas ini?")) {
+        try {
+            await deleteDoc(doc(db, 'master_pengawas', id));
+            loadPengawas();
+        } catch(e) { console.error(e); }
+    }
+};
+
+
+// ============================================================================
+// 5. NOMOR PESERTA & TOKEN UJIAN
+// ============================================================================
 window.loadNomorPeserta = async () => {
     try {
-        // 1. Load Data Kelas untuk filter dropdown
         if (state.masterKelas.length === 0) {
             const snapKelas = await getDocs(collection(db, 'master_kelas'));
             state.masterKelas = [];
@@ -2673,28 +1859,54 @@ window.loadNomorPeserta = async () => {
             state.masterKelas.sort((a, b) => (a.nama || '').localeCompare(b.nama || ''));
         }
 
-        // 2. Load Data Siswa
-        const snapSiswa = await getDocs(collection(db, 'master_siswa'));
-        state.masterSiswa = [];
-        snapSiswa.forEach(d => state.masterSiswa.push({ id: d.id, ...d.data() }));
+        if (state.masterSiswa.length === 0) {
+            const snapSiswa = await getDocs(collection(db, 'master_siswa'));
+            state.masterSiswa = [];
+            snapSiswa.forEach(d => state.masterSiswa.push({ id: d.id, ...d.data() }));
+        }
 
-        // 3. Render Dropdown Kelas
         const selectKelas = document.getElementById('selectKelasNomor');
         if (selectKelas) {
             selectKelas.innerHTML = '<option value="ALL">Semua Kelas</option>';
-            state.masterKelas.forEach(k => {
-                selectKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`;
-            });
+            state.masterKelas.forEach(k => { selectKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; });
         }
-    } catch (e) {
-        console.error("Error load nomor peserta:", e);
+        
+        window.renderNomorPeserta();
+    } catch (e) { console.error("Error load nomor peserta:", e); }
+};
+
+window.renderNomorPeserta = () => {
+    const tb = document.getElementById('tableNomorPesertaBody');
+    if (!tb) return;
+    tb.innerHTML = '';
+    
+    if (!state.masterSiswa || state.masterSiswa.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data siswa.</td></tr>';
+        return;
     }
+    
+    // Filter by class logic could be added here if needed, for now renders all or based on filter
+    state.masterSiswa.forEach((s, i) => {
+        tb.innerHTML += `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100" data-id="${s.id}">
+                <td class="p-3 text-center border-r font-bold text-slate-500">${i + 1}</td>
+                <td class="p-3 border-r font-bold text-slate-800 uppercase">${s.nama || '-'}</td>
+                <td class="p-3 text-center border-r font-bold text-slate-600">${s.kelas || '-'}</td>
+                <td class="p-3 border-r">
+                    <input type="text" class="input-nomor w-full p-2 border border-slate-300 rounded outline-none font-mono focus:border-blue-500 uppercase tracking-widest text-center" value="${s.nomor_peserta || s.noUjian || s.nis || ''}" placeholder="Ketik nomor...">
+                </td>
+                <td class="p-3 text-center">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tersimpan</span>
+                </td>
+            </tr>
+        `;
+    });
 };
 
 window.generateNomorPeserta = async () => {
-    const kelasVal = document.getElementById('selectKelasNomor').value;
+    const kelasVal = document.getElementById('selectKelasNomor') ? document.getElementById('selectKelasNomor').value : 'ALL';
     const btn = document.getElementById('btnGenerateNomor');
-    const NPSN_SEKOLAH = '20528347'; // Berdasarkan data profil sekolah Anda
+    const NPSN_SEKOLAH = '20528347'; // Sesuaikan NPSN
 
     let siswaTarget = [];
     if (kelasVal === 'ALL') {
@@ -2703,9 +1915,8 @@ window.generateNomorPeserta = async () => {
         siswaTarget = state.masterSiswa.filter(s => s.kelas === kelasVal);
     }
 
-    if (siswaTarget.length === 0) return alert("Tidak ada data siswa untuk kelas ini!");
+    if (siswaTarget.length === 0) return alert("Tidak ada data siswa untuk digenerate!");
 
-    // Urutkan siswa berdasarkan Kelas lalu Nama agar nomor urut rapi
     siswaTarget.sort((a, b) => {
         if (a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
         return (a.kelas || '').localeCompare(b.kelas || '');
@@ -2713,69 +1924,84 @@ window.generateNomorPeserta = async () => {
 
     if (!confirm(`Sistem akan men-generate ulang nomor ujian untuk ${siswaTarget.length} siswa. Lanjutkan?`)) return;
 
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = "Memproses...";
-    }
+    if (btn) { btn.disabled = true; btn.innerHTML = "Memproses..."; }
 
     try {
         const promises = [];
         siswaTarget.forEach((s, index) => {
-            // Format: NPSN-NomorUrut (Contoh: 20528347-001)
             const noUrut = String(index + 1).padStart(3, '0');
             const noUjianBaru = `${NPSN_SEKOLAH}-${noUrut}`;
-            
-            // Update nomor ujian dan juga NIS (karena NIS digunakan sebagai username login siswa)
             promises.push(updateDoc(doc(db, 'master_siswa', s.id), { 
                 nis: noUjianBaru,
-                noUjian: noUjianBaru 
+                noUjian: noUjianBaru,
+                nomor_peserta: noUjianBaru
             }));
         });
 
         await Promise.all(promises);
-        alert("Nomor Peserta berhasil di-generate dan disimpan ke data siswa!");
-        
-        // Segarkan data lokal
-        await loadSiswa(); 
+        alert("Nomor Peserta berhasil di-generate dan disimpan!");
+        await loadNomorPeserta(); 
     } catch (e) {
         console.error("Gagal generate nomor:", e);
         alert("Terjadi kesalahan saat memperbarui database.");
     } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = "💾 Simpan";
-        }
+        if (btn) { btn.disabled = false; btn.innerHTML = "✨ Generate Otomatis"; }
     }
 };
 
-// ==========================================
-// PENGATURAN TOKEN UJIAN
-// ==========================================
+window.simpanNomorPeserta = async () => {
+    const rows = document.querySelectorAll('#tableNomorPesertaBody tr[data-id]');
+    let count = 0;
+    let promises = [];
+
+    const btnSimpan = document.querySelector('button[onclick="simpanNomorPeserta()"]');
+    if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
+
+    try {
+        rows.forEach(row => {
+            const idSiswa = row.getAttribute('data-id');
+            const input = row.querySelector('.input-nomor');
+            if (idSiswa && input && input.value.trim() !== '') {
+                promises.push(updateDoc(doc(db, 'master_siswa', idSiswa), { 
+                    nomor_peserta: input.value.trim().toUpperCase(),
+                    noUjian: input.value.trim().toUpperCase(),
+                    nis: input.value.trim().toUpperCase() // Sinkronisasi dengan NIS untuk login
+                }));
+                count++;
+            }
+        });
+
+        await Promise.all(promises);
+        alert(`✅ Berhasil menyimpan ${count} nomor peserta ke database!`);
+    } catch (error) {
+        console.error("Gagal simpan:", error);
+    } finally {
+        if (btnSimpan) { btnSimpan.innerHTML = '💾 Simpan Perubahan'; btnSimpan.disabled = false; }
+    }
+};
+
+// --- TOKEN UJIAN ---
 window.loadToken = async () => {
     try {
         const snap = await getDoc(doc(db, 'settings', 'token_ujian'));
         if(snap.exists()) {
             state.tokenConfig = snap.data();
         } else {
-            // Inisialisasi default jika belum ada di database
             state.tokenConfig = { currentToken: '------', isAuto: false, interval: 60 };
             await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig);
         }
         window.renderTokenUI();
-    } catch(e) {
-        console.error("Error load token:", e);
-    }
+    } catch(e) { console.error("Error load token:", e); }
 };
 
 window.renderTokenUI = () => {
-    if (!document.getElementById('tokenOtomatis')) return;
-    
-    document.getElementById('tokenOtomatis').value = state.tokenConfig.isAuto ? 'YA' : 'TIDAK';
-    document.getElementById('tokenInterval').value = state.tokenConfig.interval || 60;
-    document.getElementById('displayTokenSaatIni').innerText = state.tokenConfig.currentToken || '------';
+    if (!document.getElementById('settingTokenOtomatis')) return;
+    document.getElementById('settingTokenOtomatis').value = state.tokenConfig.isAuto ? 'YA' : 'TIDAK';
+    document.getElementById('settingTokenInterval').value = state.tokenConfig.interval || 60;
+    document.getElementById('displayTokenAktif').innerText = state.tokenConfig.currentToken || '------';
 };
 
-window.generateNewToken = async () => {
+window.generateToken = async () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let newToken = '';
     for (let i = 0; i < 6; i++) {
@@ -2783,68 +2009,45 @@ window.generateNewToken = async () => {
     }
 
     try {
+        if(!state.tokenConfig) state.tokenConfig = {};
         state.tokenConfig.currentToken = newToken;
-        await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig);
+        await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig, { merge: true });
         window.renderTokenUI();
-        alert(`Token baru berhasil dibuat: ${newToken}`);
-        
-        // Update tampilan dashboard jika diperlukan
+        alert(`Token ujian berhasil diperbarui: ${newToken}\nSilakan berikan token ini kepada siswa.`);
         if(typeof loadDashboard === 'function') loadDashboard();
     } catch(e) {
         console.error("Gagal generate token:", e);
-        alert("Terjadi kesalahan saat memperbarui token.");
     }
 };
 
-window.simpanTokenSettings = async () => {
-    const isAuto = document.getElementById('tokenOtomatis').value === 'YA';
-    const interval = parseInt(document.getElementById('tokenInterval').value) || 60;
-
+window.simpanPengaturanToken = async () => {
+    const isAuto = document.getElementById('settingTokenOtomatis')?.value === 'YA';
+    const interval = parseInt(document.getElementById('settingTokenInterval')?.value) || 60;
+    
     try {
+        if(!state.tokenConfig) state.tokenConfig = {};
         state.tokenConfig.isAuto = isAuto;
         state.tokenConfig.interval = interval;
-        await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig);
-        alert("Pengaturan token berhasil disimpan!");
-    } catch(e) {
-        console.error("Gagal simpan setting token:", e);
-        alert("Gagal menyimpan pengaturan.");
-    }
+        await setDoc(doc(db, 'settings', 'token_ujian'), state.tokenConfig, { merge: true });
+        alert(`Pengaturan Token Berhasil Disimpan!\nStatus Otomatis: ${isAuto ? 'YA' : 'TIDAK'}\nInterval: ${interval} Menit`);
+    } catch(e) { console.error("Gagal simpan setting token", e); }
 };
 
-// ==========================================
-// PENGATURAN BANK SOAL
-// ==========================================
-// ==========================================
-// FUNGSI MEMUAT DATA BANK SOAL DARI FIREBASE
-// ==========================================
+
+// ============================================================================
+// 6. BANK SOAL & EDITOR BUTIR SOAL
+// ============================================================================
 window.loadBankSoal = async () => {
     try {
-        // 1. PENGAMAN UTAMA: Pastikan wadah datanya (state) sudah dibuat sebagai array kosong
         if (typeof state === 'undefined') window.state = {};
         state.masterSoal = []; 
 
-        // 2. Ambil data dari Firebase
-        const snap = await getDocs(collection(db, 'master_soal'));
-        
-        snap.forEach(d => {
-            state.masterSoal.push({ id: d.id, ...d.data() });
-        });
+        const snap = await getDocs(collection(db, 'master_bank_soal')); // Asumsi nama koleksi disamakan
+        snap.forEach(d => { state.masterSoal.push({ id: d.id, ...d.data() }); });
 
-        // 3. Panggil fungsi untuk menampilkan ke layar (Render)
-        // Kita gunakan pengecekan agar tidak error jika nama fungsi render-nya berbeda
-        if (typeof window.renderBankSoal === 'function') {
-            window.renderBankSoal();
-        } else if (typeof window.renderTableSoal === 'function') {
-            window.renderTableSoal();
-        } else if (typeof window.renderGridSoal === 'function') {
-            window.renderGridSoal();
-        } else {
-            console.warn("Fungsi render (penampil) untuk Bank Soal belum ditemukan di file ini.");
-        }
-
+        if (typeof window.renderTableBankSoal === 'function') window.renderTableBankSoal();
     } catch (e) {
         console.error("Error load bank soal:", e);
-        // Tampilkan pesan error di konsol tapi jangan buat aplikasi macet
     }
 };
 
@@ -2853,29 +2056,28 @@ window.renderTableBankSoal = () => {
     if (!tb) return;
     tb.innerHTML = '';
 
-    if (state.masterBankSoal.length === 0) {
+    if (!state.masterSoal || state.masterSoal.length === 0) {
         tb.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada Bank Soal. Silakan buat baru.</td></tr>';
         return;
     }
 
-    state.masterBankSoal.forEach((b, i) => {
-        const statusColor = b.isActive ? "bg-amber-400" : "bg-slate-400";
-        
+    state.masterSoal.forEach((b, i) => {
+        const statusColor = b.isActive !== false ? "bg-amber-400" : "bg-slate-400";
         tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition border-l-4 ${b.isActive ? 'border-l-amber-400' : 'border-l-slate-400'} border-b border-slate-100">
+            <tr class="hover:bg-slate-50 transition border-l-4 ${b.isActive !== false ? 'border-l-amber-400' : 'border-l-slate-400'} border-b border-slate-100">
                 <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
                 <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
                 <td class="p-3 border-r">
                     <div class="flex items-center gap-2">
                         <div class="w-3 h-3 ${statusColor} rounded-full"></div>
-                        <span class="font-bold text-blue-700 font-mono tracking-tight">${b.kode || '-'}</span>
+                        <span class="font-bold text-blue-700 font-mono tracking-tight">${b.kode || b.mapel || '-'}</span>
                     </div>
                 </td>
                 <td class="p-3 border-r font-bold text-slate-800">${b.mapel || '-'}</td>
                 <td class="p-3 border-r text-center font-bold text-slate-600">${b.kelas || '-'}</td>
                 <td class="p-3 border-r text-center font-black text-slate-700">${b.totalSoal || 0}</td>
                 <td class="p-3 text-center space-x-1 whitespace-nowrap">
-                    <button onclick="bukaSoalDetail('${b.id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm text-xs font-bold transition">📝 Soal</button>
+                    <button onclick="bukaSoalDetail('${b.id}', '${b.mapel}')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded shadow-sm text-xs font-bold transition">📝 Soal</button>
                     <button onclick="editBankSoal('${b.id}')" class="bg-amber-400 hover:bg-amber-500 text-slate-900 px-2 py-1 rounded shadow-sm text-xs font-bold transition">✏️ Edit</button>
                     <button onclick="hapusBankSoal('${b.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded shadow-sm text-xs transition">🗑️</button>
                 </td>
@@ -2884,49 +2086,30 @@ window.renderTableBankSoal = () => {
     });
 };
 
-window.kalkulasiTotalSoalBobot = () => {
-    const getVal = (id) => parseInt(document.getElementById(id).value) || 0;
-    
-    const tSoal = getVal('bsPgJml') + getVal('bsPgkJml') + getVal('bsBsJml') + getVal('bsIsianJml') + getVal('bsUraianJml') + getVal('bsUrutJml');
-    const tBobot = getVal('bsPgBobot') + getVal('bsPgkBobot') + getVal('bsBsBobot') + getVal('bsIsianBobot') + getVal('bsUraianBobot') + getVal('bsUrutBobot');
-    
-    document.getElementById('bsLabelTotalSoal').innerText = tSoal;
-    const lblBobot = document.getElementById('bsLabelTotalBobot');
-    lblBobot.innerText = tBobot + "%";
-    
-    // Beri peringatan merah jika total bobot bukan 100%
-    if(tBobot !== 100 && tBobot !== 0) {
-        lblBobot.classList.replace('text-slate-800', 'text-red-600');
-    } else {
-        lblBobot.classList.replace('text-red-600', 'text-slate-800');
-    }
-};
-
 window.openModalBankSoal = () => {
     document.getElementById('bankSoalId').value = '';
     document.getElementById('bsKode').value = '';
+    document.getElementById('bsMapel').value = '';
+    document.getElementById('bsKelas').value = '';
     document.getElementById('bsLevel').value = '1';
-    
-    // Reset semua input jumlah & bobot
     ['Pg','Pgk','Bs','Isian','Uraian','Urut'].forEach(k => {
-        document.getElementById(`bs${k}Jml`).value = 0;
-        document.getElementById(`bs${k}Bobot`).value = 0;
+        if(document.getElementById(`bs${k}Jml`)) document.getElementById(`bs${k}Jml`).value = 0;
+        if(document.getElementById(`bs${k}Bobot`)) document.getElementById(`bs${k}Bobot`).value = 0;
     });
-    
-    document.getElementById('bsStatus').value = 'true';
-    kalkulasiTotalSoalBobot();
+    if(document.getElementById('bsStatus')) document.getElementById('bsStatus').value = 'true';
+    if(typeof window.kalkulasiTotalSoalBobot === 'function') window.kalkulasiTotalSoalBobot();
     document.getElementById('modalBankSoal').classList.remove('hidden');
 };
 
 window.simpanBankSoal = async () => {
     const id = document.getElementById('bankSoalId').value;
-    const kode = document.getElementById('bsKode').value.trim().toUpperCase();
-    const mapel = document.getElementById('bsMapel').value;
-    const kelas = document.getElementById('bsKelas').value;
+    const kode = document.getElementById('bsKode')?.value.trim().toUpperCase();
+    const mapel = document.getElementById('bsMapel')?.value;
+    const kelas = document.getElementById('bsKelas')?.value;
 
     if(!kode || !mapel || !kelas) return alert("Kode, Mapel, dan Kelas wajib diisi!");
 
-    const getVal = (idx) => parseInt(document.getElementById(idx).value) || 0;
+    const getVal = (idx) => parseInt(document.getElementById(idx)?.value) || 0;
     const totalSoal = getVal('bsPgJml') + getVal('bsPgkJml') + getVal('bsBsJml') + getVal('bsIsianJml') + getVal('bsUraianJml') + getVal('bsUrutJml');
     const totalBobot = getVal('bsPgBobot') + getVal('bsPgkBobot') + getVal('bsBsBobot') + getVal('bsIsianBobot') + getVal('bsUraianBobot') + getVal('bsUrutBobot');
 
@@ -2936,12 +2119,12 @@ window.simpanBankSoal = async () => {
 
     const data = {
         kode, mapel, kelas, totalSoal,
-        guru: document.getElementById('bsGuru').value,
-        level: document.getElementById('bsLevel').value,
-        isActive: document.getElementById('bsStatus').value === 'true',
-        kategoriAgama: document.getElementById('bsKategori').value,
+        guru: document.getElementById('bsGuru')?.value || '',
+        level: document.getElementById('bsLevel')?.value || '1',
+        isActive: document.getElementById('bsStatus')?.value === 'true',
+        kategoriAgama: document.getElementById('bsKategori')?.value || '',
         komposisi: {
-            pg: { jml: getVal('bsPgJml'), bobot: getVal('bsPgBobot'), opsi: document.getElementById('bsPgOpsi').value },
+            pg: { jml: getVal('bsPgJml'), bobot: getVal('bsPgBobot'), opsi: document.getElementById('bsPgOpsi')?.value || '4' },
             pgk: { jml: getVal('bsPgkJml'), bobot: getVal('bsPgkBobot') },
             bs: { jml: getVal('bsBsJml'), bobot: getVal('bsBsBobot') },
             isian: { jml: getVal('bsIsianJml'), bobot: getVal('bsIsianBobot') },
@@ -2960,16 +2143,13 @@ window.simpanBankSoal = async () => {
         closeModal('modalBankSoal');
         alert("Pengaturan Bank Soal berhasil disimpan!");
         loadBankSoal();
-    } catch(e) {
-        console.error(e);
-        alert("Gagal menyimpan data.");
-    } finally {
+    } catch(e) { console.error(e); } finally {
         if(btn) { btn.disabled = false; btn.innerText = "Simpan Bank Soal"; }
     }
 };
 
 window.editBankSoal = (id) => {
-    const b = state.masterBankSoal.find(x => x.id === id);
+    const b = state.masterSoal.find(x => x.id === id);
     if(!b) return;
 
     document.getElementById('bankSoalId').value = b.id;
@@ -2982,15 +2162,15 @@ window.editBankSoal = (id) => {
     if(b.komposisi) {
         ['pg','pgk','bs','isian','uraian','urut'].forEach(k => {
             const field = k.charAt(0).toUpperCase() + k.slice(1);
-            document.getElementById(`bs${field}Jml`).value = b.komposisi[k]?.jml || 0;
-            document.getElementById(`bs${field}Bobot`).value = b.komposisi[k]?.bobot || 0;
+            if(document.getElementById(`bs${field}Jml`)) document.getElementById(`bs${field}Jml`).value = b.komposisi[k]?.jml || 0;
+            if(document.getElementById(`bs${field}Bobot`)) document.getElementById(`bs${field}Bobot`).value = b.komposisi[k]?.bobot || 0;
         });
-        document.getElementById('bsPgOpsi').value = b.komposisi.pg?.opsi || '4';
+        if(document.getElementById('bsPgOpsi')) document.getElementById('bsPgOpsi').value = b.komposisi.pg?.opsi || '4';
     }
     
-    document.getElementById('bsKategori').value = b.kategoriAgama || 'Bukan Mapel Agama';
-    document.getElementById('bsStatus').value = b.isActive ? 'true' : 'false';
-    kalkulasiTotalSoalBobot();
+    if(document.getElementById('bsKategori')) document.getElementById('bsKategori').value = b.kategoriAgama || 'Bukan Mapel Agama';
+    if(document.getElementById('bsStatus')) document.getElementById('bsStatus').value = b.isActive !== false ? 'true' : 'false';
+    if(typeof window.kalkulasiTotalSoalBobot === 'function') window.kalkulasiTotalSoalBobot();
     document.getElementById('modalBankSoal').classList.remove('hidden');
 };
 
@@ -3003,141 +2183,284 @@ window.hapusBankSoal = async (id) => {
     }
 };
 
-// ==========================================
-// EDITOR BUTIR SOAL (ISI SOAL)
-// ==========================================
-state.currentButirSoal = [];
-state.activeSoalId = null;
-
-window.bukaSoalDetail = async (bankSoalId) => {
-    const bs = state.masterBankSoal.find(x => x.id === bankSoalId);
-    if(!bs) return;
+window.kalkulasiTotalSoalBobot = () => {
+    const getVal = (id) => parseInt(document.getElementById(id)?.value) || 0;
+    const tSoal = getVal('bsPgJml') + getVal('bsPgkJml') + getVal('bsBsJml') + getVal('bsIsianJml') + getVal('bsUraianJml') + getVal('bsUrutJml');
+    const tBobot = getVal('bsPgBobot') + getVal('bsPgkBobot') + getVal('bsBsBobot') + getVal('bsIsianBobot') + getVal('bsUraianBobot') + getVal('bsUrutBobot');
     
-    state.currentBankSoalId = bankSoalId;
-    document.getElementById('headerEditorSoal').innerText = `Editor Soal: ${bs.kode} - ${bs.mapel}`;
-    switchTab('viewEditorSoal', 'Editor Butir Soal');
-    document.getElementById('panelFormSoal').classList.add('hidden');
-    await loadDaftarButirSoal();
+    if(document.getElementById('bsLabelTotalSoal')) document.getElementById('bsLabelTotalSoal').innerText = tSoal;
+    const lblBobot = document.getElementById('bsLabelTotalBobot');
+    if(lblBobot) {
+        lblBobot.innerText = tBobot + "%";
+        if(tBobot !== 100 && tBobot !== 0) lblBobot.classList.replace('text-slate-800', 'text-red-600');
+        else lblBobot.classList.replace('text-red-600', 'text-slate-800');
+    }
 };
 
-window.loadDaftarButirSoal = async () => {
+// --- EDITOR BUTIR SOAL ---
+window.bukaSoalDetail = window.bukaEditorSoal = async (bankSoalId, namaMapel = '') => {
+    window.switchTab('viewEditorSoal', 'Editor Soal');
+    const header = document.getElementById('headerEditorSoal');
+    if (header) header.innerText = `Editor Soal: ${namaMapel || 'Mata Pelajaran'}`;
+
+    if (typeof window.state === 'undefined') window.state = {};
+    window.state.currentBankSoalId = bankSoalId;
+    window.state.butirSoalAktif = []; 
+    
+    // Tarik soal dari firebase subcollection
     try {
-        const snap = await getDocs(collection(db, `master_bank_soal/${state.currentBankSoalId}/butir_soal`));
-        state.currentButirSoal = [];
-        snap.forEach(d => state.currentButirSoal.push({ id: d.id, ...d.data() }));
-        
-        // Urutkan soal
-        state.currentButirSoal.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
-        
-        const container = document.getElementById('listButirSoal');
-        container.innerHTML = '';
-        
-        state.currentButirSoal.forEach((soal, i) => {
-            const isActive = state.activeSoalId === soal.id;
-            container.innerHTML += `
-                <button onclick="editButirSoal('${soal.id}', ${i+1})" 
-                    class="w-10 h-10 flex items-center justify-center rounded border font-bold transition 
-                    ${isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-blue-50'}">
-                    ${i+1}
-                </button>
-            `;
-        });
-    } catch(e) { console.error(e); }
+        const snap = await getDocs(collection(db, `master_bank_soal/${bankSoalId}/butir_soal`));
+        snap.forEach(d => window.state.butirSoalAktif.push({ id: d.id, ...d.data() }));
+        window.state.butirSoalAktif.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
+    } catch(e) { console.error("Gagal menarik butir soal:", e); }
+    
+    window.renderDaftarButirSoal();
+    window.tambahButirSoalBaru();
 };
 
+window.renderDaftarButirSoal = () => {
+    const container = document.getElementById('listButirSoal');
+    if (!container) return;
+    container.innerHTML = ''; 
 
+    if (!window.state.butirSoalAktif || window.state.butirSoalAktif.length === 0) {
+        container.innerHTML = '<span class="text-xs text-slate-400 italic w-full text-center mt-4 border-t pt-4">Belum ada soal.</span>';
+        return;
+    }
 
-window.editButirSoal = (id, noIndex) => {
-    state.activeSoalId = id;
-    const soal = state.currentButirSoal.find(x => x.id === id);
-    if(!soal) return;
-    
-    document.getElementById('panelFormSoal').classList.remove('hidden');
-    document.getElementById('labelNomorSoal').innerText = `Edit Soal No. ${noIndex}`;
-    
-    document.getElementById('editorTipeSoal').value = soal.tipe || 'PG';
-    document.getElementById('editorPertanyaan').value = soal.pertanyaan || '';
-    ['A','B','C','D','E'].forEach(o => {
-        document.getElementById('opsi'+o).value = soal.opsi ? (soal.opsi[o] || '') : '';
+    window.state.butirSoalAktif.forEach((soal, index) => {
+        const isActive = window.state.sedangEditId === soal.id;
+        container.innerHTML += `
+            <button type="button" onclick="bukaEditButirSoal('${soal.id}')" 
+                class="w-10 h-10 flex items-center justify-center rounded-lg font-bold text-sm transition shadow-sm border
+                ${isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-blue-50'}">
+                ${index + 1}
+            </button>
+        `;
     });
-    document.getElementById('editorKunci').value = soal.kunci || '';
-    
-    window.loadDaftarButirSoal(); // Untuk highlight tombol nomor
-	if(typeof updatePreviewSoal === 'function') updatePreviewSoal();
 };
 
+window.tambahButirSoalBaru = () => {
+    const panel = document.getElementById('panelFormSoal');
+    if (panel) panel.classList.remove('hidden');
+
+    const listInput = ['editorPertanyaan', 'opsiA', 'opsiB', 'opsiC', 'opsiD', 'editorKunci'];
+    listInput.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    const elTipe = document.getElementById('editorTipeSoal');
+    if (elTipe) elTipe.value = 'PG';
+
+    window.state.sedangEditId = null; 
+
+    const btnSimpan = document.getElementById('btnSimpanButir');
+    if (btnSimpan) {
+        btnSimpan.innerHTML = '💾 Simpan Soal';
+        btnSimpan.disabled = false;
+    }
+
+    const labelNo = document.getElementById('labelNomorSoal');
+    if (window.state.butirSoalAktif) {
+        if (labelNo) labelNo.innerText = `Soal Baru (Nomor ${window.state.butirSoalAktif.length + 1})`;
+    }
+
+    const preview = document.getElementById('previewSoalContainer');
+    if (preview) preview.innerHTML = '';
+    
+    window.renderDaftarButirSoal(); // Refresh highlight
+};
+
+window.simpanButirSoal = async () => {
+    try {
+        const pertanyaan = document.getElementById('editorPertanyaan')?.value || '';
+        const tipe = document.getElementById('editorTipeSoal')?.value || 'PG';
+        const opsiA = document.getElementById('opsiA')?.value || '';
+        const opsiB = document.getElementById('opsiB')?.value || '';
+        const opsiC = document.getElementById('opsiC')?.value || '';
+        const opsiD = document.getElementById('opsiD')?.value || '';
+        const kunci = document.getElementById('editorKunci')?.value || '';
+
+        if (!pertanyaan.trim()) return alert('Gagal: Kolom Pertanyaan masih kosong!');
+
+        const btnSimpan = document.getElementById('btnSimpanButir');
+        if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
+
+        const payload = {
+            pertanyaan: pertanyaan,
+            tipe: tipe,
+            opsi: { A: opsiA, B: opsiB, C: opsiC, D: opsiD }, // Disimpan dalam object opsi agar rapi
+            kunci: kunci.toUpperCase().trim()
+        };
+
+        const bankId = window.state.currentBankSoalId;
+        if (!bankId) throw new Error("ID Bank Soal tidak ditemukan.");
+
+        if (window.state.sedangEditId) {
+            await updateDoc(doc(db, `master_bank_soal/${bankId}/butir_soal`, window.state.sedangEditId), payload);
+            const index = window.state.butirSoalAktif.findIndex(s => s.id === window.state.sedangEditId);
+            if (index !== -1) window.state.butirSoalAktif[index] = { id: window.state.sedangEditId, ...payload };
+            alert("✅ Butir soal berhasil di-update!");
+        } else {
+            payload.noUrut = window.state.butirSoalAktif.length + 1;
+            const docRef = await addDoc(collection(db, `master_bank_soal/${bankId}/butir_soal`), payload);
+            window.state.butirSoalAktif.push({ id: docRef.id, ...payload });
+            alert("✅ Butir soal baru berhasil disimpan!");
+        }
+
+        window.renderDaftarButirSoal();
+        window.tambahButirSoalBaru();
+
+    } catch (error) {
+        console.error("Gagal simpan:", error);
+        alert("Terjadi kesalahan: " + error.message);
+        const btnSimpan = document.getElementById('btnSimpanButir');
+        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan Soal'; btnSimpan.disabled = false; }
+    }
+};
+
+window.bukaEditButirSoal = window.editButirSoal = (idSoal) => {
+    const soal = window.state.butirSoalAktif.find(s => s.id === idSoal);
+    if (!soal) return alert("Data soal tidak ditemukan!");
+
+    window.state.sedangEditId = idSoal;
+
+    if (document.getElementById('editorPertanyaan')) document.getElementById('editorPertanyaan').value = soal.pertanyaan || '';
+    if (document.getElementById('editorTipeSoal')) document.getElementById('editorTipeSoal').value = soal.tipe || 'PG';
+    
+    // Tarik nilai opsi jika tersimpan dalam object 'opsi' atau terpisah (backward compatibility)
+    if (document.getElementById('opsiA')) document.getElementById('opsiA').value = soal.opsi?.A || soal.opsiA || '';
+    if (document.getElementById('opsiB')) document.getElementById('opsiB').value = soal.opsi?.B || soal.opsiB || '';
+    if (document.getElementById('opsiC')) document.getElementById('opsiC').value = soal.opsi?.C || soal.opsiC || '';
+    if (document.getElementById('opsiD')) document.getElementById('opsiD').value = soal.opsi?.D || soal.opsiD || '';
+    if (document.getElementById('editorKunci')) document.getElementById('editorKunci').value = soal.kunci || '';
+
+    const indexSoal = window.state.butirSoalAktif.findIndex(s => s.id === idSoal);
+    const labelNo = document.getElementById('labelNomorSoal');
+    if (labelNo) labelNo.innerText = `Edit Soal Nomor ${indexSoal + 1}`;
+
+    const btnSimpan = document.getElementById('btnSimpanButir');
+    if (btnSimpan) btnSimpan.innerHTML = '💾 Update Soal';
+    
+    window.renderDaftarButirSoal(); // Refresh highlight
+    if(typeof updatePreviewSoal === 'function') updatePreviewSoal();
+};
 
 window.hapusButirSoal = async () => {
-    if(!state.activeSoalId) return;
+    if(!window.state.sedangEditId) return alert("Pilih soal yang akan dihapus terlebih dahulu.");
     if(confirm("Hapus butir soal ini?")) {
         try {
-            await deleteDoc(doc(db, `master_bank_soal/${state.currentBankSoalId}/butir_soal`, state.activeSoalId));
-            state.activeSoalId = null;
-            document.getElementById('panelFormSoal').classList.add('hidden');
-            await loadDaftarButirSoal();
+            await deleteDoc(doc(db, `master_bank_soal/${window.state.currentBankSoalId}/butir_soal`, window.state.sedangEditId));
+            window.state.butirSoalAktif = window.state.butirSoalAktif.filter(s => s.id !== window.state.sedangEditId);
+            window.tambahButirSoalBaru();
         } catch(e) { console.error(e); }
     }
 };
 
-// ==========================================
-// JADWAL UJIAN / PENILAIAN
-// ==========================================
+window.updatePreviewSoal = () => {
+    const container = document.getElementById('previewSoalContainer');
+    if (!container) return;
+    const teks = document.getElementById('editorPertanyaan').value;
+    container.innerHTML = teks;
+    if (window.MathJax) {
+        MathJax.typesetPromise([container]).catch(err => console.error("MathJax error:", err));
+    }
+};
+
+window.sisipkanGambar = (targetTextareaId) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 600; 
+                let width = img.width;
+                let height = img.height;
+                if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                const base64String = canvas.toDataURL('image/jpeg', 0.7);
+                const imgTag = `\n<img src="${base64String}" style="max-width:100%; height:auto; margin-top:8px; border-radius:8px;" alt="gambar-soal">\n`;
+                const textarea = document.getElementById(targetTextareaId);
+                const cursorPos = textarea.selectionStart;
+                const textBefore = textarea.value.substring(0, cursorPos);
+                const textAfter = textarea.value.substring(cursorPos);
+                textarea.value = textBefore + imgTag + textAfter;
+                textarea.focus();
+                if(targetTextareaId === 'editorPertanyaan') window.updatePreviewSoal();
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click(); 
+};
+
+
+// ============================================================================
+// 7. JADWAL, ALOKASI & STATUS UJIAN (RADAR)
+// ============================================================================
+
+// --- JADWAL UJIAN ---
 window.loadJadwalUjian = async () => {
     try {
-        // 1. Pastikan data referensi Dropdown tersedia
-        if (state.masterSubjects.length === 0) {
-            const s1 = await getDocs(collection(db, 'master_subjects'));
+        if (state.masterSubjects?.length === 0 || !state.masterSubjects) {
+            const s1 = await getDocs(collection(db, 'master_mapel')); // Menggunakan master_mapel
             state.masterSubjects = [];
             s1.forEach(d => state.masterSubjects.push({id: d.id, ...d.data()}));
         }
-        if (state.masterJenisUjian.length === 0) {
+        if (state.masterJenisUjian?.length === 0 || !state.masterJenisUjian) {
             const s2 = await getDocs(collection(db, 'master_jenis_ujian'));
             state.masterJenisUjian = [];
             s2.forEach(d => state.masterJenisUjian.push({id: d.id, ...d.data()}));
         }
-        if (state.masterBankSoal.length === 0) {
+        if (state.masterSoal?.length === 0 || !state.masterSoal) { // Menyesuaikan dengan state bank soal baru
             const s3 = await getDocs(collection(db, 'master_bank_soal'));
-            state.masterBankSoal = [];
-            s3.forEach(d => state.masterBankSoal.push({id: d.id, ...d.data()}));
+            state.masterSoal = [];
+            s3.forEach(d => state.masterSoal.push({id: d.id, ...d.data()}));
         }
 
-        // 2. Isi Dropdown di Modal Jadwal
         const selMapel = document.getElementById('juMapel');
-        selMapel.innerHTML = '<option value="">-- Pilih Mata Pelajaran --</option>';
-        state.masterSubjects.forEach(m => selMapel.innerHTML += `<option value="${m.nama}">${m.nama}</option>`);
+        if(selMapel) {
+            selMapel.innerHTML = '<option value="">-- Pilih Mata Pelajaran --</option>';
+            state.masterSubjects.forEach(m => selMapel.innerHTML += `<option value="${m.nama}">${m.nama}</option>`);
+        }
 
         const selJenis = document.getElementById('juJenis');
-        selJenis.innerHTML = '<option value="">-- Pilih Jenis Penilaian --</option>';
-        state.masterJenisUjian.forEach(j => selJenis.innerHTML += `<option value="${j.nama}">${j.nama}</option>`);
+        if(selJenis) {
+            selJenis.innerHTML = '<option value="">-- Pilih Jenis Penilaian --</option>';
+            state.masterJenisUjian.forEach(j => selJenis.innerHTML += `<option value="${j.nama}">${j.nama}</option>`);
+        }
 
-        // 3. Load Data Jadwal Utama
         const snap = await getDocs(collection(db, 'master_jadwal_ujian'));
         state.masterJadwalUjian = [];
         snap.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
         
         window.renderTableJadwalUjian();
-    } catch(e) {
-        console.error("Error load jadwal ujian:", e);
-    }
+    } catch(e) { console.error("Error load jadwal:", e); }
 };
 
 window.filterBankSoalByMapel = () => {
     const mapelTerpilih = document.getElementById('juMapel').value;
     const selBank = document.getElementById('juBankSoal');
     selBank.innerHTML = '<option value="">-- Pilih Bank Soal --</option>';
-    
     if(!mapelTerpilih) return;
-
-    // Hanya tampilkan Bank Soal yang Mapelnya sama dan statusnya Aktif
-    const bankFiltered = state.masterBankSoal.filter(b => b.mapel === mapelTerpilih && b.isActive);
-    
+    const bankFiltered = state.masterSoal.filter(b => b.mapel === mapelTerpilih && b.isActive !== false);
     if(bankFiltered.length === 0) {
         selBank.innerHTML = '<option value="">Belum ada Bank Soal Aktif untuk mapel ini</option>';
         return;
     }
-
     bankFiltered.forEach(b => {
-        selBank.innerHTML += `<option value="${b.id}">${b.kode} - (Kls ${b.kelas}) - ${b.totalSoal} Soal</option>`;
+        selBank.innerHTML += `<option value="${b.id}">${b.kode || b.mapel} - (Kls ${b.kelas}) - ${b.totalSoal || 0} Soal</option>`;
     });
 };
 
@@ -3146,25 +2469,22 @@ window.renderTableJadwalUjian = () => {
     if (!tb) return;
     tb.innerHTML = '';
 
-    if (state.masterJadwalUjian.length === 0) {
+    if (!state.masterJadwalUjian || state.masterJadwalUjian.length === 0) {
         tb.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada Jadwal Ujian. Silakan klik + Tambah Jadwal.</td></tr>';
         return;
     }
 
     state.masterJadwalUjian.forEach((j, i) => {
-        const bs = state.masterBankSoal.find(x => x.id === j.bankSoalId);
-        const bsLabel = bs ? `${bs.kode} (Kls ${bs.kelas})` : '<span class="text-red-500 italic">Bank Soal Hilang</span>';
+        const bs = state.masterSoal.find(x => x.id === j.bankSoalId);
+        const bsLabel = bs ? `${bs.kode || bs.mapel} (Kls ${bs.kelas})` : '<span class="text-red-500 italic">Bank Soal Hilang</span>';
         
-        // Logika Status Badge Sederhana
         let statusBadge = `<span class="bg-pink-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Belum dimulai</span>`;
-        if(!j.isActive) {
-            statusBadge = `<span class="bg-slate-500 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Tidak aktif</span>`;
-        }
+        if(j.isActive === false) statusBadge = `<span class="bg-slate-500 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">Tidak aktif</span>`;
 
         const tglMulai = j.tglMulai ? new Date(j.tglMulai).toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '-';
 
         tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition border-l-4 ${j.isActive ? 'border-l-blue-500' : 'border-l-slate-400'} border-b border-slate-100">
+            <tr class="hover:bg-slate-50 transition border-l-4 ${j.isActive !== false ? 'border-l-blue-500' : 'border-l-slate-400'} border-b border-slate-100">
                 <td class="p-3 text-center border-r"><input type="checkbox" class="rounded"></td>
                 <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
                 <td class="p-3 border-r">
@@ -3189,7 +2509,6 @@ window.openModalJadwalUjian = () => {
     document.getElementById('juMapel').value = '';
     document.getElementById('juBankSoal').innerHTML = '<option value="">-- Pilih Bank Soal --</option>';
     
-    // Set Waktu Default (Sekarang s/d Besok)
     const now = new Date();
     const tzOffset = now.getTimezoneOffset() * 60000;
     const localNow = (new Date(now - tzOffset)).toISOString().slice(0, 16);
@@ -3201,7 +2520,6 @@ window.openModalJadwalUjian = () => {
     document.getElementById('juDurasi').value = '90';
     document.getElementById('juDurasiMin').value = '30';
     
-    // Default Checkboxes
     document.getElementById('juAcakSoal').checked = true;
     document.getElementById('juAcakJawaban').checked = true;
     document.getElementById('juGunakanToken').checked = false;
@@ -3220,9 +2538,7 @@ window.simpanJadwalUjian = async () => {
     const tglMulai = document.getElementById('juTglMulai').value;
     const tglExpired = document.getElementById('juTglExpired').value;
 
-    if(!mapel || !bankSoalId || !tglMulai || !tglExpired) {
-        return alert("Mata Pelajaran, Bank Soal, dan Rentang Waktu wajib diisi!");
-    }
+    if(!mapel || !bankSoalId || !tglMulai || !tglExpired) return alert("Mata Pelajaran, Bank Soal, dan Rentang Waktu wajib diisi!");
 
     const data = {
         mapel, bankSoalId, jenis, tglMulai, tglExpired,
@@ -3246,10 +2562,7 @@ window.simpanJadwalUjian = async () => {
         closeModal('modalJadwalUjian');
         alert("Jadwal Ujian berhasil diterbitkan!");
         loadJadwalUjian();
-    } catch(e) {
-        console.error("Gagal simpan jadwal:", e);
-        alert("Gagal menyimpan jadwal.");
-    } finally {
+    } catch(e) { console.error(e); } finally {
         if(btn) { btn.disabled = false; btn.innerText = "✔️ Simpan"; }
     }
 };
@@ -3260,13 +2573,9 @@ window.editJadwalUjian = (id) => {
 
     document.getElementById('jadwalUjianId').value = j.id;
     document.getElementById('juMapel').value = j.mapel || '';
-    
-    // Filter bank soal dulu agar dropdown bank soal terisi, baru set value-nya
     window.filterBankSoalByMapel();
     
-    setTimeout(() => {
-        document.getElementById('juBankSoal').value = j.bankSoalId || '';
-    }, 100);
+    setTimeout(() => { document.getElementById('juBankSoal').value = j.bankSoalId || ''; }, 100);
 
     document.getElementById('juJenis').value = j.jenis || '';
     document.getElementById('juTglMulai').value = j.tglMulai || '';
@@ -3285,78 +2594,60 @@ window.editJadwalUjian = (id) => {
 };
 
 window.hapusJadwalUjian = async (id) => {
-    if(confirm("Yakin ingin menghapus jadwal ini? Siswa tidak akan bisa lagi mengerjakan ujian melalui jadwal ini.")) {
-        try {
-            await deleteDoc(doc(db, 'master_jadwal_ujian', id));
-            loadJadwalUjian();
-        } catch(e) { console.error(e); }
+    if(confirm("Yakin ingin menghapus jadwal ini?")) {
+        try { await deleteDoc(doc(db, 'master_jadwal_ujian', id)); loadJadwalUjian(); } 
+        catch(e) { console.error(e); }
     }
 };
 
-// ==========================================
-// PENGATURAN ALOKASI WAKTU UJIAN
-// ==========================================
+// --- ALOKASI WAKTU ---
 window.loadAlokasiWaktu = async () => {
     try {
-        // 1. Pastikan data Jadwal, Bank Soal, dan Jenis Ujian sudah dimuat
-        if (state.masterJadwalUjian.length === 0) {
+        if (!state.masterJadwalUjian || state.masterJadwalUjian.length === 0) {
             const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
             state.masterJadwalUjian = [];
             snapJadwal.forEach(d => state.masterJadwalUjian.push({ id: d.id, ...d.data() }));
         }
-        if (state.masterBankSoal.length === 0) {
+        if (!state.masterSoal || state.masterSoal.length === 0) {
             const snapBank = await getDocs(collection(db, 'master_bank_soal'));
-            state.masterBankSoal = [];
-            snapBank.forEach(d => state.masterBankSoal.push({ id: d.id, ...d.data() }));
+            state.masterSoal = [];
+            snapBank.forEach(d => state.masterSoal.push({ id: d.id, ...d.data() }));
         }
-        if (state.masterJenisUjian.length === 0) {
+        if (!state.masterJenisUjian || state.masterJenisUjian.length === 0) {
             const snapJenis = await getDocs(collection(db, 'master_jenis_ujian'));
             state.masterJenisUjian = [];
             snapJenis.forEach(d => state.masterJenisUjian.push({ id: d.id, ...d.data() }));
         }
 
-        // 2. Isi Dropdown Jenis Penilaian
         const filterJenis = document.getElementById('filterAlokasiJenis');
         if (filterJenis) {
             filterJenis.innerHTML = '<option value="">Semua Jenis</option>';
-            state.masterJenisUjian.forEach(j => {
-                filterJenis.innerHTML += `<option value="${j.nama}">${j.nama}</option>`;
-            });
+            state.masterJenisUjian.forEach(j => { filterJenis.innerHTML += `<option value="${j.nama}">${j.nama}</option>`; });
         }
-
         window.renderTableAlokasiWaktu();
-    } catch (e) {
-        console.error("Error load alokasi waktu:", e);
-    }
+    } catch (e) { console.error("Error load alokasi waktu:", e); }
 };
 
 window.renderTableAlokasiWaktu = () => {
     const tb = document.getElementById('tableAlokasiWaktuBody');
     if (!tb) return;
     tb.innerHTML = '';
-
     const filterJenisVal = document.getElementById('filterAlokasiJenis').value;
     
-    // Hanya tampilkan Jadwal yang statusnya Aktif
-    let jadwalAktif = state.masterJadwalUjian.filter(j => j.isActive);
-
-    if (filterJenisVal) {
-        jadwalAktif = jadwalAktif.filter(j => j.jenis === filterJenisVal);
-    }
+    let jadwalAktif = state.masterJadwalUjian.filter(j => j.isActive !== false);
+    if (filterJenisVal) jadwalAktif = jadwalAktif.filter(j => j.jenis === filterJenisVal);
 
     if (jadwalAktif.length === 0) {
-        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada Jadwal Ujian yang Aktif. Aktifkan jadwal terlebih dahulu di menu JADWAL.</td></tr>';
+        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic bg-slate-50">Belum ada Jadwal Ujian yang Aktif.</td></tr>';
         return;
     }
-
-    // Urutkan berdasarkan tanggal mulai
     jadwalAktif.sort((a, b) => new Date(a.tglMulai) - new Date(b.tglMulai));
 
     jadwalAktif.forEach((j, i) => {
-        const bs = state.masterBankSoal.find(x => x.id === j.bankSoalId);
-        const kodeBS = bs ? bs.kode : '-';
+        const bs = state.masterSoal.find(x => x.id === j.bankSoalId);
+        const kodeBS = bs ? bs.kode || bs.mapel : '-';
         const kelasBS = bs ? bs.kelas : '-';
-        const jamKe = j.jamKe || 1; // Default ke jam 1 jika belum diatur
+        const jamKe = j.jamKe || 1; 
 
         tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100" data-jadwal-id="${j.id}">
@@ -3368,9 +2659,7 @@ window.renderTableAlokasiWaktu = () => {
                 </td>
                 <td class="p-3 border-r text-center font-bold text-slate-600">Kelas ${kelasBS}</td>
                 <td class="p-3 text-center bg-blue-50/30">
-                    <input type="number" 
-                        class="w-20 p-2 border border-slate-300 rounded text-center outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-black text-blue-700 input-jamke" 
-                        value="${jamKe}" min="0" max="10">
+                    <input type="number" class="w-20 p-2 border border-slate-300 rounded text-center outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-black text-blue-700 input-jamke" value="${jamKe}" min="0" max="10">
                 </td>
             </tr>
         `;
@@ -3380,7 +2669,6 @@ window.renderTableAlokasiWaktu = () => {
 window.simpanAlokasiWaktu = async () => {
     const btn = document.getElementById('btnSimpanAlokasi');
     if (btn) { btn.disabled = true; btn.innerHTML = `Menyimpan...`; }
-
     const tb = document.getElementById('tableAlokasiWaktuBody');
     const rows = tb.querySelectorAll('tr[data-jadwal-id]');
     
@@ -3389,31 +2677,20 @@ window.simpanAlokasiWaktu = async () => {
         rows.forEach(row => {
             const idJadwal = row.getAttribute('data-jadwal-id');
             const jamKeVal = parseInt(row.querySelector('.input-jamke').value) || 0;
-            
-            // Update state lokal agar tampilan tidak reset saat render ulang
             const jLocal = state.masterJadwalUjian.find(x => x.id === idJadwal);
             if (jLocal) jLocal.jamKe = jamKeVal;
-            
-            // Simpan perubahan ke Firestore pada koleksi master_jadwal_ujian
             promises.push(updateDoc(doc(db, 'master_jadwal_ujian', idJadwal), { jamKe: jamKeVal }));
         });
-
         await Promise.all(promises);
         alert("Alokasi urutan waktu ujian berhasil disimpan!");
-    } catch (e) {
-        console.error("Gagal simpan alokasi waktu:", e);
-        alert("Terjadi kesalahan saat menyimpan data.");
-    } finally {
+    } catch (e) { console.error(e); } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = `💾 Simpan Alokasi`; }
     }
 };
 
-// ==========================================
-// MONITORING STATUS UJIAN SISWA
-// ==========================================
+// --- RADAR STATUS SISWA ---
 window.loadStatusSiswa = async () => {
     try {
-        // 1. Pastikan data referensi (Jadwal, Ruang, Sesi) tersedia
         if (state.masterJadwalUjian.length === 0) {
             const s1 = await getDocs(collection(db, 'master_jadwal_ujian'));
             state.masterJadwalUjian = [];
@@ -3423,91 +2700,75 @@ window.loadStatusSiswa = async () => {
             const s2 = await getDocs(collection(db, 'master_ruang_ujian'));
             state.masterRuangUjian = [];
             s2.forEach(d => state.masterRuangUjian.push({id: d.id, ...d.data()}));
-            state.masterRuangUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
         }
         if (state.masterSesiUjian.length === 0) {
             const s3 = await getDocs(collection(db, 'master_sesi_ujian'));
             state.masterSesiUjian = [];
             s3.forEach(d => state.masterSesiUjian.push({id: d.id, ...d.data()}));
-            state.masterSesiUjian.sort((a,b) => (a.noUrut || 0) - (b.noUrut || 0));
         }
         
-        // 2. Load Data Siswa Terbaru
         const s4 = await getDocs(collection(db, 'master_siswa'));
         state.masterSiswa = [];
         s4.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
 
-        // 3. Ambil Token Aktif untuk ditampilkan di header
         const snapToken = await getDoc(doc(db, 'settings', 'token_ujian'));
-        if (snapToken.exists()) {
+        if (snapToken.exists() && document.getElementById('displayTokenStatusSiswa')) {
             document.getElementById('displayTokenStatusSiswa').innerText = snapToken.data().currentToken || '------';
         }
 
-        // 4. Render Dropdown Filter
         const selJadwal = document.getElementById('filterStatusJadwal');
-        selJadwal.innerHTML = '<option value="">-- Pilih Jadwal Aktif --</option>';
-        state.masterJadwalUjian.filter(j => j.isActive).forEach(j => {
-            selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} (${j.jenis})</option>`;
-        });
+        if(selJadwal) {
+            selJadwal.innerHTML = '<option value="">-- Pilih Jadwal Aktif --</option>';
+            state.masterJadwalUjian.filter(j => j.isActive !== false).forEach(j => {
+                selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} (${j.jenis})</option>`;
+            });
+        }
 
         const selRuang = document.getElementById('filterStatusRuang');
-        selRuang.innerHTML = '<option value="">Semua Ruang</option>';
-        state.masterRuangUjian.forEach(r => {
-            selRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`;
-        });
+        if(selRuang) {
+            selRuang.innerHTML = '<option value="">Semua Ruang</option>';
+            state.masterRuangUjian.forEach(r => { selRuang.innerHTML += `<option value="${r.nama}">${r.nama}</option>`; });
+        }
 
         const selSesi = document.getElementById('filterStatusSesi');
-        selSesi.innerHTML = '<option value="">Semua Sesi</option>';
-        state.masterSesiUjian.forEach(s => {
-            selSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
-        });
+        if(selSesi) {
+            selSesi.innerHTML = '<option value="">Semua Sesi</option>';
+            state.masterSesiUjian.forEach(s => { selSesi.innerHTML += `<option value="${s.nama}">${s.nama}</option>`; });
+        }
 
         window.renderTableStatusSiswa();
-    } catch (e) {
-        console.error("Error load status siswa:", e);
-    }
+    } catch (e) { console.error("Error load status siswa:", e); }
 };
 
-// ==========================================
-// RADAR LIVE: STATUS UJIAN SISWA
-// ==========================================
 window.renderTableStatusSiswa = () => {
-    const jadwalId = document.getElementById('filterStatusJadwal').value;
-    const ruang = document.getElementById('filterStatusRuang').value;
-    const sesi = document.getElementById('filterStatusSesi').value;
+    const jadwalId = document.getElementById('filterStatusJadwal')?.value;
+    const ruang = document.getElementById('filterStatusRuang')?.value;
+    const sesi = document.getElementById('filterStatusSesi')?.value;
     const tb = document.getElementById('tableStatusSiswaBody');
 
     if (!tb) return;
 
-    // 1. MATIKAN RADAR LAMA: Jika pengawas mengganti filter, matikan radar yang lama
     if (state.unsubscribeStatus) {
         state.unsubscribeStatus();
         state.unsubscribeStatus = null;
     }
 
-    // Jika jadwal belum dipilih, kosongkan tabel
     if (!jadwalId) {
         tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Pilih Jadwal Ujian terlebih dahulu.</td></tr>';
         return;
     }
 
-    // Efek visual sedang menghubungkan ke server
     tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-blue-500 font-bold italic animate-pulse">📡 Menghubungkan ke Radar Live...</td></tr>';
 
     try {
-        // 2. BANGUN KONDISI PENCARIAN (Berdasarkan filter yang dipilih)
         let conditions = [where('jadwal_id', '==', jadwalId)];
-        
-        // Sesuaikan nama field 'ruang' dan 'sesi' dengan yang ada di database Anda
         if (ruang) conditions.push(where('ruang', '==', ruang)); 
         if (sesi) conditions.push(where('sesi', '==', sesi));
 
-        // Asumsi nama tabel Anda adalah 'cbt_sesi_siswa'
         const q = query(collection(db, 'cbt_sesi_siswa'), ...conditions);
 
-        // 3. AKTIFKAN RADAR ON-SNAPSHOT (Menerima perubahan real-time)
         state.unsubscribeStatus = onSnapshot(q, (snapshot) => {
-            tb.innerHTML = ''; // Kosongkan tabel segera setelah data masuk
+            tb.innerHTML = ''; 
 
             if (snapshot.empty) {
                 tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada siswa yang login di jadwal/ruang ini.</td></tr>';
@@ -3517,17 +2778,15 @@ window.renderTableStatusSiswa = () => {
             let i = 1;
             snapshot.forEach((docSnap) => {
                 const s = docSnap.data();
-                const sId = docSnap.id; // ID Dokumen sesi
+                const sId = docSnap.id; 
                 
-                // 4. DETEKSI STATUS & KODE WARNA
                 let statusColor = "bg-slate-500";
                 let statusText = s.status || "BELUM LOGIN";
-                let statusBlinking = ""; // Efek kedip untuk siswa yang sedang ujian
+                let statusBlinking = ""; 
                 
                 const textLower = statusText.toLowerCase();
                 if (textLower.includes('mengerjakan') || textLower.includes('aktif')) {
-                    statusColor = "bg-blue-500";
-                    statusBlinking = "animate-pulse"; // Membuat badgenya berkedip!
+                    statusColor = "bg-blue-500"; statusBlinking = "animate-pulse"; 
                 } else if (textLower.includes('selesai')) {
                     statusColor = "bg-emerald-500";
                 } else if (textLower.includes('kunci') || textLower.includes('keluar')) {
@@ -3555,93 +2814,71 @@ window.renderTableStatusSiswa = () => {
             console.error("Radar Live Error:", error);
             tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold">Koneksi Live Terputus. Coba muat ulang.</td></tr>';
         });
-
     } catch (e) {
         console.error("Error setting up live status:", e);
-        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold">Gagal memuat Radar Live.</td></tr>';
     }
 };
 
-// Fungsi Opsional: Untuk Mereset Izin Siswa jika terlempar/error dari ujian
 window.resetIzinSiswa = async (sesiId, nama) => {
     if(!confirm(`Yakin ingin mereset sesi ujian untuk siswa: ${nama}? (Siswa bisa login kembali)`)) return;
     try {
-        // Hapus dokumen di cbt_sesi_siswa agar siswa dianggap belum ujian, 
-        // atau update statusnya menjadi 'Reset'. Sesuaikan dengan logika aplikasi siswa Anda.
-        await updateDoc(doc(db, 'cbt_sesi_siswa', sesiId), {
-            status: "DIRESET (SILAKAN LOGIN ULANG)"
-        });
-    } catch(e) {
-        alert("Gagal mereset izin.");
-        console.error(e);
-    }
+        await updateDoc(doc(db, 'cbt_sesi_siswa', sesiId), { status: "DIRESET (SILAKAN LOGIN ULANG)" });
+    } catch(e) { console.error(e); }
 };
 
 window.resetLoginSiswa = async (id, nama) => {
-    if (confirm(`Yakin ingin me-reset status login untuk ${nama}? Siswa akan bisa melakukan login kembali dari perangkat mana pun.`)) {
+    if (confirm(`Yakin ingin me-reset status login untuk ${nama}?`)) {
         try {
-            // Update status di database agar siswa bisa login ulang
-            await updateDoc(doc(db, 'master_siswa', id), { 
-                isOnline: false,
-                currentExamSession: null 
-            });
+            await updateDoc(doc(db, 'master_siswa', id), { isOnline: false, currentExamSession: null });
             alert(`Berhasil! Sesi login ${nama} telah dibersihkan.`);
-            window.loadStatusSiswa(); // Refresh tampilan
-        } catch (e) {
-            console.error("Gagal reset login:", e);
-            alert("Gagal menghubungi server.");
-        }
+            window.loadStatusSiswa(); 
+        } catch (e) { console.error(e); }
     }
 };
 
-// ==========================================
-// HASIL UJIAN SISWA
-// ==========================================
+
+// ============================================================================
+// 8. HASIL, ANALISA & REKAP NILAI
+// ============================================================================
+
+// --- HASIL UJIAN ---
 window.loadHasilUjian = async () => {
     try {
-        // 1. Pastikan data Kelas tersedia untuk filter dropdown
         if (state.masterKelas.length === 0) {
             const s1 = await getDocs(collection(db, 'master_kelas'));
             state.masterKelas = [];
             s1.forEach(d => state.masterKelas.push({id: d.id, ...d.data()}));
             state.masterKelas.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
         }
-
-        // 2. Pastikan data Jadwal tersedia untuk filter dropdown
         if (state.masterJadwalUjian.length === 0) {
             const s2 = await getDocs(collection(db, 'master_jadwal_ujian'));
             state.masterJadwalUjian = [];
             s2.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
         }
 
-        // 3. Load Data Hasil Ujian dari collection exam_results
         const s3 = await getDocs(collection(db, 'exam_results'));
         state.allResults = [];
         s3.forEach(d => state.allResults.push({id: d.id, ...d.data()}));
 
-        // 4. Render Opsi Filter Kelas
         const selKelas = document.getElementById('filterHasilKelas');
-        selKelas.innerHTML = '<option value="">Pilih Kelas</option>';
-        state.masterKelas.forEach(k => {
-            selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`;
-        });
+        if(selKelas){
+            selKelas.innerHTML = '<option value="">Pilih Kelas</option>';
+            state.masterKelas.forEach(k => { selKelas.innerHTML += `<option value="${k.nama}">${k.nama}</option>`; });
+        }
 
-        // 5. Render Opsi Filter Jadwal
         const selJadwal = document.getElementById('filterHasilJadwal');
-        selJadwal.innerHTML = '<option value="">Pilih Jadwal</option>';
-        state.masterJadwalUjian.forEach(j => {
-            selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} - ${j.jenis}</option>`;
-        });
+        if(selJadwal){
+            selJadwal.innerHTML = '<option value="">Pilih Jadwal</option>';
+            state.masterJadwalUjian.forEach(j => { selJadwal.innerHTML += `<option value="${j.id}">${j.mapel} - ${j.jenis}</option>`; });
+        }
 
         window.renderTableHasilUjian();
-    } catch(e) {
-        console.error("Error load hasil ujian:", e);
-    }
+    } catch(e) { console.error("Error load hasil ujian:", e); }
 };
 
 window.renderTableHasilUjian = () => {
-    const kelasVal = document.getElementById('filterHasilKelas').value;
-    const jadwalVal = document.getElementById('filterHasilJadwal').value;
+    const kelasVal = document.getElementById('filterHasilKelas')?.value;
+    const jadwalVal = document.getElementById('filterHasilJadwal')?.value;
     const tb = document.getElementById('tableHasilUjianBody');
     if (!tb) return;
     tb.innerHTML = '';
@@ -3651,7 +2888,6 @@ window.renderTableHasilUjian = () => {
         return;
     }
 
-    // Filter data berdasarkan pilihan dropdown
     let filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal);
 
     if (filteredResults.length === 0) {
@@ -3659,7 +2895,6 @@ window.renderTableHasilUjian = () => {
         return;
     }
 
-    // Urutkan berdasarkan nama siswa
     filteredResults.sort((a,b) => (a.nama || '').localeCompare(b.nama || ''));
 
     filteredResults.forEach((r, i) => {
@@ -3687,9 +2922,8 @@ window.lihatDetailNilai = (resultId) => {
     if (!res) return;
     
     const modal = document.getElementById('modalDetailNilai');
-    const container = modal.querySelector('.bg-white'); // Ambil kotak putih dalam modal
+    const container = modal.querySelector('.bg-white'); 
     
-    // Generate tabel detail jawaban HTML
     let detailHtml = '<div class="max-h-60 overflow-y-auto mb-4 border border-slate-200 rounded p-0 text-sm">';
     if (res.detailJawaban && Object.keys(res.detailJawaban).length > 0) {
         detailHtml += '<table class="w-full text-left border-collapse"><thead class="bg-slate-100"><tr><th class="p-2 border-b text-center">No</th><th class="p-2 border-b text-center">Jawaban Siswa</th><th class="p-2 border-b text-center">Status</th></tr></thead><tbody>';
@@ -3705,7 +2939,6 @@ window.lihatDetailNilai = (resultId) => {
     }
     detailHtml += '</div>';
 
-    // Suntikkan desain ke dalam modal
     container.innerHTML = `
         <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
             <h3 class="font-bold text-lg text-slate-800">Detail Ujian: <span class="text-blue-600 uppercase">${res.nama}</span></h3>
@@ -3722,23 +2955,17 @@ window.lihatDetailNilai = (resultId) => {
             <button onclick="closeModal('modalDetailNilai')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2 rounded-lg font-bold shadow-sm transition">Tutup</button>
         </div>
     `;
-    
-    // Tampilkan modal
     modal.classList.remove('hidden');
 };
 
 window.eksporHasilExcel = () => {
     const kelasVal = document.getElementById('filterHasilKelas').value;
     const jadwalVal = document.getElementById('filterHasilJadwal').value;
-    
-    if (!kelasVal || !jadwalVal) {
-        return alert("Harap filter Kelas dan Jadwal terlebih dahulu sebelum mengekspor data ke Excel.");
-    }
+    if (!kelasVal || !jadwalVal) return alert("Filter Kelas dan Jadwal terlebih dahulu.");
 
     const filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal);
-    if (filteredResults.length === 0) return alert("Tidak ada data nilai untuk diekspor pada filter ini.");
+    if (filteredResults.length === 0) return alert("Tidak ada data untuk diekspor.");
 
-    // Format data agar cantik saat masuk ke Excel
     const dataToExport = filteredResults.map((r, index) => ({
         "No": index + 1,
         "NIS/NISN": r.nis || r.nisn || "-",
@@ -3749,35 +2976,57 @@ window.eksporHasilExcel = () => {
         "NILAI AKHIR": r.skor || 0
     }));
 
-    // Membuat WorkBook Excel (menggunakan library XLSX SheetJS)
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Nilai");
-
-    // Unduh File
-    const fileName = `Rekap_Nilai_${kelasVal}_Jadwal_${jadwalVal}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+    XLSX.writeFile(workbook, `Rekap_Nilai_${kelasVal}_Jadwal_${jadwalVal}.xlsx`);
 };
 
-// ==========================================
-// ANALISA BUTIR SOAL
-// ==========================================
+window.katrolNilaiMassal = async () => {
+    const kelasVal = document.getElementById('filterHasilKelas').value;
+    const jadwalVal = document.getElementById('filterHasilJadwal').value;
+    
+    if (!kelasVal || !jadwalVal) return alert("Pilih Kelas dan Jadwal terlebih dahulu!");
+    const filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal);
+    if (filteredResults.length === 0) return alert("Tidak ada data nilai untuk dikatrol.");
+
+    const tambahPoin = prompt(`Ditemukan ${filteredResults.length} nilai siswa.\nMasukkan jumlah poin tambahan (contoh: 10):`, "0");
+    if (!tambahPoin || isNaN(tambahPoin) || parseInt(tambahPoin) === 0) return;
+
+    const poin = parseInt(tambahPoin);
+    if (!confirm(`Tambahkan ${poin} poin ke ${filteredResults.length} siswa (maksimal 100). Lanjutkan?`)) return;
+
+    const btn = document.querySelector('button[onclick="katrolNilaiMassal()"]');
+    if (btn) { btn.disabled = true; btn.innerText = "Memproses..."; }
+
+    try {
+        const promises = [];
+        filteredResults.forEach(r => {
+            let skorBaru = (r.skor || 0) + poin;
+            if (skorBaru > 100) skorBaru = 100; 
+            if (skorBaru < 0) skorBaru = 0;
+            promises.push(updateDoc(doc(db, 'exam_results', r.id), { skor: skorBaru }));
+        });
+        await Promise.all(promises);
+        alert("Katrol nilai berhasil diterapkan!");
+        loadHasilUjian(); 
+    } catch (e) { console.error(e); } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "⚖️ Katrol"; }
+    }
+};
+
+// --- ANALISA BUTIR SOAL ---
 window.loadAnalisaSoal = async () => {
     try {
-        // 1. Load Jadwal jika data belum tersedia di state
         if (state.masterJadwalUjian.length === 0) {
             const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
             state.masterJadwalUjian = [];
             snapJadwal.forEach(d => state.masterJadwalUjian.push({ id: d.id, ...d.data() }));
         }
 
-        // 2. Load Konfigurasi Akademik (Tahun & Semester)
         const snapConfig = await getDoc(doc(db, 'settings', 'academic_config'));
-        if (snapConfig.exists()) {
-            state.academicConfig = snapConfig.data();
-        }
+        if (snapConfig.exists()) state.academicConfig = snapConfig.data();
 
-        // 3. Render Dropdown Tahun Pelajaran
         const selTahun = document.getElementById('filterAnalisaTahun');
         if (selTahun) {
             selTahun.innerHTML = '';
@@ -3791,13 +3040,11 @@ window.loadAnalisaSoal = async () => {
             }
         }
 
-        // 4. Render Dropdown Semester Aktif
         const selSmt = document.getElementById('filterAnalisaSmt');
         if (selSmt && state.academicConfig && state.academicConfig.activeSemester) {
             selSmt.value = state.academicConfig.activeSemester;
         }
 
-        // 5. Render Dropdown Jadwal (Hanya menampilkan jadwal yang aktif)
         const selJadwal = document.getElementById('filterAnalisaJadwal');
         if (selJadwal) {
             selJadwal.innerHTML = '<option value="">-- Pilih Jadwal Ujian --</option>';
@@ -3806,28 +3053,19 @@ window.loadAnalisaSoal = async () => {
             });
         }
 
-        // Reset tampilan container hasil
-        document.getElementById('containerHasilAnalisa').innerHTML = 
-            '<div class="p-8 text-center text-slate-500 italic bg-slate-50 rounded border border-slate-100">Silakan pilih Jadwal Ujian untuk menampilkan hasil analisa butir soal.</div>';
-    } catch (e) {
-        console.error("Error load analisa soal:", e);
-    }
+        document.getElementById('containerHasilAnalisa').innerHTML = '<div class="p-8 text-center text-slate-500 italic bg-slate-50 rounded border border-slate-100">Silakan pilih Jadwal Ujian untuk menampilkan hasil analisa butir soal.</div>';
+    } catch (e) { console.error("Error load analisa:", e); }
 };
 
 window.renderAnalisaSoal = async () => {
     const jadwalId = document.getElementById('filterAnalisaJadwal').value;
     const container = document.getElementById('containerHasilAnalisa');
 
-    if (!jadwalId) {
-        container.innerHTML = '<div class="p-8 text-center text-slate-500 italic bg-slate-50 rounded border border-slate-100">Silakan pilih Jadwal Ujian untuk menampilkan hasil analisa butir soal.</div>';
-        return;
-    }
+    if (!jadwalId) return;
 
-    // Indikator loading
     container.innerHTML = '<div class="p-12 text-center"><p class="text-blue-600 font-bold animate-pulse">Memproses algoritma statistik butir soal...</p></div>';
 
     try {
-        // 1. Tarik data pengerjaan siswa dari Firebase berdasarkan Jadwal ID
         const snapResults = await getDocs(collection(db, 'exam_results'));
         let results = [];
         snapResults.forEach(d => {
@@ -3836,46 +3074,33 @@ window.renderAnalisaSoal = async () => {
         });
 
         if (results.length === 0) {
-            container.innerHTML = '<div class="p-8 text-center text-red-500 italic bg-slate-50 rounded border border-slate-100">Belum ada siswa yang menyelesaikan ujian pada jadwal ini. Analisa tidak dapat dilakukan.</div>';
+            container.innerHTML = '<div class="p-8 text-center text-red-500 italic bg-slate-50 rounded border border-slate-100">Belum ada siswa yang menyelesaikan ujian pada jadwal ini.</div>';
             return;
         }
 
-        // 2. Ambil referensi jumlah soal (mengambil dari struktur detailJawaban siswa pertama)
         const sampleAnswers = results[0].detailJawaban || {};
         const totalSoal = Object.keys(sampleAnswers).length;
 
         if (totalSoal === 0) {
-             container.innerHTML = '<div class="p-8 text-center text-red-500 italic bg-slate-50 rounded border border-slate-100">Format data jawaban tidak valid. Analisa gagal. Pastikan saat siswa selesai ujian, data "detailJawaban" tersimpan di database.</div>';
+             container.innerHTML = '<div class="p-8 text-center text-red-500 italic bg-slate-50 rounded border border-slate-100">Format data jawaban tidak valid.</div>';
              return;
         }
 
-        // 3. Klasifikasi Kelompok Atas (27%) dan Bawah (27%)
-        // Urutkan siswa dari nilai tertinggi ke terendah
         results.sort((a, b) => (b.skor || 0) - (a.skor || 0));
-        
-        // Hitung batas 27% dari total peserta (minimal 1 siswa jika pesertanya sedikit)
         const nKlp = Math.max(1, Math.round(results.length * 0.27));
         const klpAtas = results.slice(0, nKlp);
         const klpBawah = results.slice(-nKlp);
-
         let tableRows = '';
 
-        // 4. Hitung Statistik Tingkat Kesukaran (TK) & Daya Pembeda (DP) per soal
         for (let i = 1; i <= totalSoal; i++) {
             const indexSoal = i.toString();
-            
-            // Total siswa yang menjawab benar di seluruh kelas
-            const benarTotal = results.filter(r => r.detailJawaban && r.detailJawaban[indexSoal] && r.detailJawaban[indexSoal].isCorrect).length;
-            // Total kelompok atas yang menjawab benar
-            const benarAtas = klpAtas.filter(r => r.detailJawaban && r.detailJawaban[indexSoal] && r.detailJawaban[indexSoal].isCorrect).length;
-            // Total kelompok bawah yang menjawab benar
-            const benarBawah = klpBawah.filter(r => r.detailJawaban && r.detailJawaban[indexSoal] && r.detailJawaban[indexSoal].isCorrect).length;
+            const benarTotal = results.filter(r => r.detailJawaban && r.detailJawaban[indexSoal]?.isCorrect).length;
+            const benarAtas = klpAtas.filter(r => r.detailJawaban && r.detailJawaban[indexSoal]?.isCorrect).length;
+            const benarBawah = klpBawah.filter(r => r.detailJawaban && r.detailJawaban[indexSoal]?.isCorrect).length;
 
-            // Rumus Tingkat Kesukaran (TK) = Benar Total / Jumlah Siswa Total
             const tkValue = benarTotal / results.length;
             let tkLabel = tkValue > 0.70 ? "Mudah" : (tkValue >= 0.30 ? "Sedang" : "Sukar");
 
-            // Rumus Daya Pembeda (DP) = (Benar Atas / N Kelompok) - (Benar Bawah / N Kelompok)
             const dpValue = (benarAtas / nKlp) - (benarBawah / nKlp);
             let dpLabel = "";
             if (dpValue >= 0.40) dpLabel = "Sangat Baik";
@@ -3883,7 +3108,6 @@ window.renderAnalisaSoal = async () => {
             else if (dpValue >= 0.20) dpLabel = "Cukup";
             else dpLabel = "Buruk";
             
-            // Penentuan Status Validitas
             let statusLabel = "";
             if (dpValue >= 0.20) {
                 statusLabel = '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow-sm">Diterima</span>';
@@ -3902,13 +3126,10 @@ window.renderAnalisaSoal = async () => {
                 </tr>`;
         }
 
-        // Render tabel akhir
         container.innerHTML = `
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
                 <h4 class="font-bold text-slate-800">Laporan Analisa Butir Soal (N = ${results.length} Peserta)</h4>
-                <div class="text-xs text-slate-500 text-right">
-                    Kelompok Atas/Bawah: <b>${nKlp} Siswa (27%)</b>
-                </div>
+                <div class="text-xs text-slate-500 text-right">Kelompok Atas/Bawah: <b>${nKlp} Siswa (27%)</b></div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse border border-slate-200">
@@ -3920,29 +3141,31 @@ window.renderAnalisaSoal = async () => {
                             <th class="p-3 text-center w-36">Status Soal</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 text-sm bg-white">${tableRows}</tbody>
+                    <tbody id="tableBodyAnalisa" class="divide-y divide-slate-100 text-sm bg-white">${tableRows}</tbody>
                 </table>
             </div>
             <div class="mt-4 p-3 bg-blue-50 border border-blue-100 rounded text-xs text-blue-800">
-                <b>Keterangan Algoritma:</b> Perhitungan menggunakan batas populasi 27%. Soal <b>Diterima</b> jika nilai DP ≥ 0.20. Jika DP bernilai negatif, berarti kelompok bawah lebih banyak menjawab benar daripada kelompok atas (soal menjebak).
+                <b>Keterangan:</b> Soal <b>Diterima</b> jika nilai DP ≥ 0.20. Jika DP negatif, kelompok bawah lebih banyak menjawab benar daripada kelompok atas (soal menjebak/kunci salah).
             </div>`;
-            
     } catch (e) {
         console.error("Gagal merender analisa:", e);
-        container.innerHTML = '<div class="p-8 text-center text-red-600 bg-red-50 rounded border border-red-200">Terjadi kesalahan saat memproses perhitungan. Pastikan koneksi internet stabil.</div>';
+        container.innerHTML = '<div class="p-8 text-center text-red-600 bg-red-50 rounded border border-red-200">Terjadi kesalahan saat memproses perhitungan.</div>';
     }
 };
 
-// ==========================================
-// REKAP HASIL PENILAIAN
-// ==========================================
+window.eksporAnalisaExcel = () => {
+    const tb = document.getElementById('tableBodyAnalisa');
+    if(!tb || tb.innerHTML.includes('Belum ada')) return alert("Tidak ada data analisa untuk diekspor!");
+    const table = tb.closest('table');
+    const workbook = XLSX.utils.table_to_book(table, {sheet: "Analisa Soal"});
+    XLSX.writeFile(workbook, `Analisa_Butir_Soal_CBT.xlsx`);
+};
+
+// --- REKAP NILAI ---
 window.loadRekapNilai = async () => {
     try {
-        // 1. Pastikan data pendukung (Konfigurasi Akademik, Jadwal, Siswa, Hasil) tersedia
         const snapConfig = await getDoc(doc(db, 'settings', 'academic_config'));
-        if(snapConfig.exists()) {
-            state.academicConfig = snapConfig.data();
-        }
+        if(snapConfig.exists()) state.academicConfig = snapConfig.data();
 
         if(state.masterJadwalUjian.length === 0) {
             const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
@@ -3956,10 +3179,10 @@ window.loadRekapNilai = async () => {
             snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
         }
 
-        if(state.masterBankSoal.length === 0) {
+        if(state.masterSoal.length === 0) {
             const snapBank = await getDocs(collection(db, 'master_bank_soal'));
-            state.masterBankSoal = [];
-            snapBank.forEach(d => state.masterBankSoal.push({id: d.id, ...d.data()}));
+            state.masterSoal = [];
+            snapBank.forEach(d => state.masterSoal.push({id: d.id, ...d.data()}));
         }
 
         const snapResults = await getDocs(collection(db, 'exam_results'));
@@ -3967,9 +3190,7 @@ window.loadRekapNilai = async () => {
         snapResults.forEach(d => state.allResults.push({id: d.id, ...d.data()}));
 
         window.renderRekapNilai();
-    } catch(e) {
-        console.error("Error load rekap nilai:", e);
-    }
+    } catch(e) { console.error("Error load rekap nilai:", e); }
 };
 
 window.renderRekapNilai = () => {
@@ -3984,9 +3205,7 @@ window.renderRekapNilai = () => {
             const y = state.academicConfig.years.find(x => x.isActive);
             if(y) activeYear = y.name;
         }
-        if(state.academicConfig.activeSemester) {
-            activeSmt = state.academicConfig.activeSemester;
-        }
+        if(state.academicConfig.activeSemester) activeSmt = state.academicConfig.activeSemester;
     }
 
     if(!state.masterJadwalUjian || state.masterJadwalUjian.length === 0) {
@@ -3996,16 +3215,10 @@ window.renderRekapNilai = () => {
 
     let tableRows = '';
     state.masterJadwalUjian.forEach((j, i) => {
-        // Cari Bank Soal untuk mengetahui target kelas
-        const bs = state.masterBankSoal.find(x => x.id === j.bankSoalId);
+        const bs = state.masterSoal.find(x => x.id === j.bankSoalId);
         const targetKelas = bs ? bs.kelas : null;
 
-        // Hitung Total Peserta (Siswa di kelas tersebut)
-        const totalPeserta = targetKelas 
-            ? state.masterSiswa.filter(s => s.kelas === targetKelas).length 
-            : 0;
-
-        // Hitung Siswa yang sudah mengerjakan (Data ada di exam_results)
+        const totalPeserta = targetKelas ? state.masterSiswa.filter(s => s.kelas === targetKelas).length : 0;
         const sudahMengerjakan = state.allResults.filter(r => r.jadwalId === j.id).length;
         
         const persen = totalPeserta > 0 ? Math.round((sudahMengerjakan / totalPeserta) * 100) : 0;
@@ -4049,44 +3262,35 @@ window.renderRekapNilai = () => {
                         <th class="p-4 border border-blue-500 text-center font-medium">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 text-sm bg-white">
-                    ${tableRows}
-                </tbody>
+                <tbody class="divide-y divide-slate-200 text-sm bg-white">${tableRows}</tbody>
             </table>
         </div>
     `;
 };
 
-// ==========================================
-// PENGATURAN DATA CETAK BERKAS
-// ==========================================
+
+// ============================================================================
+// 9. CETAK BERKAS
+// ============================================================================
 window.loadCetak = async () => {
     try {
-        // 1. Pastikan data profil sekolah termuat untuk Kop Surat
         const snapProfil = await getDoc(doc(db, 'settings', 'profil_sekolah'));
         if(snapProfil.exists()) state.schoolProfile = snapProfil.data();
 
-        // 2. Load data Siswa untuk Kartu dan Daftar Hadir
         if(state.masterSiswa.length === 0) {
             const snapSiswa = await getDocs(collection(db, 'master_siswa'));
             state.masterSiswa = [];
             snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
         }
 
-        // 3. Load data Jadwal untuk Berita Acara
         if(state.masterJadwalUjian.length === 0) {
             const snapJadwal = await getDocs(collection(db, 'master_jadwal_ujian'));
             state.masterJadwalUjian = [];
             snapJadwal.forEach(d => state.masterJadwalUjian.push({id: d.id, ...d.data()}));
         }
-        
-        console.log("Data Cetak Berhasil Disiapkan.");
-    } catch(e) {
-        console.error("Gagal menyiapkan data cetak:", e);
-    }
+    } catch(e) { console.error("Gagal menyiapkan data cetak:", e); }
 };
 
-// --- FUNGSI HELPER UNTUK KOP SURAT ---
 const generateKopHTML = () => {
     const p = state.schoolProfile || {};
     const kab = (p.kabupaten || 'SAMPANG').toUpperCase();
@@ -4111,10 +3315,8 @@ const generateKopHTML = () => {
     `;
 };
 
-// --- 1. CETAK KARTU PESERTA ---
 window.cetakKartuPeserta = () => {
     if(state.masterSiswa.length === 0) return alert("Data siswa kosong!");
-    
     const printWindow = window.open('', '_blank');
     let kartuHtml = '';
     
@@ -4122,7 +3324,7 @@ window.cetakKartuPeserta = () => {
         kartuHtml += `
             <div style="width: 45%; border: 2px solid black; padding: 10px; margin: 5px; display: inline-block; vertical-align: top; font-family: Arial;">
                 <div style="text-align: center; font-weight: bold; font-size: 10pt; border-bottom: 1px solid black; padding-bottom: 5px; margin-bottom: 10px;">
-                    KARTU PESERTA UJIAN<br>${(state.schoolProfile.aplikasi || 'CBT GARAM').toUpperCase()}
+                    KARTU PESERTA UJIAN<br>${(state.schoolProfile?.aplikasi || 'CBT GARAM').toUpperCase()}
                 </div>
                 <table style="font-size: 9pt; width: 100%;">
                     <tr><td width="30%">Nama</td><td>: ${s.nama}</td></tr>
@@ -4132,7 +3334,7 @@ window.cetakKartuPeserta = () => {
                     <tr><td>Password</td><td>: ${s.password}</td></tr>
                 </table>
                 <div style="margin-top: 10px; text-align: right; font-size: 8pt;">
-                    Kepala Sekolah,<br><br><br><b>${state.schoolProfile.kepsek || '................'}</b>
+                    Kepala Sekolah,<br><br><br><b>${state.schoolProfile?.kepsek || '................'}</b>
                 </div>
             </div>
             ${(i + 1) % 8 === 0 ? '<div style="page-break-after: always;"></div>' : ''}
@@ -4144,11 +3346,9 @@ window.cetakKartuPeserta = () => {
     printWindow.print();
 };
 
-// --- 2. CETAK DAFTAR HADIR ---
 window.cetakDaftarHadir = () => {
     const printWindow = window.open('', '_blank');
     let rows = '';
-    
     state.masterSiswa.forEach((s, i) => {
         const no = i + 1;
         rows += `
@@ -4162,7 +3362,7 @@ window.cetakDaftarHadir = () => {
         `;
     });
 
-    const html = `
+    printWindow.document.write(`
         <html><head><style>body { font-family: serif; padding: 20px; } table { width: 100%; border-collapse: collapse; }</style></head>
         <body>
             ${generateKopHTML()}
@@ -4179,24 +3379,22 @@ window.cetakDaftarHadir = () => {
                 <tbody>${rows}</tbody>
             </table>
         </body></html>
-    `;
-    printWindow.document.write(html);
+    `);
     printWindow.document.close();
     setTimeout(() => printWindow.print(), 500);
 };
 
-// --- 3. CETAK BERITA ACARA ---
 window.cetakBeritaAcara = () => {
     const p = state.schoolProfile || {};
     const printWindow = window.open('', '_blank');
-    const html = `
+    printWindow.document.write(`
         <html><head><style>body { font-family: serif; padding: 40px; line-height: 1.6; }</style></head>
         <body>
             ${generateKopHTML()}
             <h3 style="text-align:center; text-decoration:underline;">BERITA ACARA PELAKSANAAN</h3>
-            <p>Pada hari ini .................... tanggal ....... bulan .................... tahun 2026, telah diselenggarakan Penilaian Berbasis Komputer:</p>
+            <p>Pada hari ini .................... tanggal ....... bulan .................... tahun 20..., telah diselenggarakan Penilaian Berbasis Komputer:</p>
             <table style="width: 100%;">
-                <tr><td width="30%">Satuan Pendidikan</td><td>: ${p.sekolah}</td></tr>
+                <tr><td width="30%">Satuan Pendidikan</td><td>: ${p.sekolah || ''}</td></tr>
                 <tr><td>Ruang / Sesi</td><td>: ............ / ............</td></tr>
                 <tr><td>Mata Pelajaran</td><td>: ........................................</td></tr>
                 <tr><td>Jumlah Peserta Seharusnya</td><td>: ............ Orang</td></tr>
@@ -4211,68 +3409,17 @@ window.cetakBeritaAcara = () => {
                 </tr>
             </table>
         </body></html>
-    `;
-    printWindow.document.write(html);
+    `);
     printWindow.document.close();
     setTimeout(() => printWindow.print(), 500);
 };
 
-window.cetakPesertaUjian = () => {
-    if (state.masterSiswa.length === 0) return alert("Data siswa belum dimuat!");
-
-    const printWindow = window.open('', '_blank');
-    let rows = '';
-    
-    // Urutkan berdasarkan Ruang, lalu Sesi, lalu Nama
-    const sortedSiswa = [...state.masterSiswa].sort((a, b) => {
-        if (a.ruang !== b.ruang) return (a.ruang || '').localeCompare(b.ruang || '');
-        if (a.sesi !== b.sesi) return (a.sesi || '').localeCompare(b.sesi || '');
-        return (a.nama || '').localeCompare(b.nama || '');
-    });
-
-    sortedSiswa.forEach((s, i) => {
-        rows += `
-            <tr>
-                <td style="border:1px solid black; padding:5px; text-align:center;">${i + 1}</td>
-                <td style="border:1px solid black; padding:5px; text-align:center;">${s.nis || s.nisn}</td>
-                <td style="border:1px solid black; padding:5px;">${s.nama}</td>
-                <td style="border:1px solid black; padding:5px; text-align:center;">${s.kelas}</td>
-                <td style="border:1px solid black; padding:5px; text-align:center;">${s.ruang || '-'}</td>
-                <td style="border:1px solid black; padding:5px; text-align:center;">${s.sesi || '-'}</td>
-            </tr>`;
-    });
-
-    printWindow.document.write(`
-        <html><head><title>Daftar Peserta Ujian</title><style>body{font-family:Arial; padding:20px;} table{width:100%; border-collapse:collapse; font-size:10pt;}</style></head>
-        <body>
-            ${generateKopHTML()}
-            <h3 style="text-align:center;">DAFTAR PESERTA UJIAN</h3>
-            <table>
-                <thead>
-                    <tr style="background:#eee;">
-                        <th style="border:1px solid black; padding:5px;">No</th>
-                        <th style="border:1px solid black; padding:5px;">No Peserta</th>
-                        <th style="border:1px solid black; padding:5px;">Nama Siswa</th>
-                        <th style="border:1px solid black; padding:5px;">Kelas</th>
-                        <th style="border:1px solid black; padding:5px;">Ruang</th>
-                        <th style="border:1px solid black; padding:5px;">Sesi</th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
-        </body></html>`);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
-};
-
-// --- 4. CETAK DAFTAR PESERTA UJIAN (NOMINATIF) ---
 window.cetakPesertaUjian = () => {
     if (state.masterSiswa.length === 0) return alert("Data siswa belum dimuat! Pastikan ada siswa di Master Data.");
 
     const printWindow = window.open('', '_blank');
     let rows = '';
 
-    // Mengurutkan siswa berdasarkan Ruang, Sesi, lalu Nama agar rapi di tabel
     const sortedSiswa = [...state.masterSiswa].sort((a, b) => {
         if (a.ruang !== b.ruang) return (a.ruang || '').localeCompare(b.ruang || '');
         if (a.sesi !== b.sesi) return (a.sesi || '').localeCompare(b.sesi || '');
@@ -4291,7 +3438,7 @@ window.cetakPesertaUjian = () => {
             </tr>`;
     });
 
-    const html = `
+    printWindow.document.write(`
         <html><head><style>body { font-family: serif; padding: 20px; } table { width: 100%; border-collapse: collapse; font-size: 11pt; }</style></head>
         <body>
             ${generateKopHTML()}
@@ -4309,32 +3456,23 @@ window.cetakPesertaUjian = () => {
                 </thead>
                 <tbody>${rows}</tbody>
             </table>
-        </body></html>`;
+        </body></html>`);
     
-    printWindow.document.write(html);
     printWindow.document.close();
     setTimeout(() => printWindow.print(), 500);
 };
 
-// --- 5. CETAK JADWAL PENGAWAS ---
 window.cetakJadwalPengawas = async () => {
-    if (!state.pengawasUjian || Object.keys(state.pengawasUjian).length === 0) {
-        // Tarik data pengawas jika belum tersedia di memori sementara
-        const snap = await getDoc(doc(db, 'settings', 'pengawas_ujian'));
-        if (snap.exists()) {
-            state.pengawasUjian = snap.data();
-        } else {
-            return alert("Data alokasi pengawas belum diatur! Silakan atur di menu Pelaksanaan > Atur Pengawas.");
-        }
-    }
-
+    const snap = await getDoc(doc(db, 'settings', 'pengawas_ujian'));
+    if (!snap.exists()) return alert("Data alokasi pengawas belum diatur di menu Atur Pengawas!");
+    
+    const pengawasData = snap.data();
     const printWindow = window.open('', '_blank');
     let contentHtml = '';
 
-    // Looping per Jenis Ujian (misal: PAS, PTS, dst)
-    for (const jenisUjian in state.pengawasUjian) {
+    for (const jenisUjian in pengawasData) {
         let rows = '';
-        const alokasi = state.pengawasUjian[jenisUjian];
+        const alokasi = pengawasData[jenisUjian];
         let no = 1;
         
         for (const key in alokasi) {
@@ -4365,94 +3503,40 @@ window.cetakJadwalPengawas = async () => {
             </div>`;
     }
 
-    const html = `
+    printWindow.document.write(`
         <html><head><style>body { font-family: serif; padding: 20px; }</style></head>
         <body>
             ${generateKopHTML()}
             <h3 style="text-align:center; text-decoration:underline; margin-bottom: 30px;">JADWAL PENGAWAS UJIAN</h3>
             ${contentHtml}
-        </body></html>`;
-    
-    printWindow.document.write(html);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
-};
-
-window.cetakJadwalPengawas = async () => {
-    // Ambil data penempatan pengawas dari settings
-    const snap = await getDoc(doc(db, 'settings', 'pengawas_ujian'));
-    if (!snap.exists()) return alert("Data alokasi pengawas belum diatur!");
-    
-    const pengawasData = snap.data();
-    const printWindow = window.open('', '_blank');
-    let contentHtml = '';
-
-    // Loop per Jenis Ujian (PH, PTS, PAS, dll)
-    for (const jenisUjian in pengawasData) {
-        let rows = '';
-        const alokasi = pengawasData[jenisUjian];
-        
-        for (const key in alokasi) {
-            const [ruang, sesi] = key.split('_');
-            rows += `
-                <tr>
-                    <td style="border:1px solid black; padding:8px;">${ruang}</td>
-                    <td style="border:1px solid black; padding:8px; text-align:center;">${sesi}</td>
-                    <td style="border:1px solid black; padding:8px; font-weight:bold;">${alokasi[key]}</td>
-                </tr>`;
-        }
-
-        contentHtml += `
-            <div style="margin-bottom:40px;">
-                <h4 style="border-bottom:1px solid #ccc; padding-bottom:5px;">JENIS PENILAIAN: ${jenisUjian.toUpperCase()}</h4>
-                <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-                    <thead><tr style="background:#f0f0f0;"><th style="border:1px solid black; padding:8px;">Ruang</th><th style="border:1px solid black; padding:8px;">Sesi</th><th style="border:1px solid black; padding:8px;">Nama Pengawas</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>`;
-    }
-
-    printWindow.document.write(`
-        <html><head><title>Jadwal Pengawas</title><style>body{font-family:Arial; padding:20px;}</style></head>
-        <body>
-            ${generateKopHTML()}
-            <h3 style="text-align:center;">JADWAL PENGAWAS UJIAN</h3>
-            ${contentHtml}
         </body></html>`);
+    
     printWindow.document.close();
     setTimeout(() => printWindow.print(), 500);
 };
 
-// ==========================================
-// USER MANAGEMENT (GURU & SISWA)
-// ==========================================
+
+// ============================================================================
+// 10. USER MANAGEMENT (GURU & SISWA)
+// ============================================================================
 window.loadUserManagement = async () => {
     try {
-        // 1. Load Data Admin (Ini posisi yang benar!)
-        await loadAdmin();
-
-        // 2. Load Data Guru
         const snapGuru = await getDocs(collection(db, 'master_guru'));
         state.masterGuru = [];
         snapGuru.forEach(d => state.masterGuru.push({id: d.id, ...d.data()}));
         
-        // 3. Load Data Siswa
         const snapSiswa = await getDocs(collection(db, 'master_siswa'));
         state.masterSiswa = [];
         snapSiswa.forEach(d => state.masterSiswa.push({id: d.id, ...d.data()}));
 
-        // 4. Urutkan siswa berdasarkan Kelas, lalu Nama
         state.masterSiswa.sort((a,b) => {
             if(a.kelas === b.kelas) return (a.nama || '').localeCompare(b.nama || '');
             return (a.kelas || '').localeCompare(b.kelas || '');
         });
 
-        // 5. Render semua tabel
         window.renderTableUserGuru();
         window.renderTableUserSiswa();
-    } catch(e) {
-        console.error("Error load user management:", e);
-    }
+    } catch(e) { console.error("Error load user management:", e); }
 };
 
 window.renderTableUserGuru = () => {
@@ -4467,16 +3551,13 @@ window.renderTableUserGuru = () => {
 
     state.masterGuru.forEach((g, i) => {
         const isActive = g.isActive !== false;
-        
-        // Tombol toggle status
         const btnStatus = isActive 
             ? `<button onclick="toggleStatusUser('master_guru', '${g.id}', true)" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">🚫 Nonaktifkan</button>`
             : `<button onclick="toggleStatusUser('master_guru', '${g.id}', false)" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">✔️ Aktifkan</button>`;
 
-        container.innerHTML += `
+        tb.innerHTML += `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100 ${!isActive ? 'opacity-50' : ''}">
                 <td class="p-3 text-center border-r font-bold text-slate-500">${i+1}</td>
-                <!-- PERUBAHAN: Menghapus class uppercase pada kolom nama -->
                 <td class="p-3 border-r text-slate-800 font-bold text-sm">${g.nama || '-'}</td>
                 <td class="p-3 border-r text-center text-blue-700 font-mono font-bold">${g.username || '-'}</td>
                 <td class="p-3 border-r text-center text-slate-600 font-mono text-sm">${g.password || '-'}</td>
@@ -4501,8 +3582,6 @@ window.renderTableUserSiswa = () => {
 
     state.masterSiswa.forEach((s, i) => {
         const isActive = s.isActive !== false;
-        
-        // Tombol toggle status
         const btnStatus = isActive 
             ? `<button onclick="toggleStatusUser('master_siswa', '${s.id}', true)" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">🚫 Nonaktif</button>`
             : `<button onclick="toggleStatusUser('master_siswa', '${s.id}', false)" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded transition shadow-sm text-[10px] font-bold w-full uppercase">✔️ Aktif</button>`;
@@ -4526,39 +3605,157 @@ window.renderTableUserSiswa = () => {
 
 window.toggleStatusUser = async (collectionName, id, currentStatus) => {
     try {
-        const newStatus = !currentStatus; // Balikkan status aktif ke nonaktif, atau sebaliknya
+        const newStatus = !currentStatus;
         await updateDoc(doc(db, collectionName, id), { isActive: newStatus });
-        window.loadUserManagement(); // Muat ulang tabel agar perubahan langsung terlihat
-    } catch(e) {
-        console.error(e);
-        alert("Gagal mengubah status pengguna.");
+        window.loadUserManagement(); 
+    } catch(e) { console.error(e); }
+};
+
+
+// ============================================================================
+// 11. PENGATURAN (PROFIL, PENGUMUMAN & BACKUP/RESET)
+// ============================================================================
+
+// --- PROFIL SEKOLAH ---
+window.loadProfil = async () => {
+    try {
+        const snap = await getDoc(doc(db, 'settings', 'profil_sekolah'));
+        if(snap.exists()) {
+            const d = snap.data();
+            const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+            
+            setVal('profAplikasi', d.aplikasi); setVal('profNpsn', d.npsn);
+            setVal('profSekolah', d.sekolah); setVal('profNss', d.nss);
+            setVal('profWebsite', d.website); setVal('profJenjang', d.jenjang);
+            setVal('profAlamat', d.alamat); setVal('profDesa', d.desa);
+            setVal('profEmail', d.email); setVal('profFaksimili', d.faksimili);
+            setVal('profKabupaten', d.kabupaten); setVal('profKodePos', d.kodePos);
+            setVal('profKepsek', d.kepsek); setVal('profKecamatan', d.kecamatan);
+            setVal('profNipKepsek', d.nipKepsek); setVal('profSatPend', d.satPend);
+            setVal('profProvinsi', d.provinsi); setVal('profTelepon', d.telepon);
+
+            if(d.logoKiri && document.getElementById('logoKiriBase64')) document.getElementById('logoKiriBase64').value = d.logoKiri;
+            if(d.logoKanan && document.getElementById('logoKananBase64')) document.getElementById('logoKananBase64').value = d.logoKanan;
+            if(window.updatePreviewKop) window.updatePreviewKop();
+        }
+    } catch(e) { console.error("Error memuat profil:", e); }
+};
+
+window.simpanProfil = async () => {
+    const btn = document.getElementById('btnSimpanProfil');
+    if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
+    
+    const getVal = (id) => document.getElementById(id)?.value || '';
+
+    const data = {
+        aplikasi: getVal('profAplikasi'), npsn: getVal('profNpsn'),
+        sekolah: getVal('profSekolah'), nss: getVal('profNss'),
+        website: getVal('profWebsite'), jenjang: getVal('profJenjang'),
+        alamat: getVal('profAlamat'), desa: getVal('profDesa'),
+        email: getVal('profEmail'), faksimili: getVal('profFaksimili'),
+        kabupaten: getVal('profKabupaten'), kodePos: getVal('profKodePos'),
+        kepsek: getVal('profKepsek'), kecamatan: getVal('profKecamatan'),
+        nipKepsek: getVal('profNipKepsek'), satPend: getVal('profSatPend'),
+        provinsi: getVal('profProvinsi'), telepon: getVal('profTelepon'),
+        logoKiri: getVal('logoKiriBase64'), logoKanan: getVal('logoKananBase64')
+    };
+
+    try {
+        await setDoc(doc(db, 'settings', 'profil_sekolah'), data);
+        state.schoolProfile = data; 
+        alert("Profil Sekolah berhasil disimpan!");
+        if(window.updatePreviewKop) window.updatePreviewKop();
+    } catch(e) { console.error(e); } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan Profile"; }
     }
 };
 
-// ==========================================
-// BACKUP & RESTORE DATA
-// ==========================================
+window.previewImage = (input, previewId, base64Id) => {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById(base64Id).value = e.target.result;
+            if(window.updatePreviewKop) window.updatePreviewKop();
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+};
+
+// --- PENGUMUMAN & RUNNING TEXT ---
+window.loadPengumuman = async (isDashboard = false) => {
+    try {
+        const snap = await getDoc(doc(db, 'settings', 'pengumuman_config'));
+        let config = { r1: '', r2: '', r3: '', kepada: '', teks: '' };
+        if (snap.exists()) config = snap.data();
+
+        if (isDashboard) {
+            const txt = config.teks ? config.teks : 'Tidak ada pengumuman.';
+            const dashText = document.getElementById('dashPengumumanText');
+            if (dashText) dashText.innerHTML = txt;
+        } else {
+            const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+            setVal('rt1', config.r1); setVal('rt2', config.r2); setVal('rt3', config.r3);
+            setVal('pengumumanKepada', config.kepada); setVal('pengumumanTeks', config.teks);
+        }
+    } catch(e) { console.error("Error load pengumuman:", e); }
+};
+
+window.simpanRunningText = async () => {
+    const btn = document.querySelector('#viewPengumuman .bg-white:nth-child(1) button.bg-blue-600');
+    if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
+    
+    const data = {
+        r1: document.getElementById('rt1')?.value || '',
+        r2: document.getElementById('rt2')?.value || '',
+        r3: document.getElementById('rt3')?.value || ''
+    };
+
+    try {
+        await setDoc(doc(db, 'settings', 'pengumuman_config'), data, { merge: true });
+        alert('Running text berhasil disimpan! Teks akan muncul di layar siswa.');
+    } catch(e) { console.error(e); } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan"; }
+    }
+};
+
+window.simpanPengumuman = async () => {
+    const btn = document.querySelector('#viewPengumuman .bg-white:nth-child(2) button.bg-blue-600') || document.querySelector('button[onclick="simpanPengumuman()"]');
+    if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
+    
+    try {
+        const isiPengumuman = document.getElementById('inputPengumuman')?.value || document.getElementById('pengumumanTeks')?.value || '';
+        const kepada = document.getElementById('pengumumanKepada')?.value || '';
+        
+        if (!isiPengumuman.trim()) return alert('Peringatan: Isi pengumuman masih kosong!');
+
+        const data = { kepada: kepada, teks: isiPengumuman };
+        await setDoc(doc(db, 'settings', 'pengumuman_config'), data, { merge: true });
+        
+        alert("✅ Pengumuman berhasil disimpan! Pesan ini sekarang akan terlihat di layar login/dashboard siswa.");
+        if (typeof loadDashboard === 'function') loadDashboard(true);
+    } catch (error) {
+        console.error("Gagal menyimpan pengumuman:", error);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan Pengumuman"; }
+    }
+};
+
+// --- BACKUP & RESTORE ---
 window.loadBackup = async () => {
     try {
         const snap = await getDocs(collection(db, 'backup_history'));
         state.backupHistory = [];
         snap.forEach(d => state.backupHistory.push({id: d.id, ...d.data()}));
-
-        // Urutkan dari yang paling baru
         state.backupHistory.sort((a,b) => b.timestamp - a.timestamp);
-
         window.renderTableBackup();
-    } catch(e) {
-        console.error("Error load backup history:", e);
-    }
+    } catch(e) { console.error("Error load backup history:", e); }
 };
 
 window.renderTableBackup = () => {
-    // Mencari tbody secara spesifik di dalam section viewBackup
     const viewBackup = document.getElementById('viewBackup');
+    if(!viewBackup) return;
     const tb = viewBackup.querySelector('tbody');
     if (!tb) return;
-
     tb.innerHTML = '';
 
     if (!state.backupHistory || state.backupHistory.length === 0) {
@@ -4591,39 +3788,28 @@ window.backupSemuaData = async () => {
     if(btn) { btn.innerText = "SEDANG MEMPROSES..."; btn.disabled = true; }
 
     try {
-        // Daftar semua koleksi yang ada di database CBT GARAM
         const collectionsToBackup = [
             'settings', 'master_guru', 'master_siswa', 'master_kelas',
-            'master_subjects', 'master_jurusan', 'master_ekskul',
+            'master_mapel', 'master_jurusan', 'master_ekskul',
             'master_jenis_ujian', 'master_sesi_ujian', 'master_ruang_ujian',
             'master_bank_soal', 'master_jadwal_ujian', 'exam_results'
         ];
 
         const backupData = {};
-
-        // Menarik semua data dari Firebase Firestore satu per satu
         for (const colName of collectionsToBackup) {
             const snap = await getDocs(collection(db, colName));
             backupData[colName] = [];
-            snap.forEach(doc => {
-                backupData[colName].push({ id: doc.id, ...doc.data() });
-            });
+            snap.forEach(doc => { backupData[colName].push({ id: doc.id, ...doc.data() }); });
         }
 
-        // Convert object hasil tarikan ke format JSON String
         const jsonString = JSON.stringify(backupData, null, 2);
         const blob = new Blob([jsonString], { type: "application/json" });
+        const sizeStr = (blob.size / 1024).toFixed(2) + " KB";
 
-        // Hitung ukuran file untuk ditampilkan di riwayat
-        const bytes = blob.size;
-        const sizeStr = (bytes / 1024).toFixed(2) + " KB";
-
-        // Buat penamaan file dinamis berdasarkan tanggal dan waktu
         const now = new Date();
         const dateStr = now.toISOString().replace(/T/, '_').replace(/:/g, '-').split('.')[0];
         const filename = `backup_cbt_garam_${dateStr}.json`;
 
-        // Proses trigger Download otomatis ke komputer user
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -4633,318 +3819,28 @@ window.backupSemuaData = async () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        // Simpan catatan riwayat backup ke database agar muncul di tabel
-        await addDoc(collection(db, 'backup_history'), {
-            filename: filename,
-            size: sizeStr,
-            timestamp: now.getTime()
-        });
+        await addDoc(collection(db, 'backup_history'), { filename: filename, size: sizeStr, timestamp: now.getTime() });
 
-        alert("Backup berhasil! File JSON telah diunduh ke perangkat Anda.");
-        window.loadBackup(); // Muat ulang tabel riwayat
+        alert("Backup berhasil! File JSON telah diunduh ke komputer Anda.");
+        window.loadBackup(); 
     } catch (e) {
         console.error("Gagal backup:", e);
-        alert("Terjadi kesalahan saat membackup data. Pastikan koneksi internet stabil.");
+        alert("Terjadi kesalahan saat membackup data.");
     } finally {
         if(btn) { btn.innerText = "BACKUP SEMUA DATA"; btn.disabled = false; }
     }
 };
 
 window.hapusRiwayatBackup = async (id) => {
-    if(confirm("Hapus catatan riwayat backup ini? (Ini hanya menghapus catatan di tabel, bukan menghapus file JSON yang sudah Anda download)")) {
+    if(confirm("Hapus catatan riwayat backup ini? (Hanya menghapus riwayat di tabel, file di PC Anda aman)")) {
         await deleteDoc(doc(db, 'backup_history', id));
         window.loadBackup();
     }
 };
 
-// ==========================================
-// FITUR TAMBAHAN: KATROL & EKSPOR ANALISA
-// ==========================================
-
-// Fungsi Katrol Nilai
-window.katrolNilaiMassal = async () => {
-    const kelasVal = document.getElementById('filterHasilKelas').value;
-    const jadwalVal = document.getElementById('filterHasilJadwal').value;
-    
-    if (!kelasVal || !jadwalVal) return alert("Pilih Kelas dan Jadwal terlebih dahulu!");
-    
-    const filteredResults = state.allResults.filter(r => r.kelas === kelasVal && r.jadwalId === jadwalVal);
-    if (filteredResults.length === 0) return alert("Tidak ada data nilai untuk dikatrol pada jadwal ini.");
-
-    const tambahPoin = prompt(`Ditemukan ${filteredResults.length} nilai siswa.\nMasukkan jumlah poin tambahan untuk semua siswa ini (contoh: 10):`, "0");
-    
-    if (!tambahPoin || isNaN(tambahPoin) || parseInt(tambahPoin) === 0) return;
-
-    const poin = parseInt(tambahPoin);
-    if (!confirm(`Anda akan menambahkan ${poin} poin ke ${filteredResults.length} siswa. Nilai maksimal dibatasi 100. Lanjutkan?`)) return;
-
-    const btn = document.querySelector('button[onclick="katrolNilaiMassal()"]');
-    if (btn) { btn.disabled = true; btn.innerText = "Memproses..."; }
-
-    try {
-        const promises = [];
-        filteredResults.forEach(r => {
-            let skorBaru = (r.skor || 0) + poin;
-            if (skorBaru > 100) skorBaru = 100; // Batasi nilai mentok di 100
-            if (skorBaru < 0) skorBaru = 0;
-            
-            promises.push(updateDoc(doc(db, 'exam_results', r.id), { skor: skorBaru }));
-        });
-        await Promise.all(promises);
-        alert("Katrol nilai berhasil diterapkan!");
-        loadHasilUjian(); // Refresh tabel nilai
-    } catch (e) {
-        console.error("Gagal katrol nilai:", e);
-        alert("Gagal memproses penambahan nilai.");
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerText = "⚖️ Katrol"; }
-    }
-};
-
-// Fungsi Ekspor Analisa ke Excel
-window.eksporAnalisaExcel = () => {
-    const tb = document.getElementById('tableBodyAnalisa');
-    if(!tb || tb.innerHTML.includes('Belum ada')) return alert("Tidak ada data analisa untuk diekspor!");
-    
-    // Ambil elemen tabel HTML dan langsung ubah jadi Excel
-    const table = tb.closest('table');
-    const workbook = XLSX.utils.table_to_book(table, {sheet: "Analisa Soal"});
-    XLSX.writeFile(workbook, `Analisa_Butir_Soal_CBT.xlsx`);
-};
-
-// Injection otomatis untuk menghubungkan tombol HTML dengan fungsi JavaScript
-setTimeout(() => {
-    // Menyambungkan tombol sidebar agar me-load data backup saat diklik
-    const btnMenuBackup = document.getElementById('btn-viewBackup');
-    if (btnMenuBackup) {
-        btnMenuBackup.addEventListener('click', () => { window.loadBackup(); });
-    }
-
-    // Mengganti alert bawaan tombol biru menjadi fungsi download sungguhan
-    const btnProsesBackup = document.querySelector('#viewBackup button.bg-blue-500');
-    if (btnProsesBackup) {
-        btnProsesBackup.onclick = window.backupSemuaData;
-    }
-}, 1000);
-
-// ==========================================
-// PROFIL SEKOLAH & KOP SURAT
-// ==========================================
-window.loadProfil = async () => {
-    try {
-        const snap = await getDoc(doc(db, 'settings', 'profil_sekolah'));
-        if(snap.exists()) {
-            const d = snap.data();
-            
-            // Fungsi helper untuk mengisi nilai input dengan aman
-            const setVal = (id, val) => { 
-                const el = document.getElementById(id);
-                if(el) el.value = val || ''; 
-            };
-            
-            setVal('profAplikasi', d.aplikasi);
-            setVal('profNpsn', d.npsn);
-            setVal('profSekolah', d.sekolah);
-            setVal('profNss', d.nss);
-            setVal('profWebsite', d.website);
-            setVal('profJenjang', d.jenjang);
-            setVal('profAlamat', d.alamat);
-            setVal('profDesa', d.desa);
-            setVal('profEmail', d.email);
-            setVal('profFaksimili', d.faksimili);
-            setVal('profKabupaten', d.kabupaten);
-            setVal('profKodePos', d.kodePos);
-            setVal('profKepsek', d.kepsek);
-            setVal('profKecamatan', d.kecamatan);
-            setVal('profNipKepsek', d.nipKepsek);
-            setVal('profSatPend', d.satPend);
-            setVal('profProvinsi', d.provinsi);
-            setVal('profTelepon', d.telepon);
-
-            // Set data gambar base64 ke input hidden
-            if(d.logoKiri) document.getElementById('logoKiriBase64').value = d.logoKiri;
-            if(d.logoKanan) document.getElementById('logoKananBase64').value = d.logoKanan;
-            
-            // Trigger pembaruan pratinjau (preview) di HTML
-            if(window.updatePreviewKop) window.updatePreviewKop();
-        }
-    } catch(e) { 
-        console.error("Error memuat profil:", e); 
-    }
-};
-
-window.simpanProfil = async () => {
-    const btn = document.getElementById('btnSimpanProfil');
-    if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
-
-    const data = {
-        aplikasi: document.getElementById('profAplikasi').value,
-        npsn: document.getElementById('profNpsn').value,
-        sekolah: document.getElementById('profSekolah').value,
-        nss: document.getElementById('profNss').value,
-        website: document.getElementById('profWebsite').value,
-        jenjang: document.getElementById('profJenjang').value,
-        alamat: document.getElementById('profAlamat').value,
-        desa: document.getElementById('profDesa').value,
-        email: document.getElementById('profEmail').value,
-        faksimili: document.getElementById('profFaksimili').value,
-        kabupaten: document.getElementById('profKabupaten').value,
-        kodePos: document.getElementById('profKodePos').value,
-        kepsek: document.getElementById('profKepsek').value,
-        kecamatan: document.getElementById('profKecamatan').value,
-        nipKepsek: document.getElementById('profNipKepsek').value,
-        satPend: document.getElementById('profSatPend').value,
-        provinsi: document.getElementById('profProvinsi').value,
-        telepon: document.getElementById('profTelepon').value,
-        logoKiri: document.getElementById('logoKiriBase64').value,
-        logoKanan: document.getElementById('logoKananBase64').value
-    };
-
-    try {
-        await setDoc(doc(db, 'settings', 'profil_sekolah'), data);
-        
-        // Perbarui data di state lokal agar modul Cetak Berkas ikut ter-update
-        state.schoolProfile = data; 
-        
-        alert("Profil Sekolah berhasil disimpan!");
-        if(window.updatePreviewKop) window.updatePreviewKop();
-    } catch(e) {
-        console.error(e);
-        alert("Gagal menyimpan Profil Sekolah.");
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan Profile"; }
-    }
-};
-
-// Fungsi untuk membaca file gambar yang di-upload dan mengubahnya jadi text Base64
-window.previewImage = (input, previewId, base64Id) => {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById(base64Id).value = e.target.result;
-            if(window.updatePreviewKop) window.updatePreviewKop();
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-};
-
-// Injection otomatis: Memastikan form Profil dimuat dari Firebase saat menu diklik
-setTimeout(() => {
-    const btnMenuProfil = document.getElementById('btn-viewProfil');
-    if (btnMenuProfil) {
-        btnMenuProfil.addEventListener('click', () => { window.loadProfil(); });
-    }
-}, 1000);
-
-// ==========================================
-// PENGUMUMAN & RUNNING TEXT
-// ==========================================
-window.loadPengumuman = async (isDashboard = false) => {
-    try {
-        const snap = await getDoc(doc(db, 'settings', 'pengumuman_config'));
-        let config = { r1: '', r2: '', r3: '', kepada: '', teks: '' };
-        
-        if (snap.exists()) {
-            config = snap.data();
-        }
-
-        if (isDashboard) {
-            // Tampilkan di widget dashboard
-            const txt = config.teks ? config.teks : 'Tidak ada pengumuman.';
-            const dashText = document.getElementById('dashPengumumanText');
-            if (dashText) dashText.innerHTML = txt;
-        } else {
-            // Isi form di menu Pengumuman
-            const setVal = (id, val) => { 
-                const el = document.getElementById(id); 
-                if(el) el.value = val || ''; 
-            };
-            
-            setVal('rt1', config.r1);
-            setVal('rt2', config.r2);
-            setVal('rt3', config.r3);
-            setVal('pengumumanKepada', config.kepada);
-            setVal('pengumumanTeks', config.teks);
-        }
-    } catch(e) {
-        console.error("Error load pengumuman:", e);
-    }
-};
-
-window.simpanRunningText = async () => {
-    // Ambil tombol simpan khusus untuk Running Text
-    const btn = document.querySelector('#viewPengumuman .bg-white:nth-child(1) button.bg-blue-600');
-    if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
-    
-    const data = {
-        r1: document.getElementById('rt1').value,
-        r2: document.getElementById('rt2').value,
-        r3: document.getElementById('rt3').value
-    };
-
-    try {
-        // Gunakan merge: true agar tidak menimpa data pengumuman utama
-        await setDoc(doc(db, 'settings', 'pengumuman_config'), data, { merge: true });
-        alert('Running text berhasil disimpan! Teks akan muncul di layar siswa.');
-    } catch(e) {
-        console.error(e);
-        alert('Gagal menyimpan running text.');
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan"; }
-    }
-};
-
-window.simpanPengumuman = async () => {
-    // Ambil tombol simpan khusus untuk Pengumuman Teks
-    const btn = document.querySelector('#viewPengumuman .bg-white:nth-child(2) button.bg-blue-600');
-    if (btn) { btn.disabled = true; btn.innerText = "Menyimpan..."; }
-    
-    try {
-        // Pindahkan pengambilan data ke dalam blok try agar error HTML (jika ada) ikut tertangkap
-        const inputKepada = document.getElementById('pengumumanKepada');
-        const inputTeks = document.getElementById('pengumumanTeks');
-
-        // Cek dulu apakah elemen HTML-nya berhasil ditemukan
-        if (!inputKepada || !inputTeks) {
-            throw new Error("Elemen input HTML (pengumumanKepada / pengumumanTeks) tidak ditemukan di admin.html!");
-        }
-
-        const data = {
-            kepada: inputKepada.value,
-            teks: inputTeks.value
-        };
-
-        // CEK LANGKAH 1: Tampilkan data yang ditangkap ke Console
-        console.log("Data Pengumuman yang siap disimpan:", data);
-
-        // Gunakan merge: true agar tidak menimpa data running text
-        await setDoc(doc(db, 'settings', 'pengumuman_config'), data, { merge: true });
-        alert('Pengumuman berhasil disimpan!');
-        
-        // Segarkan teks pengumuman di Dashboard
-        if (typeof loadDashboard === 'function') loadDashboard();
-    } catch(e) {
-        // CEK LANGKAH 2: Tangkap error apapun yang menggagalkan proses
-        console.error("Proses simpan pengumuman GAGAL karena:", e);
-        alert('Gagal menyimpan pengumuman. Cek pesan warna merah di Console!');
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerText = "💾 Simpan"; }
-    }
-};
-// Injection otomatis: Memastikan data dimuat saat menu Pengumuman diklik
-setTimeout(() => {
-    const btnMenuPengumuman = document.getElementById('btn-viewPengumuman');
-    if (btnMenuPengumuman) {
-        btnMenuPengumuman.addEventListener('click', () => { window.loadPengumuman(false); });
-    }
-}, 1000);
-
-// ==========================================
-// BERSIHKAN DATA (HAPUS MASAL)
-// ==========================================
+// --- BERSIHKAN DATA (HAPUS MASSAL & RESET TOTAL) ---
 window.loadBersihkan = async () => {
     try {
-        // Pemetaan ID HTML ke nama koleksi di Firestore
         const collectionsMap = [
             { id: 'count_bs', name: 'master_bank_soal', label: 'Bank Soal' },
             { id: 'count_jdw', name: 'master_jadwal_ujian', label: 'Jadwal Ujian' },
@@ -4953,44 +3849,30 @@ window.loadBersihkan = async () => {
             { id: 'count_guru', name: 'master_guru', label: 'Master Guru' },
             { id: 'count_jrs', name: 'master_jurusan', label: 'Master Jurusan' },
             { id: 'count_kls', name: 'master_kelas', label: 'Master Kelas' },
-            { id: 'count_mapel', name: 'master_subjects', label: 'Master Mapel' },
+            { id: 'count_mapel', name: 'master_mapel', label: 'Master Mapel' },
             { id: 'count_siswa', name: 'master_siswa', label: 'Master Siswa' }
         ];
 
         for (const c of collectionsMap) {
             const tdCount = document.getElementById(c.id);
             if (tdCount) {
-                tdCount.innerText = '...'; // Indikator loading saat menghitung
-                
-                // Ambil jumlah data aktual dari Firestore
+                tdCount.innerText = '...'; 
                 const snap = await getDocs(collection(db, c.name));
                 tdCount.innerText = snap.size;
 
-                // Tanamkan fungsi onclick ke tombol di sebelah angka
                 const tdAction = tdCount.nextElementSibling;
                 if(tdAction) {
                     const btn = tdAction.querySelector('button');
-                    if(btn) {
-                        btn.onclick = () => window.kosongkanKoleksi(c.name, c.label, c.id);
-                    }
+                    if(btn) btn.onclick = () => window.kosongkanKoleksi(c.name, c.label, c.id);
                 }
             }
         }
-    } catch (e) {
-        console.error("Error load bersihkan data:", e);
-    }
+    } catch (e) { console.error("Error load bersihkan data:", e); }
 };
 
 window.kosongkanKoleksi = async (collectionName, label, elementId) => {
-    // 1. Peringatan Pertama
-    const konfirmasi = confirm(`PERINGATAN KERAS!\n\nAnda yakin ingin MENGHAPUS SEMUA DATA [${label}]?\nAksi ini permanen dan tidak dapat dibatalkan!\n\nPastikan Anda sudah melakukan BACKUP di menu Backup/Restore.`);
-    if (!konfirmasi) return;
-
-    // 2. Peringatan Kedua (Khusus untuk tabel Master)
-    if (collectionName.includes('master_')) {
-        const konfirmasi2 = confirm(`Ini adalah Data Master (${label}). Menghapusnya dapat menyebabkan error pada relasi data lain. Tetap kosongkan?`);
-        if(!konfirmasi2) return;
-    }
+    if (!confirm(`PERINGATAN KERAS!\n\nAnda yakin ingin MENGHAPUS SEMUA DATA [${label}]?\nAksi ini permanen. Pastikan Anda sudah melakukan BACKUP.`)) return;
+    if (collectionName.includes('master_') && !confirm(`Ini adalah Data Master (${label}). Yakin tetap kosongkan?`)) return;
 
     const tdCount = document.getElementById(elementId);
     const btn = tdCount.nextElementSibling.querySelector('button');
@@ -5005,66 +3887,39 @@ window.kosongkanKoleksi = async (collectionName, label, elementId) => {
 
         snap.forEach(docItem => {
             promises.push(deleteDoc(doc(db, collectionName, docItem.id)));
-            
-            // Khusus Bank Soal, kita harus membersihkan sub-koleksi butir soalnya juga
             if (collectionName === 'master_bank_soal') {
                 getDocs(collection(db, `master_bank_soal/${docItem.id}/butir_soal`)).then(subSnap => {
-                    subSnap.forEach(subDoc => {
-                        deleteDoc(doc(db, `master_bank_soal/${docItem.id}/butir_soal`, subDoc.id));
-                    });
+                    subSnap.forEach(subDoc => { deleteDoc(doc(db, `master_bank_soal/${docItem.id}/butir_soal`, subDoc.id)); });
                 });
             }
         });
 
-        // Eksekusi penghapusan massal
         await Promise.all(promises);
         
-        // Reset state array lokal agar aplikasi terhindar dari membaca data yang sudah dihapus
         if(collectionName === 'master_siswa') state.masterSiswa = [];
         if(collectionName === 'master_guru') state.masterGuru = [];
         if(collectionName === 'master_kelas') state.masterKelas = [];
-        if(collectionName === 'master_subjects') state.masterSubjects = [];
-        if(collectionName === 'master_bank_soal') state.masterBankSoal = [];
+        if(collectionName === 'master_mapel') state.masterMapel = [];
+        if(collectionName === 'master_bank_soal') state.masterSoal = [];
         if(collectionName === 'master_jadwal_ujian') state.masterJadwalUjian = [];
         if(collectionName === 'exam_results') state.allResults = [];
 
         alert(`Seluruh data [${label}] berhasil dikosongkan!`);
-        tdCount.innerText = '0'; // Set angka jadi 0 di UI
-    } catch (e) {
-        console.error("Gagal menghapus data:", e);
-        alert(`Terjadi kesalahan saat menghapus data ${label}.`);
-    } finally {
-        btn.innerHTML = originalHTML;
-        btn.disabled = false;
+        tdCount.innerText = '0'; 
+    } catch (e) { console.error(e); } finally {
+        btn.innerHTML = originalHTML; btn.disabled = false;
     }
 };
 
-// Injection otomatis: Memastikan jumlah data dihitung saat menu diklik
-setTimeout(() => {
-    const btnMenuBersihkan = document.getElementById('btn-viewBersihkan');
-    if (btnMenuBersihkan) {
-        btnMenuBersihkan.addEventListener('click', () => { window.loadBersihkan(); });
-    }
-}, 1000);
-
 window.hapusSeluruhDatabase = async () => {
-    // 1. Verifikasi Keamanan Berlapis
-    const confirm1 = confirm("PERINGATAN TINGKAT TINGGI!\n\nAnda akan menghapus SELURUH DATA aplikasi CBT GARAM.\nData Siswa, Guru, Bank Soal, Jadwal, dan Nilai akan hilang selamanya.\n\nApakah Anda benar-benar yakin?");
-    if (!confirm1) return;
-
-    const confirm2 = confirm("Peringatan Terakhir!\n\nPastikan Anda sudah melakukan BACKUP DATA terlebih dahulu.\n\nKlik OK jika Anda sudah siap melakukan Reset Total.");
-    if (!confirm2) return;
-
-    // Tambahkan verifikasi teks untuk mencegah kesalahan klik
+    if (!confirm("PERINGATAN TINGKAT TINGGI!\n\nAnda akan menghapus SELURUH DATA aplikasi CBT GARAM.\nData Siswa, Guru, Bank Soal, Jadwal, dan Nilai akan hilang selamanya.\n\nApakah Anda benar-benar yakin?")) return;
+    if (!confirm("Peringatan Terakhir!\n\nPastikan Anda sudah melakukan BACKUP DATA terlebih dahulu.\n\nKlik OK jika Anda sudah siap melakukan Reset Total.")) return;
+    
     const verifyText = prompt("Ketik kata 'HAPUS' untuk mengonfirmasi penghapusan massal ini:");
-    if (verifyText !== "HAPUS") {
-        alert("Konfirmasi gagal. Data batal dihapus.");
-        return;
-    }
+    if (verifyText !== "HAPUS") return alert("Konfirmasi gagal. Data batal dihapus.");
 
-    // 2. Daftar Koleksi yang akan Dihapus (KECUALI master_admin)
     const collectionsToWipe = [
-        'master_siswa', 'master_guru', 'master_kelas', 'master_subjects', 
+        'master_siswa', 'master_guru', 'master_kelas', 'master_mapel', 
         'master_jurusan', 'master_ekskul', 'master_jenis_ujian', 
         'master_sesi_ujian', 'master_ruang_ujian', 'master_bank_soal', 
         'master_jadwal_ujian', 'exam_results', 'backup_history', 'settings'
@@ -5076,874 +3931,35 @@ window.hapusSeluruhDatabase = async () => {
         for (const colName of collectionsToWipe) {
             const snap = await getDocs(collection(db, colName));
             const promises = [];
-
             snap.forEach(docItem => {
-                // Hapus dokumen utama
                 promises.push(deleteDoc(doc(db, colName, docItem.id)));
-
-                // Logika khusus untuk sub-koleksi bank soal
                 if (colName === 'master_bank_soal') {
                     getDocs(collection(db, `master_bank_soal/${docItem.id}/butir_soal`)).then(subSnap => {
-                        subSnap.forEach(subDoc => {
-                            deleteDoc(doc(db, `master_bank_soal/${docItem.id}/butir_soal`, subDoc.id));
-                        });
+                        subSnap.forEach(subDoc => { deleteDoc(doc(db, `master_bank_soal/${docItem.id}/butir_soal`, subDoc.id)); });
                     });
                 }
             });
-
             await Promise.all(promises);
-            console.log(`Koleksi [${colName}] berhasil dibersihkan.`);
         }
-
-        alert("DATABASE BERHASIL DIRESET TOTAL!\n\nKecuali akses login Admin. Sistem akan dimuat ulang untuk menyegarkan tampilan.");
+        alert("DATABASE BERHASIL DIRESET TOTAL!\nSistem akan dimuat ulang untuk menyegarkan tampilan.");
         location.reload();
-
-    } catch (error) {
-        console.error("Gagal melakukan reset database:", error);
-        alert("Terjadi kesalahan sistem saat menghapus data. Periksa koneksi internet Anda.");
-    }
+    } catch (error) { console.error("Gagal melakukan reset database:", error); }
 };
 
-
-// ==========================================
-// FITUR OTOMATISASI: KENAIKAN KELAS
-// ==========================================
-window.kenaikanKelas = async () => {
-    if(!confirm("⚠️ PERINGATAN!\n\nFitur ini akan menaikkan kelas semua siswa secara otomatis (contoh: Siswa kelas 1 menjadi kelas 2).\nSiswa kelas tertinggi (Kelas 6) akan otomatis ditandai sebagai ALUMNI/LULUS.\n\nPastikan data nilai tahun ini sudah di-backup. Lanjutkan?")) return;
-    
-    try {
-        const promises = [];
-        state.masterSiswa.forEach(s => {
-            let kelasBaru = s.kelas;
-            // Ambil angka dari teks kelas (misal "1A" jadi 1, "6" jadi 6)
-            let num = parseInt(s.kelas);
-            if(!isNaN(num)) {
-                if(num >= 6) {
-                    kelasBaru = "ALUMNI";
-                } else {
-                    // Naikkan angkanya (misal 1A -> 2A)
-                    kelasBaru = (num + 1).toString() + s.kelas.replace(num, "");
-                }
-            }
-            
-            // Jika ada perubahan, push ke antrean update Firebase
-            if(kelasBaru !== s.kelas) {
-                promises.push(updateDoc(doc(db, 'master_siswa', s.id), { kelas: kelasBaru }));
-            }
-        });
-        
-        await Promise.all(promises);
-        alert("Proses Kenaikan Kelas Massal Berhasil! Data siswa telah diperbarui.");
-        loadSiswa(); // Refresh tabel siswa
-    } catch(e) {
-        console.error(e); 
-        alert("Gagal memproses kenaikan kelas.");
-    }
-};
-
-// ==========================================
-// IMPORT & EXPORT EXCEL (GURU & SISWA)
-// ==========================================
-
-// ---------------- 1. DATA GURU ----------------
-window.exportTemplateGuru = () => {
-    let dataToExport = [];
-    
-    // Jika data sudah ada, export data tersebut. Jika kosong, buat template.
-    if (state.masterGuru && state.masterGuru.length > 0) {
-        dataToExport = state.masterGuru.map((g, i) => ({
-            "No": i + 1,
-            "NIP/NUPTK": g.nip || '',
-            "Kode Guru": g.kode || '',
-            "Nama Lengkap": g.nama || '',
-            "Jabatan": g.jabatan || 'GURU KELAS',
-            "Username": g.username || '',
-            "Password": g.password || ''
-        }));
-    } else {
-        dataToExport = [{
-            "No": 1,
-            "NIP/NUPTK": "198505052010011015", 
-            "Kode Guru": "G01",
-            "Nama Lengkap": "NAMA GURU CONTOH",
-            "Jabatan": "GURU KELAS ATAU PENGAWAS",
-            "Username": "guru01",
-            "Password": "password123"
-        }];
-        alert("Karena data masih kosong, sistem men-download Template Format Excel.\nSilakan isi mulai dari baris ke-2 (hapus data contoh).");
-    }
-
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data Guru");
-    XLSX.writeFile(wb, "Data_Guru_CBT.xlsx");
-};
-
-window.triggerImportGuru = () => { document.getElementById('importGuruFile').click(); };
-
-window.importGuru = () => {
-    // 1. Buat elemen input file sementara secara gaib (tidak tampil di layar)
-    const inputExcel = document.createElement('input');
-    inputExcel.type = 'file';
-    inputExcel.accept = '.xlsx, .xls'; // Hanya terima Excel
-    
-    // 2. Apa yang terjadi setelah Bapak memilih file Excel?
-    inputExcel.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return; // Batal pilih file
-        
-        // --- TEMPATKAN LOGIKA BACA EXCEL BAPAK DI SINI ---
-        // Contoh kode SheetJS Bapak sebelumnya kemungkinan seperti ini:
-        try {
-            alert(`Memproses file: ${file.name}... Mohon tunggu.`);
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheet];
-                const excelData = XLSX.utils.sheet_to_json(worksheet);
-                
-                // Lakukan perulangan untuk menyimpan excelData ke Firebase di sini
-                console.log("Data Excel terbaca:", excelData);
-                // ... logika simpan ke firestore ...
-                
-            };
-            reader.readAsArrayBuffer(file);
-        } catch (err) {
-            console.error("Gagal membaca Excel:", err);
-            alert("Terjadi kesalahan saat memproses file Excel.");
-        }
-        // ------------------------------------------------
+// ============================================================================
+// 12. INISIALISASI EVENT LISTENER OTOMATIS
+// ============================================================================
+setTimeout(() => {
+    const attachLoad = (btnId, func) => {
+        const btn = document.getElementById(btnId);
+        if (btn) btn.addEventListener('click', func);
     };
-    
-    // 3. Picu klik secara otomatis untuk membuka jendela pilih file komputer
-    inputExcel.click();
-};
 
-
-// ---------------- 2. DATA SISWA ----------------
-window.exportTemplateSiswa = () => {
-    let dataToExport = [];
-    
-    if (state.masterSiswa && state.masterSiswa.length > 0) {
-        dataToExport = state.masterSiswa.map((s, i) => ({
-            "No": i + 1,
-            "NISN": s.nisn || '',
-            "NIS": s.nis || '',
-            "Nama Lengkap": s.nama || '',
-            "Jenis Kelamin (L/P)": s.jk || 'L',
-            "Kelas": s.kelas || '',
-            "Username": s.username || '',
-            "Password": s.password || ''
-        }));
-    } else {
-        dataToExport = [{
-            "No": 1,
-            "NISN": "0012345678",
-            "NIS": "1234",
-            "Nama Lengkap": "NAMA SISWA CONTOH",
-            "Jenis Kelamin (L/P)": "L",
-            "Kelas": "6",
-            "Username": "0012345678",
-            "Password": "password123"
-        }];
-        alert("Karena data masih kosong, sistem men-download Template Format Excel.\nSilakan isi mulai dari baris ke-2 (hapus data contoh).");
-    }
-
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
-    XLSX.writeFile(wb, "Data_Siswa_CBT.xlsx");
-};
-
-window.triggerImportSiswa = () => { document.getElementById('importSiswaFile').click(); };
-
-
-// ==========================================
-// FITUR GAMBAR & LIVE PREVIEW MATEMATIKA
-// ==========================================
-
-// Fungsi untuk me-render Live Preview (Rumus & HTML)
-window.updatePreviewSoal = () => {
-    const container = document.getElementById('previewSoalContainer');
-    if (!container) return;
-    
-    // Ambil teks dari editor pertanyaan
-    const teks = document.getElementById('editorPertanyaan').value;
-    container.innerHTML = teks;
-    
-    // Perintahkan MathJax untuk merender ulang rumus matematika di dalam container tersebut
-    if (window.MathJax) {
-        MathJax.typesetPromise([container]).catch(err => console.error("MathJax error:", err));
-    }
-};
-
-// Fungsi cerdas untuk mengompres gambar dan menyisipkannya ke textarea
-window.sisipkanGambar = (targetTextareaId) => {
-    // Buat input file sementara
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Baca file gambar
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                // Proses Kompresi Gambar dengan Canvas (Penting agar Firebase tidak kepenuhan)
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 600; // Lebar maksimal gambar di layar ujian
-                let width = img.width;
-                let height = img.height;
-
-                if (width > MAX_WIDTH) {
-                    height *= MAX_WIDTH / width;
-                    width = MAX_WIDTH;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                // Ubah menjadi Base64 (Kualitas 70%)
-                const base64String = canvas.toDataURL('image/jpeg', 0.7);
-                
-                // Buat tag HTML untuk disisipkan
-                const imgTag = `\n<img src="${base64String}" style="max-width:100%; height:auto; margin-top:8px; border-radius:8px;" alt="gambar-soal">\n`;
-                
-                // Sisipkan tepat di posisi kursor pada Textarea
-                const textarea = document.getElementById(targetTextareaId);
-                const cursorPos = textarea.selectionStart;
-                const textBefore = textarea.value.substring(0, cursorPos);
-                const textAfter = textarea.value.substring(cursorPos);
-                
-                textarea.value = textBefore + imgTag + textAfter;
-                
-                // Fokuskan kembali dan update preview (jika itu teks pertanyaan)
-                textarea.focus();
-                if(targetTextareaId === 'editorPertanyaan') updatePreviewSoal();
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    };
-    
-    input.click(); // Buka dialog pemilihan file
-};
-
-// ==========================================
-// FUNGSI EXPORT / DOWNLOAD TEMPLATE GURU
-// ==========================================
-window.exportGuru = () => {
-    let dataExport = [];
-    
-    // Cek apakah sudah ada data guru
-    if (state.masterGuru && state.masterGuru.length > 0) {
-        dataExport = state.masterGuru.map((g, i) => ({
-            "NO": i + 1,
-            "NIP_NUPTK": g.nip || "",
-            "KODE_GURU": g.kode || "",
-            "NAMA_LENGKAP": g.nama || "",
-            "USERNAME": g.username || "",
-            "PASSWORD": g.password || ""
-        }));
-    } else {
-        // Jika kosong, berikan data dummy sebagai contoh (Template)
-        dataExport = [{
-            "NO": 1,
-            "NIP_NUPTK": "198001012005011001",
-            "KODE_GURU": "GR01",
-            "NAMA_LENGKAP": "NAMA GURU CONTOH, S.Pd",
-            "USERNAME": "guru01",
-            "PASSWORD": "password123"
-        }];
-        alert("Karena data guru kosong, sistem mengunduh Template Excel. Silakan hapus baris contoh dan isi dengan data asli Bapak.");
-    }
-
-    try {
-        // Buat file Excel menggunakan SheetJS
-        const ws = XLSX.utils.json_to_sheet(dataExport);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Data_Guru");
-
-        // Download ke komputer
-        XLSX.writeFile(wb, "Data_Atau_Template_Guru.xlsx");
-    } catch (error) {
-        console.error("Gagal mengexport file:", error);
-        alert("Gagal mengunduh Excel. Pastikan library SheetJS berhasil dimuat.");
-    }
-};
-
-// ==========================================
-// FUNGSI EXPORT / DOWNLOAD TEMPLATE SISWA
-// ==========================================
-window.exportSiswa = () => {
-    let dataExport = [];
-    
-    // Cek apakah sudah ada data siswa
-    if (state.masterSiswa && state.masterSiswa.length > 0) {
-        dataExport = state.masterSiswa.map((s, i) => ({
-            "NO": i + 1,
-            "NISN": s.nisn || "",
-            "NIS": s.nis || "",
-            "NAMA_LENGKAP": s.nama || "",
-            "JENIS_KELAMIN": s.jk || "",
-            "KELAS": s.kelas || "",
-            "USERNAME": s.username || "",
-            "PASSWORD": s.password || ""
-        }));
-    } else {
-        // Jika kosong, berikan data dummy sebagai contoh (Template)
-        dataExport = [{
-            "NO": 1,
-            "NISN": "0123456789",
-            "NIS": "1234",
-            "NAMA_LENGKAP": "NAMA SISWA CONTOH",
-            "JENIS_KELAMIN": "L",
-            "KELAS": "6A",
-            "USERNAME": "siswa01",
-            "PASSWORD": "password123"
-        }];
-        alert("Karena data siswa kosong, sistem mengunduh Template Excel. Silakan hapus baris contoh dan isi dengan data asli Bapak.");
-    }
-
-    try {
-        // Buat file Excel menggunakan SheetJS
-        const ws = XLSX.utils.json_to_sheet(dataExport);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Data_Siswa");
-
-        // Download ke komputer
-        XLSX.writeFile(wb, "Data_Atau_Template_Siswa.xlsx");
-    } catch (error) {
-        console.error("Gagal mengexport file:", error);
-        alert("Gagal mengunduh Excel. Pastikan library SheetJS berhasil dimuat.");
-    }
-};
-
-// ==========================================
-// 1. FUNGSI ATUR MASSAL (TERAPKAN)
-// ==========================================
-window.terapkanAturMassal = () => {
-    const valRuang = document.getElementById('bulkRuang')?.value;
-    const valSesi = document.getElementById('bulkSesi')?.value;
-
-    if (!valRuang && !valSesi) {
-        alert("Peringatan: Silakan pilih Ruang atau Sesi terlebih dahulu untuk diterapkan secara massal.");
-        return;
-    }
-
-    // Ambil semua baris data siswa yang sedang tampil di tabel
-    const rows = document.querySelectorAll('#tableAturRuangSesiBody tr');
-    let count = 0;
-
-    rows.forEach(row => {
-        // Ambil semua elemen dropdown <select> di dalam baris tabel tersebut
-        const selects = row.querySelectorAll('select');
-        
-        // selects[0] adalah dropdown Ruang, selects[1] adalah dropdown Sesi
-        if (selects.length >= 2) {
-            if (valRuang) selects[0].value = valRuang;
-            if (valSesi) selects[1].value = valSesi;
-            count++;
-        }
-    });
-
-    if (count > 0) {
-        alert(`Berhasil menerapkan pilihan ke ${count} siswa di layar. Jangan lupa klik tombol "💾 Simpan Perubahan" agar tersimpan ke database!`);
-    } else {
-        alert("Belum ada data siswa yang ditampilkan. Silakan pilih Filter Kelas terlebih dahulu.");
-    }
-};
-
-
-// ==========================================
-// 2. FUNGSI GENERATE OTOMATIS (DISTRIBUSI MERATA)
-// ==========================================
-window.generateRuangSesiOtomatis = () => {
-    const rows = document.querySelectorAll('#tableAturRuangSesiBody tr');
-    
-    if (rows.length === 0) {
-        alert("Belum ada data siswa di tabel. Silakan pilih kelas terlebih dahulu.");
-        return;
-    }
-
-    // Cek ketersediaan opsi ruang dan sesi dari baris pertama
-    const firstRowSelects = rows[0].querySelectorAll('select');
-    if (firstRowSelects.length < 2) return;
-
-    // Ambil daftar kode/ID ruang dan sesi yang tersedia (abaikan opsi kosong "")
-    const opsiRuang = Array.from(firstRowSelects[0].options).map(opt => opt.value).filter(val => val !== "");
-    const opsiSesi = Array.from(firstRowSelects[1].options).map(opt => opt.value).filter(val => val !== "");
-
-    if (opsiRuang.length === 0 || opsiSesi.length === 0) {
-        alert("Data Master Ruang atau Sesi masih kosong! Pastikan Bapak sudah menambahkannya di menu Ruang & Sesi.");
-        return;
-    }
-
-    // Logika distribusi pembagian siswa: 
-    // Mengasumsikan batas 20 siswa per ruangan
-    let ruangIndex = 0;
-    let sesiIndex = 0;
-    const kapasitasPerRuang = 20; 
-
-    rows.forEach((row, index) => {
-        const selects = row.querySelectorAll('select');
-        if (selects.length >= 2) {
-            // Pasang siswa ke ruang dan sesi saat ini
-            selects[0].value = opsiRuang[ruangIndex];
-            selects[1].value = opsiSesi[sesiIndex];
-
-            // Pindah ke ruang/sesi berikutnya setiap kali mencapai kapasitas
-            if ((index + 1) % kapasitasPerRuang === 0) {
-                ruangIndex++;
-                // Jika semua ruang sudah penuh di sesi ini, pindah ke sesi berikutnya
-                if (ruangIndex >= opsiRuang.length) {
-                    ruangIndex = 0;
-                    sesiIndex++;
-                    // Jika semua sesi juga sudah terisi, ulangi lagi dari sesi pertama
-                    if (sesiIndex >= opsiSesi.length) {
-                        sesiIndex = 0; 
-                    }
-                }
-            }
-        }
-    });
-
-    alert("✨ Siswa berhasil didistribusikan secara otomatis (Asumsi max. 20 anak per ruangan). Jangan lupa klik '💾 Simpan Perubahan' ya, Pak!");
-};
-
-// ==========================================
-// 1. FUNGSI RENDER NOMOR PESERTA (Agar tabelnya nyambung)
-// ==========================================
-window.loadNomorPeserta = () => {
-    const tb = document.getElementById('tableNomorPesertaBody');
-    if (!tb) return;
-    tb.innerHTML = '';
-    
-    if (!state.masterSiswa || state.masterSiswa.length === 0) {
-        tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada data siswa. Silakan tambahkan siswa terlebih dahulu.</td></tr>';
-        return;
-    }
-    
-    state.masterSiswa.forEach((s, i) => {
-        tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100" data-id="${s.id}">
-                <td class="p-3 text-center border-r font-bold text-slate-500">${i + 1}</td>
-                <td class="p-3 border-r font-bold text-slate-800 uppercase">${s.nama || '-'}</td>
-                <td class="p-3 text-center border-r font-bold text-slate-600">${s.kelas || '-'}</td>
-                <td class="p-3 border-r">
-                    <input type="text" class="input-nomor w-full p-2 border border-slate-300 rounded outline-none font-mono focus:border-blue-500 uppercase tracking-widest text-center" value="${s.nomor_peserta || ''}" placeholder="Ketik nomor...">
-                </td>
-                <td class="p-3 text-center">
-                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tersimpan</span>
-                </td>
-            </tr>
-        `;
-    });
-};
-
-// ==========================================
-// 2. FUNGSI GENERATE NOMOR PESERTA OTOMATIS
-// ==========================================
-window.generateNomorPeserta = () => {
-    const rows = document.querySelectorAll('#tableNomorPesertaBody tr[data-id]');
-    if (rows.length === 0) {
-        alert("Belum ada data siswa di tabel!"); 
-        return;
-    }
-    
-    // Konfirmasi dan logika penomoran
-    let counter = 1;
-    const prefix = "P-"; // Contoh hasil: P-001, P-002, dll.
-    
-    rows.forEach(row => {
-        const input = row.querySelector('.input-nomor');
-        if (input) {
-            input.value = prefix + String(counter).padStart(3, '0');
-            counter++;
-        }
-    });
-    
-    alert("✨ Nomor peserta berhasil digenerate di layar! Jangan lupa klik tombol '💾 Simpan Perubahan' agar data tersimpan di database.");
-};
-
-// ==========================================
-// 3. FUNGSI SIMPAN NOMOR PESERTA KE FIREBASE
-// ==========================================
-window.simpanNomorPeserta = async () => {
-    const rows = document.querySelectorAll('#tableNomorPesertaBody tr[data-id]');
-    let count = 0;
-    let promises = [];
-
-    const btnSimpan = document.querySelector('button[onclick="simpanNomorPeserta()"]');
-    const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan Perubahan';
-    if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
-
-    try {
-        // Ambil setiap inputan dari tabel dan simpan ke database
-        rows.forEach(row => {
-            const idSiswa = row.getAttribute('data-id');
-            const input = row.querySelector('.input-nomor');
-            if (idSiswa && input && input.value.trim() !== '') {
-                promises.push(updateDoc(doc(db, 'master_siswa', idSiswa), { 
-                    nomor_peserta: input.value.trim().toUpperCase() 
-                }));
-                count++;
-            }
-        });
-
-        await Promise.all(promises);
-        alert(`✅ Berhasil menyimpan ${count} nomor peserta ke database!`);
-        
-        // Segarkan data memori siswa
-        if(typeof window.loadSiswa === 'function') window.loadSiswa();
-        
-    } catch (error) {
-        console.error("Gagal simpan:", error);
-        alert("Terjadi kesalahan saat menyimpan: " + error.message);
-    } finally {
-        if (btnSimpan) { btnSimpan.innerHTML = teksAsli; btnSimpan.disabled = false; }
-    }
-};
-
-// ==========================================
-// 4. FUNGSI GENERATE TOKEN UJIAN
-// ==========================================
-window.generateToken = () => {
-    const karakter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let tokenBaru = '';
-    
-    // Buat 6 digit kode acak
-    for (let i = 0; i < 6; i++) {
-        tokenBaru += karakter.charAt(Math.floor(Math.random() * karakter.length));
-    }
-    
-    // Tampilkan di layar
-    const display = document.getElementById('displayTokenAktif');
-    if(display) display.innerText = tokenBaru;
-    
-    alert(`✨ Token ujian berhasil diperbarui: ${tokenBaru}\nSilakan berikan token ini kepada siswa yang akan ujian.`);
-    
-    // Catatan: Jika Bapak ingin token ini disimpan ke Firebase (agar tersinkron dengan HP siswa), 
-    // nanti kita bisa tambahkan logika simpannya ke tabel konfigurasi Firebase.
-};
-
-// ==========================================
-// FUNGSI SIMPAN PENGATURAN TOKEN (Otomatis & Interval)
-// ==========================================
-window.simpanPengaturanToken = () => {
-    const isOtomatis = document.getElementById('settingTokenOtomatis')?.value;
-    const interval = document.getElementById('settingTokenInterval')?.value;
-    
-    // Logika simpan ke Firebase (opsional, sesuaikan dengan database Bapak)
-    // Untuk saat ini kita buatkan alert notifikasinya saja agar responsif
-    
-    alert(`Pengaturan Token Berhasil Disimpan!\nStatus Otomatis: ${isOtomatis}\nInterval: ${interval} Menit`);
-    
-    // Jika Bapak menggunakan tabel Firebase khusus untuk pengaturan ujian,
-    // kode updateDoc bisa ditambahkan di sini nantinya.
-};
-
-// ==========================================
-// 1. FUNGSI RENDER KE TABEL BANK SOAL
-// ==========================================
-window.renderBankSoal = () => {
-    const tb = document.getElementById('tableBankSoalBody');
-    if (!tb) return;
-    tb.innerHTML = '';
-    
-    if (!state.masterSoal || state.masterSoal.length === 0) {
-        tb.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500 italic">Belum ada paket soal. Silakan klik + Buat Paket Soal.</td></tr>';
-        return;
-    }
-    
-    state.masterSoal.forEach((s, i) => {
-        tb.innerHTML += `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-3 text-center border-r font-bold text-slate-500">${i + 1}</td>
-                <td class="p-3 border-r font-bold text-slate-800 uppercase">${s.mapel || '-'}</td>
-                <td class="p-3 text-center border-r font-bold text-slate-600">${s.kelas || '-'}</td>
-                <td class="p-3 text-center border-r font-bold text-slate-600">${s.jenis_ujian || '-'}</td>
-                <td class="p-3 text-center border-r text-slate-600 uppercase">${s.guru || '-'}</td>
-                <td class="p-3 text-center space-x-1">
-                    <!-- Tombol Edit Atribut Dasar -->
-                    <button onclick="editBankSoal('${s.id}')" class="text-amber-500 hover:text-amber-600 px-1 transition text-lg" title="Edit Info Paket">⚙️</button>
-                    
-                    <!-- Tombol Masuk ke Editor Soal Bapak -->
-                    <button onclick="bukaEditorSoal('${s.id}', '${s.mapel}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded shadow-sm text-xs font-bold transition">📝 Isi Soal</button>
-                </td>
-            </tr>
-        `;
-    });
-};
-
-// ==========================================
-// 2. FUNGSI MANAJEMEN MODAL
-// ==========================================
-window.openModalBankSoal = (id = '', mapel = '', kelas = '', jenis = '', guru = '') => {
-    const elId = document.getElementById('bankSoalId');
-    if (elId) elId.value = id;
-    if (document.getElementById('inputSoalMapel')) document.getElementById('inputSoalMapel').value = mapel;
-    if (document.getElementById('inputSoalKelas')) document.getElementById('inputSoalKelas').value = kelas;
-    if (document.getElementById('inputSoalJenis')) document.getElementById('inputSoalJenis').value = jenis;
-    if (document.getElementById('inputSoalGuru')) document.getElementById('inputSoalGuru').value = guru;
-    
-    const modal = document.getElementById('modalBankSoal');
-    if (modal) modal.classList.remove('hidden');
-};
-
-window.editBankSoal = (id) => {
-    const soal = state.masterSoal.find(s => s.id === id);
-    if (soal) {
-        window.openModalBankSoal(soal.id, soal.mapel, soal.kelas, soal.jenis_ujian, soal.guru);
-    }
-};
-
-window.simpanBankSoal = async () => {
-    try {
-        const id = document.getElementById('bankSoalId')?.value;
-        const mapel = document.getElementById('inputSoalMapel')?.value.trim();
-        const kelas = document.getElementById('inputSoalKelas')?.value.trim();
-        const jenis = document.getElementById('inputSoalJenis')?.value.trim();
-        const guru = document.getElementById('inputSoalGuru')?.value.trim();
-
-        if (!mapel) return alert('Gagal: Mata Pelajaran wajib diisi!');
-
-        const btnSimpan = document.querySelector('#modalBankSoal button[onclick="simpanBankSoal()"]');
-        const teksAsli = btnSimpan ? btnSimpan.innerHTML : 'Simpan Paket';
-        if (btnSimpan) { btnSimpan.innerHTML = '⏳...'; btnSimpan.disabled = true; }
-
-        const payload = { 
-            mapel: mapel.toUpperCase(), 
-            kelas: kelas.toUpperCase(), 
-            jenis_ujian: jenis.toUpperCase(), 
-            guru: guru.toUpperCase() 
-        };
-
-        if (id) {
-            await updateDoc(doc(db, 'master_soal', id), payload);
-        } else {
-            await addDoc(collection(db, 'master_soal'), payload);
-        }
-
-        window.closeModal('modalBankSoal');
-        if (typeof window.loadBankSoal === 'function') window.loadBankSoal();
-        
-        if (btnSimpan) { btnSimpan.innerHTML = teksAsli; btnSimpan.disabled = false; }
-    } catch (e) {
-        console.error("Gagal simpan bank soal:", e);
-        alert("Gagal menyimpan data: " + e.message);
-    }
-};
-
-
-// ============================================================================
-// PAKET LENGKAP MESIN EDITOR SOAL (ANTI ERROR)
-// ============================================================================
-
-// 1. FUNGSI MENAMPILKAN KOTAK NOMOR DI SEBELAH KIRI
-window.renderDaftarButirSoal = () => {
-    const container = document.getElementById('listButirSoal');
-    if (!container) return;
-
-    container.innerHTML = ''; // Kosongkan dulu
-
-    // Pastikan wadah memori aman
-    if (typeof window.state === 'undefined') window.state = {};
-    if (typeof window.state.butirSoalAktif === 'undefined') window.state.butirSoalAktif = [];
-
-    if (window.state.butirSoalAktif.length === 0) {
-        container.innerHTML = '<span class="text-xs text-slate-400 italic w-full text-center mt-4 border-t pt-4">Belum ada soal.</span>';
-        return;
-    }
-
-    // Cetak kotak angka
-    window.state.butirSoalAktif.forEach((soal, index) => {
-        container.innerHTML += `
-            <button type="button" onclick="bukaEditButirSoal('${soal.id}')" class="w-10 h-10 flex items-center justify-center rounded-lg font-bold text-sm bg-white hover:bg-blue-50 text-slate-700 border border-slate-300 shadow-sm transition">
-                ${index + 1}
-            </button>
-        `;
-    });
-};
-
-// 2. FUNGSI MEMBUKA EDITOR SOAL DARI TABEL BANK SOAL
-window.bukaEditorSoal = (idPaket, namaMapel) => {
-    window.switchTab('viewEditorSoal', 'Editor Soal');
-    
-    const header = document.getElementById('headerEditorSoal');
-    if (header) header.innerText = `Editor Soal: ${namaMapel || 'Mata Pelajaran'}`;
-
-    // Kosongkan layar dan memori tiap buka paket soal baru
-    if (typeof window.state === 'undefined') window.state = {};
-    window.state.butirSoalAktif = []; 
-    
-    window.renderDaftarButirSoal();
-    window.tambahButirSoalBaru();
-};
-
-
-
-
-
-
-// ==========================================
-// FUNGSI SIMPAN PENGUMUMAN
-// ==========================================
-window.simpanPengumuman = async () => {
-    try {
-        const isiPengumuman = document.getElementById('inputPengumuman')?.value;
-        
-        if (!isiPengumuman || isiPengumuman.trim() === '') {
-            alert('Peringatan: Isi pengumuman masih kosong!');
-            return;
-        }
-
-        // --- NANTI BAPAK BISA MASUKKAN LOGIKA FIREBASE DI SINI ---
-        // Contoh: await setDoc(doc(db, 'pengaturan', 'pengumuman'), { teks: isiPengumuman });
-        
-        alert("✅ Pengumuman berhasil disimpan! Pesan ini sekarang akan terlihat di layar login/dashboard siswa.");
-
-    } catch (error) {
-        console.error("Gagal menyimpan pengumuman:", error);
-        alert("Terjadi kesalahan: " + error.message);
-    }
-};
-
-
-
-// ============================================================================
-// 3. FUNGSI MEMBERSIHKAN LAYAR TENGAH UNTUK SOAL BARU
-// ============================================================================
-window.tambahButirSoalBaru = () => {
-    const panel = document.getElementById('panelFormSoal');
-    if (panel) panel.classList.remove('hidden');
-
-    const listInput = ['editorPertanyaan', 'opsiA', 'opsiB', 'opsiC', 'opsiD', 'editorKunci'];
-    listInput.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-
-    const elTipe = document.getElementById('editorTipeSoal');
-    if (elTipe) elTipe.value = 'PG';
-
-    // Matikan mode edit jika sedang aktif
-    if (typeof window.state === 'undefined') window.state = {};
-    window.state.sedangEditId = null; 
-
-    // Kembalikan teks tombol
-    const btnSimpan = document.getElementById('btnSimpanButir');
-    if (btnSimpan) {
-        btnSimpan.innerHTML = '💾 Simpan Soal';
-        btnSimpan.disabled = false;
-    }
-
-    const labelNo = document.getElementById('labelNomorSoal');
-    if (window.state.butirSoalAktif) {
-        if (labelNo) labelNo.innerText = `Soal Baru (Nomor ${window.state.butirSoalAktif.length + 1})`;
-    }
-
-    const preview = document.getElementById('previewSoalContainer');
-    if (preview) preview.innerHTML = '';
-};
-
-
-// ============================================================================
-// 4. FUNGSI SIMPAN & UPDATE SOAL
-// ============================================================================
-window.simpanButirSoal = async () => {
-    try {
-        const pertanyaan = document.getElementById('editorPertanyaan')?.value || '';
-        const tipe = document.getElementById('editorTipeSoal')?.value || 'PG';
-        const opsiA = document.getElementById('opsiA')?.value || '';
-        const opsiB = document.getElementById('opsiB')?.value || '';
-        const opsiC = document.getElementById('opsiC')?.value || '';
-        const opsiD = document.getElementById('opsiD')?.value || '';
-        const kunci = document.getElementById('editorKunci')?.value || '';
-
-        if (!pertanyaan.trim()) return alert('Gagal: Kolom Pertanyaan masih kosong!');
-
-        const btnSimpan = document.getElementById('btnSimpanButir');
-        if (btnSimpan) { btnSimpan.innerHTML = '⏳ Menyimpan...'; btnSimpan.disabled = true; }
-
-        const payload = {
-            pertanyaan: pertanyaan,
-            tipe: tipe,
-            opsiA: opsiA,
-            opsiB: opsiB,
-            opsiC: opsiC,
-            opsiD: opsiD,
-            kunci: kunci.toUpperCase().trim()
-        };
-
-        if (typeof window.state === 'undefined') window.state = {};
-        if (typeof window.state.butirSoalAktif === 'undefined') window.state.butirSoalAktif = [];
-
-        // CEK APAKAH SEDANG UPDATE ATAU BUAT BARU
-        if (window.state.sedangEditId) {
-            // MODE UPDATE
-            payload.id = window.state.sedangEditId; // Pakai ID lama
-            const index = window.state.butirSoalAktif.findIndex(s => s.id === window.state.sedangEditId);
-            if (index !== -1) {
-                window.state.butirSoalAktif[index] = payload; // Timpa data lama di memori
-            }
-            alert("✅ Butir soal berhasil di-update!");
-        } else {
-            // MODE BUAT BARU
-            payload.id = 'soal_' + Date.now(); // Buat ID baru
-            window.state.butirSoalAktif.push(payload);
-            alert("✅ Butir soal baru berhasil disimpan!");
-        }
-
-        // Panggil render agar angka muncul/update di kiri
-        window.renderDaftarButirSoal();
-
-        // Bersihkan layar untuk soal selanjutnya
-        window.tambahButirSoalBaru();
-
-    } catch (error) {
-        console.error("Gagal simpan:", error);
-        alert("Terjadi kesalahan: " + error.message);
-        const btnSimpan = document.getElementById('btnSimpanButir');
-        if (btnSimpan) { btnSimpan.innerHTML = 'Simpan Soal'; btnSimpan.disabled = false; }
-    }
-};
-
-
-// ============================================================================
-// 5. FUNGSI SAAT MENGKLIK ANGKA SOAL DI KIRI (TARIK DATA KE TENGAH)
-// ============================================================================
-window.bukaEditButirSoal = (idSoal) => {
-    // 1. Cari data soal berdasarkan ID
-    const soal = window.state.butirSoalAktif.find(s => s.id === idSoal);
-    if (!soal) return alert("Data soal tidak ditemukan!");
-
-    // 2. Tandai bahwa kita sedang dalam "Mode Edit"
-    window.state.sedangEditId = idSoal;
-
-    // 3. Masukkan data soal ke dalam kotak-kotak isian di layar tengah
-    if (document.getElementById('editorPertanyaan')) document.getElementById('editorPertanyaan').value = soal.pertanyaan || '';
-    if (document.getElementById('editorTipeSoal')) document.getElementById('editorTipeSoal').value = soal.tipe || 'PG';
-    if (document.getElementById('opsiA')) document.getElementById('opsiA').value = soal.opsiA || '';
-    if (document.getElementById('opsiB')) document.getElementById('opsiB').value = soal.opsiB || '';
-    if (document.getElementById('opsiC')) document.getElementById('opsiC').value = soal.opsiC || '';
-    if (document.getElementById('opsiD')) document.getElementById('opsiD').value = soal.opsiD || '';
-    if (document.getElementById('editorKunci')) document.getElementById('editorKunci').value = soal.kunci || '';
-
-    // 4. Ubah teks judul agar jelas sedang mengedit nomor berapa
-    const indexSoal = window.state.butirSoalAktif.findIndex(s => s.id === idSoal);
-    const labelNo = document.getElementById('labelNomorSoal');
-    if (labelNo) labelNo.innerText = `Edit Soal Nomor ${indexSoal + 1}`;
-
-    // 5. Ubah tombol Simpan menjadi Update
-    const btnSimpan = document.getElementById('btnSimpanButir');
-    if (btnSimpan) btnSimpan.innerHTML = '💾 Update Soal';
-};
+    attachLoad('btn-viewBackup', window.loadBackup);
+    attachLoad('btn-viewProfil', window.loadProfil);
+    attachLoad('btn-viewPengumuman', () => window.loadPengumuman(false));
+    attachLoad('btn-viewBersihkan', window.loadBersihkan);
+
+    const btnProsesBackup = document.querySelector('#viewBackup button.bg-blue-500');
+    if (btnProsesBackup) btnProsesBackup.onclick = window.backupSemuaData;
+}, 1000);
